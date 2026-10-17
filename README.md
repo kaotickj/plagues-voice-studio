@@ -120,6 +120,12 @@ The Python source and protocol have automated tests, and the creator has verifie
 
 **Compatibility note:** Existing v0.3 executable filenames, settings identifiers and user-data folders still contain `Experimental` as a legacy technical identifier, **not** as a product status. Those paths have deliberately not been renamed, so existing voice references, installed engines, profiles and settings remain discoverable. The visible application and installer version is 0.3.0.
 
+## Qwen3-TTS Base 1.7B cache verification
+
+The **1.7B model has not yet been validated on the creator's Windows setup**. The official repository is several gigabytes, including a large weight file and a separate speech tokenizer. The Model Manager previously considered any Hugging Face cached *revision* sufficient evidence of model availability, even if needed files were absent. The improved check now opens the cached snapshot offline and verifies the main model and tokenizer files exist and are nonempty. The download task reports free disk space on the cache volume and confirms required files before recording success.
+
+A failed 1.7B download still needs its diagnostic log reviewed; network interruptions, partial files, free disk space, Hugging Face cache/Xet behavior, and engine dependency compatibility may be involved. No cache or user model is deleted automatically. 0.6B stays supported.
+
 ## Model Manager: install models from the GUI
 
 The **Model Manager** tab installs official Hugging Face model weights without requiring users to run model-download commands manually. Six model choices are available:
