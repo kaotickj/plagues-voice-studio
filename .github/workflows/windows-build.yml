@@ -156,6 +156,22 @@ jobs:
         with:
           name: PlaguesVoiceStudio-Windows-Checksums
           path: release-payload/checksums
+      - name: Verify GitHub Release asset size limits
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          limit = 2 * 1024**3
+          paths = [*Path('release-payload/portable').glob('*.zip'),
+                   *Path('release-payload/installer').glob('*.exe')]
+          if len(paths) != 2:
+              raise SystemExit('Release is missing the portable ZIP or Windows setup EXE')
+          oversized = [p for p in paths if p.stat().st_size >= limit]
+          if oversized:
+              for p in oversized:
+                  print(f'GitHub Releases 2 GiB asset limit exceeded: {p.name} ({p.stat().st_size:,} bytes)')
+              raise SystemExit('Cannot publish this as a GitHub Release: build a smaller model-on-demand installer or host the full offline installer elsewhere. DO NOT publish a release that has no usable installer.')
+          PY
       - name: Publish official release only after installer tests pass
         uses: softprops/action-gh-release@v2
         with:
