@@ -82,6 +82,16 @@ Read **[OPTIONAL_ENGINES.md](OPTIONAL_ENGINES.md)** before setting up extra mode
 - Bethesda project mappings, WAV/LIP/XWM/FUZ production, and optional direct game/mod installation using locally supplied conversion tools. Game plugin files are never edited.
 - Dark-green branded PyQt6 GUI, searchable Help center, About/Credits/Diagnostics, and Windows frozen runtime & Qt smoke tests.
 
+## Permanent user-data location and non-destructive migration
+
+Starting with the next release, the canonical writable user-data directory is **`%LOCALAPPDATA%\\PlaguesVoiceStudio`** on Windows (and `$XDG_DATA_HOME/PlaguesVoiceStudio` on Linux). It no longer contains a version number or an Experimental suffix. The Windows QSettings application identity is now `KaotickJay/PlaguesVoiceStudio`; missing old preferences are copied from `PlaguesVoiceStudio030Experimental` without deleting or overwriting them.
+
+**One-time migration:** The first launch copies v0.3 user profiles, voice references and other portable data from the previous folder into a temporary staging directory, then renames it to the permanent directory after the copy completes. The old directory is **not changed or deleted**. Independent Python environments, downloaded Chatterbox weights, logs and old exports are deliberately not copied because they can be very large or non-relocatable. Fully downloaded legacy Chatterbox weights remain available for inference and Model Manager without re-downloading; existing Qwen3/IndexTTS interpreter paths remain valid and saved as originally configured. The Export Library still lists the previous export folders.
+
+The new default recording folder is `Music/Plague's Voice Studio` if your Music directory exists. Older recordings remain available in Export Library, including the previous Music/Plague's Voice Studio Experimental folder. New optional-engine setup scripts prefer existing v0.3 environments if found; otherwise they use the permanent folder for fresh installations.
+
+**Backup recommendation:** Back up both AppData folders and any custom export folders before the first upgrade. If migration fails (for example, insufficient free disk space), the app reports an error instead of deleting legacy files. Reinstalling or upgrading the app never removes saved voice/model files.
+
 ## Separate environments and data
 
 | | Previous stable v0.2.4 | v0.3.0 multi-engine build |
