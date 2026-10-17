@@ -9,6 +9,7 @@ import re
 import sys
 from datetime import datetime
 from .voices import VoiceLibrary
+from .paths import legacy_v030_dir
 
 
 def legacy_data_dir() -> Path:
@@ -26,12 +27,14 @@ def stable_data_dir() -> Path:
 def old_export_directories() -> list[Path]:
     return [Path.home() / 'Music' / 'Chatterbox Studio',
             Path.home() / 'Music' / "Plague's Voice Studio 0.2",
-            legacy_data_dir() / 'exports', stable_data_dir() / 'exports']
+            Path.home() / 'Music' / "Plague's Voice Studio Experimental",
+            legacy_data_dir() / 'exports', stable_data_dir() / 'exports',
+            legacy_v030_dir() / 'exports']
 
 
 def new_export_directory(storage: Path) -> Path:
     music = Path.home() / 'Music'
-    return music / "Plague's Voice Studio Experimental" if music.is_dir() else storage / 'exports'
+    return music / "Plague's Voice Studio" if music.is_dir() else storage / 'exports'
 
 
 def safe_voice_name(name: str) -> str:

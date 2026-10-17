@@ -54,11 +54,11 @@ For either engine, installing packages or weights may require significant free d
 ## Directory isolation
 
 - Stable v0.2.x user data: `%LOCALAPPDATA%\PlaguesVoiceStudio-v021`, **read only** from the v0.3 build.
-- v0.3 user data: `%LOCALAPPDATA%\PlaguesVoiceStudio-v030-Experimental`.
-- v0.3 character presets: `character_profiles.json`, runtime interpreter settings: `optional_engines.json`.
+- v0.3 legacy data: `%LOCALAPPDATA%\PlaguesVoiceStudio-v030-Experimental` (retained read-only after copying portable data). New writable data: `%LOCALAPPDATA%\PlaguesVoiceStudio`.
+- Character presets: `%LOCALAPPDATA%\PlaguesVoiceStudio\character_profiles.json`; engine settings: `optional_engines.json` under the same stable root.
 - v0.1.x voices are also available read-only if present.
-- v0.3 exports: `Music\Plague's Voice Studio Experimental` when Music exists, otherwise the v0.3 user-data exports folder.
-- Stable settings registry identifier: `PlaguesVoiceStudio021`, v0.3: `PlaguesVoiceStudio030Experimental`.
+- New exports: `Music\Plague's Voice Studio` when Music exists, otherwise the permanent user-data `exports` folder. Older exports are still browsable.
+- Previous settings registry identifier: `PlaguesVoiceStudio030Experimental`; new stable identifier: `PlaguesVoiceStudio`. Missing preferences are copied once without erasing the old registry identity.
 - Existing v0.2.x Bethesda project profiles are deliberately **not modified or automatically migrated**. Create or copy mappings inside the v0.3 profile store as needed; the stable database is untouched.
 
 ## Packaging and licensing
