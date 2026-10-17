@@ -97,8 +97,8 @@ The new default recording folder is `Music/Plague's Voice Studio` if your Music 
 | | Previous stable v0.2.4 | v0.3.0 multi-engine build |
 |---|---|---|
 | Executable | `PlaguesVoiceStudio024.exe` | `PlaguesVoiceStudio030Experimental.exe` |
-| Data | `%LOCALAPPDATA%\PlaguesVoiceStudio-v021` | `%LOCALAPPDATA%\PlaguesVoiceStudio-v030-Experimental` |
-| Settings | `KaotickJay/PlaguesVoiceStudio021` | `KaotickJay/PlaguesVoiceStudio030Experimental` |
+| Data | `%LOCALAPPDATA%\PlaguesVoiceStudio-v021` | `%LOCALAPPDATA%\PlaguesVoiceStudio` (previous v0.3 data copied safely on first launch) |
+| Settings | `KaotickJay/PlaguesVoiceStudio021` | `KaotickJay/PlaguesVoiceStudio` (previous values preserved) |
 | Windows installation | Stable app folder | `Plague's Voice Studio 0.3` (existing installation directory retained) |
 | Voices | Writable stable v0.2.x | New imports writable; stable v0.2.x and v0.1.x read-only |
 | Models | Chatterbox | Same Chatterbox core, optional Qwen/Index in separate Python processes |
@@ -128,7 +128,7 @@ Qwen3-TTS and IndexTTS 2.5 use separately installed Python runtimes, following `
 
 The Python source and protocol have automated tests, and the creator has verified live Windows narration with Chatterbox, Qwen3-TTS and IndexTTS 2.5. This does **not** claim universal hardware support, Qwen3 1.7B validation, AMD GPU acceleration or Bethesda in-game compatibility. The Windows build runs a frozen Qt smoke test before packaging.
 
-**Compatibility note:** Existing v0.3 executable filenames, settings identifiers and user-data folders still contain `Experimental` as a legacy technical identifier, **not** as a product status. Those paths have deliberately not been renamed, so existing voice references, installed engines, profiles and settings remain discoverable. The visible application and installer version is 0.3.0.
+**Compatibility note:** The existing executable filename and earlier v0.3 engine installation paths may still contain `Experimental` for compatibility. The writable user-data and QSettings identities are now permanent and unversioned. Existing engine runtimes remain at their installed paths to avoid breaking Python environments. The visible application and installer version remains 0.3.0.
 
 ## Model Manager: install models from the GUI
 
