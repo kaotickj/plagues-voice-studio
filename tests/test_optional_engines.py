@@ -230,7 +230,7 @@ def test_both_optional_engine_commands_enable_python_isolated_mode(tmp_path, mon
     oe.execute_generation(sample(tmp_path), sys.executable)
     assert len(commands) == 2
     assert all(cmd[1] == '-I' for cmd in commands)
-    assert all(cmd[2:4] == ['-X', 'faulthandler'] for cmd in commands)
+    assert all(cmd[3:5] == ['-X', 'faulthandler'] for cmd in commands)
 
 def test_native_windows_access_violation_is_explained():
     assert 'access violation' in oe.native_exit_hint(3221225477).lower()
