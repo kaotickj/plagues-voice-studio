@@ -12,7 +12,7 @@ import numpy as np
 
 from .jobs import NarrationJob
 from .paths import bundled_models_dir, user_data_dir
-from .model_downloads import MODELS, has_required_files
+from .model_downloads import MODELS, has_required_files, installed_model_directory
 from .narration_markup import plan_script
 from .export_metadata import write_export_metadata
 
@@ -44,9 +44,9 @@ def load_model(model_id: str, device: str):
     """Load included offline weights when present, otherwise Hugging Face cache/download."""
     # Prefer validated per-user downloads; frozen app files remain read-only.
     spec = MODELS[model_id]
-    user_path = user_data_dir() / 'models' / model_id
+    user_path = installed_model_directory(user_data_dir(), spec)
     bundled_path = bundled_models_dir() / model_id
-    path = user_path if has_required_files(user_path, spec) else bundled_path
+    path = user_path if user_path is not None else bundled_path
     if not has_required_files(path, spec):
         path = None
     if model_id in ("nano", "turbo"):
