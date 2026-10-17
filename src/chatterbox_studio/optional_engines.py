@@ -355,7 +355,7 @@ def execute_probe(engine: str, python_exe: str, repo: str = '', timeout: int = 1
     if cancelled is not None and cancelled.is_set():
         raise EngineCancelled('Cancelled')
     kwargs = {'cwd': str(Path(repo).resolve())} if engine == 'index25' else {}
-    command = [python_exe, '-I', '-X', 'faulthandler', '-u', str(runtime_script_path()), '--probe', engine]
+    command = [python_exe, '-I', '-u', '-X', 'faulthandler', str(runtime_script_path()), '--probe', engine]
     with tempfile.TemporaryDirectory(prefix='pvs-probe-') as temp:
         logfile = (_diagnostic_path(engine + '-probe', diagnostic_dir)
                    if diagnostic_dir is not None else Path(temp) / 'probe.log')
@@ -405,7 +405,7 @@ def execute_generation(request: dict, python_exe: str, cancelled: Event | None =
         logfile = (_diagnostic_path(engine + '-generate', diagnostic_dir)
                    if diagnostic_dir is not None else root / 'process.log')
         source.write_text(json.dumps(request, ensure_ascii=False), encoding='utf-8')
-        command = [python_exe, '-I', '-X', 'faulthandler', '-u', str(runtime_script_path()), '--run', str(source), str(response)]
+        command = [python_exe, '-I', '-u', '-X', 'faulthandler', str(runtime_script_path()), '--run', str(source), str(response)]
         kwargs = {'cwd': str(Path(request['repo']).resolve())} if engine == 'index25' else {}
         start = time.monotonic()
         if log:
