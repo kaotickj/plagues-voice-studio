@@ -97,9 +97,9 @@ Stable Bethesda project profiles are **not automatically imported**, preventing 
 
 ## Building on Windows
 
-A [Windows GitHub Actions build](https://github.com/kaotickj/plagues-voice-studio/actions/workflows/windows-build.yml) on `develop` packages the current code as a portable application and a **single-file Windows setup EXE**. The build bundles the selected Chatterbox model; Qwen3-TTS still uses a separately installed local Python runtime and is not bundled in the installer.
+The [Windows GitHub Actions build](https://github.com/kaotickj/plagues-voice-studio/actions/workflows/windows-build.yml) runs automatically when application source or packaging files are pushed or merged to `main`, `develop` or a `release/**` branch, and for version tags (`v*`). You can also start one manually under **Actions → Plague's Voice Studio Windows package → Run workflow**. It packages the current code as a portable application and a **single-file Windows setup EXE**. The build bundles the selected Chatterbox model; Qwen3-TTS still uses a separately installed local Python runtime and is not bundled in the installer.
 
-**Installer note:** The standalone setup EXE is approximately 3 GB. There are **no numbered disks or companion BIN files**. The GitHub workflow builds with Inno Setup 6.5.2 or newer, rejects any disk slices, and verifies that the installer can install on a fresh Windows runner before declaring the workflow successful. Download the `PlaguesVoiceStudio-develop-Windows-Standalone-Installer` artifact, extract the EXE from GitHub's ZIP, and run it normally.
+**Installer note:** The standalone setup EXE is approximately 3 GB. There are **no numbered disks or companion BIN files**. The GitHub workflow builds with Inno Setup 6.5.2 or newer, rejects any disk slices, and verifies that the installer can install on a fresh Windows runner before declaring the workflow successful. Download the `PlaguesVoiceStudio-Windows-Standalone-Installer` artifact, extract the EXE from GitHub's ZIP, and run it normally.
 
 
 Windows x64, Python 3.11, Git, internet for initial Chatterbox installation and model acquisition. Inno Setup 6 is optional.
