@@ -13,7 +13,7 @@ from fnmatch import fnmatch
 import os
 import time
 
-from .paths import bundled_models_dir
+from .paths import bundled_models_dir, canonical_data_dir, legacy_v030_dir
 from .optional_engines import (
     EngineCancelled, EngineError, EngineRegistry, _spawn_optional_interpreter,
     _stop_process, _watch_engine_process,
@@ -55,6 +55,25 @@ def user_model_directory(storage: Path, key: str) -> Path:
     return Path(storage) / 'models' / key
 
 
+def legacy_model_directory(storage: Path, key: str) -> Path | None:
+    """Old model weights are reused read-only when running from canonical storage."""
+    if Path(storage) != canonical_data_dir():
+        return None
+    path = legacy_v030_dir() / "models" / key
+    return path if path.is_dir() else None
+
+
+def installed_model_directory(storage: Path, model: ModelChoice) -> Path | None:
+    """Choose complete current or legacy weights; never use partial downloads."""
+    current = user_model_directory(storage, model.key)
+    if has_required_files(current, model):
+        return current
+    legacy = legacy_model_directory(storage, model.key)
+    if legacy is not None and has_required_files(legacy, model):
+        return legacy
+    return None
+
+
 def has_required_files(folder: Path, model: ModelChoice) -> bool:
     return bool(model.required) and all(
         (folder / filename).is_file() and (folder / filename).stat().st_size > 0
@@ -65,8 +84,11 @@ def has_required_files(folder: Path, model: ModelChoice) -> bool:
 def chatterbox_status(storage: Path, model: ModelChoice) -> str:
     if model.family != 'chatterbox':
         raise ValueError('Chatterbox status requires a Chatterbox model')
-    if has_required_files(user_model_directory(storage, model.key), model):
-        return 'Installed (user data)'
+    selected = installed_model_directory(storage, model)
+    if selected is not None:
+        return ('Installed (previous v0.3 data)' if
+                selected == legacy_model_directory(storage, model.key)
+                else 'Installed (user data)')
     if has_required_files(bundled_models_dir() / model.key, model):
         return 'Included with application'
     return 'Download available'
@@ -80,9 +102,15 @@ def qwen_python(storage: Path) -> str:
         saved = ''
     if is_interpreter(saved):
         return saved
-    folder = Path(storage) / 'engines' / 'qwen3'
-    candidate = folder / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
-    return str(candidate) if is_interpreter(str(candidate)) else ''
+    py_path = ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+    folders = [Path(storage) / 'engines' / 'qwen3']
+    if Path(storage) == canonical_data_dir():
+        folders.append(legacy_v030_dir() / 'engines' / 'qwen3')
+    for folder in folders:
+        candidate = folder / py_path
+        if is_interpreter(str(candidate)):
+            return str(candidate)
+    return ''
 
 
 def download_chatterbox(model: ModelChoice, storage: Path, cancelled: Event, log) -> Path:
@@ -96,6 +124,10 @@ def download_chatterbox(model: ModelChoice, storage: Path, cancelled: Event, log
     target = user_model_directory(storage, model.key)
     if cancelled.is_set():
         raise EngineCancelled('Cancelled')
+    installed = installed_model_directory(storage, model)
+    if installed is not None:
+        log(f'This Chatterbox model is already available at {installed}. No download needed.')
+        return installed
     if has_required_files(target, model):
         log('This Chatterbox model is already downloaded.')
         return target
