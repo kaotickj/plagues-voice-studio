@@ -95,6 +95,20 @@ Read **[OPTIONAL_ENGINES.md](OPTIONAL_ENGINES.md)** before setting up extra mode
 
 Stable Bethesda project profiles are **not automatically imported**, preventing modifications to the stable data store. Recreate v0.3 mappings or manually back up/import compatible profiles only after verifying them.
 
+## Distribution editions
+
+**Standard Windows release: Slim/model-on-demand.** The automatic GitHub Actions build now uses `-Slim`. It packages the application and required Python libraries **without any Chatterbox model weight files**, even if the build checkout already contains `models/`. Install Voice Studio, open **Model Manager**, and download/validate the Chatterbox models you actually need. Qwen3 and IndexTTS require independently configured Python environments and their own models.
+
+**Optional Full Offline edition:** `powershell -ExecutionPolicy Bypass -File .\\scripts\\build_windows.ps1 -FullOffline` still bundles every Chatterbox model. This may produce a multi-gigabyte installer beyond GitHub Releases' per-file asset limit; distribute it separately after size and license checks. It does not bundle Qwen3/IndexTTS.
+
+**Build Slim locally:**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\\scripts\\build_windows.ps1 -Slim
+```
+
+The slim build fails if accidentally bundled speech weight files are found in its output. No model weights are downloaded just to build the slim installer.
+
 ## Building on Windows
 
 The [Windows GitHub Actions build](https://github.com/kaotickj/plagues-voice-studio/actions/workflows/windows-build.yml) runs automatically when application source or packaging files are pushed or merged to `main`, `develop` or a `release/**` branch, and for version tags (`v*`). You can also start one manually under **Actions → Plague's Voice Studio Windows package → Run workflow**. It packages the current code as a portable application and a **single-file Windows setup EXE**. The build bundles the selected Chatterbox model; Qwen3-TTS still uses a separately installed local Python runtime and is not bundled in the installer.
