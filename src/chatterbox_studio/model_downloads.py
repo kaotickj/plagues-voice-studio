@@ -125,15 +125,46 @@ def download_chatterbox(model: ModelChoice, storage: Path, cancelled: Event, log
 # Runs only inside a separately installed Qwen Python interpreter.
 # No model weights or packages are installed into the Chatterbox application.
 _QWEN_SCRIPT = '''import sys
-from huggingface_hub import snapshot_download, scan_cache_dir
+from pathlib import Path
+from huggingface_hub import snapshot_download
+from huggingface_hub.constants import HF_HUB_CACHE
+import shutil
+
 repo, operation = sys.argv[1], sys.argv[2]
+# A cached Hub revision is NOT evidence that multi-GB model weights are complete.
+# Verify both speech-tokenizer and primary weight files before claiming readiness.
+required = ("config.json", "model.safetensors",
+            "speech_tokenizer/config.json", "speech_tokenizer/model.safetensors")
+
+def verify(path):
+    root = Path(path)
+    missing = []
+    for filename in required:
+        item = root / filename
+        if not item.is_file() or item.stat().st_size < 1024:
+            missing.append(filename)
+    if missing:
+        raise RuntimeError("Incomplete Qwen model snapshot; missing/empty files: " + ", ".join(missing))
+    print("PVS_MODEL_VERIFIED " + str(root), flush=True)
+    return root
+
 if operation == 'check':
-    scan = scan_cache_dir()
-    cached = any(entry.repo_id == repo and entry.revisions for entry in scan.repos)
-    print('PVS_CACHE_FOUND' if cached else 'PVS_CACHE_MISSING', flush=True)
+    try:
+        path = snapshot_download(repo_id=repo, local_files_only=True)
+        verify(path)
+        print('PVS_CACHE_FOUND', flush=True)
+    except (OSError, ValueError, RuntimeError) as exc:
+        print("PVS_CACHE_INCOMPLETE " + str(exc), flush=True)
+        print('PVS_CACHE_MISSING', flush=True)
 elif operation == 'download':
-    print('PVS_DOWNLOADING ' + repo, flush=True)
+    cache = Path(HF_HUB_CACHE)
+    disk = next((p for p in (cache, cache.parent, Path.home()) if p.exists()), Path.home())
+    free_gib = shutil.disk_usage(disk).free / (1024 ** 3)
+    print("PVS_CACHE_VOLUME_FREE_GIB " + format(free_gib, '.2f'), flush=True)
+    print("PVS_DOWNLOADING " + repo, flush=True)
+    # Resume files already in the cache; never delete user models automatically.
     path = snapshot_download(repo_id=repo, max_workers=1)
+    verify(path)
     print('PVS_DOWNLOAD_COMPLETE ' + str(path), flush=True)
 else:
     raise ValueError('Invalid model operation')
