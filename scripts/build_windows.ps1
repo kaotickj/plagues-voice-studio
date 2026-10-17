@@ -6,19 +6,20 @@
   and Inno Setup 6 for the optional conventional installer.
   -FullOffline downloads AND validates all four models, then bundles an
   offline-only policy marker so runtime will never silently download weights.
-  -SkipModels can be used with -FullOffline ONLY if all weights were previously
+  -Slim builds a model-on-demand setup without bundling existing model weights.\n  -SkipModels can be used with -FullOffline ONLY if all weights were previously
   downloaded to models/. The preflight validation will still run.
 .EXAMPLE
   .\scripts\build_windows.ps1 -FullOffline
 .EXAMPLE
   .\scripts\build_windows.ps1 -FullOffline -SkipModels
 .EXAMPLE
-  .\scripts\build_windows.ps1 -Models nano
+  .\scripts\build_windows.ps1 -Slim\n.EXAMPLE\n  .\scripts\build_windows.ps1 -Models nano
 #>
 param(
     [ValidateSet('nano','turbo','english','multilingual-v3')]
     [string[]]$Models = @('nano'),
     [switch]$FullOffline,
+    [switch]$Slim,
     [switch]$SkipModels,
     [switch]$SkipInstaller
 )
@@ -37,6 +38,8 @@ if ([System.Environment]::OSVersion.Platform -ne [System.PlatformID]::Win32NT) {
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     throw 'Git is required on the BUILD machine to install upstream Chatterbox.'
 }
+if ($Slim -and ($FullOffline -or $SkipModels)) { throw 'Slim cannot be combined with FullOffline or SkipModels.' }
+if ($Slim) { Write-Host 'Building small installer: models are installed later through Model Manager.' }
 if ($FullOffline) {
     $Models = @('nano','turbo','english','multilingual-v3')
     Write-Host 'Building STRICT FULL-OFFLINE edition with ALL FOUR Chatterbox models.'
@@ -55,7 +58,7 @@ Assert-Success 'Project dependency installation failed'
 # Remove stale strict mode marker before preparing a new build.
 $marker = Join-Path $root 'models\offline-bundle.json'
 if (Test-Path $marker) { Remove-Item $marker -Force }
-if (-not $SkipModels) {
+if (-not $SkipModels -and -not $Slim) {
     & $python scripts\download_models.py @Models
     Assert-Success 'Model download or validation failed; no installer produced.'
 }
@@ -68,8 +71,15 @@ if ($FullOffline) {
 if (Test-Path 'dist\PlaguesVoiceStudio030Experimental') {
     Remove-Item -LiteralPath 'dist\PlaguesVoiceStudio030Experimental' -Recurse -Force
 }
-& $python -m PyInstaller --clean --noconfirm ChatterboxStudio.spec
-Assert-Success 'PyInstaller build failed'
+$oldSlim = [Environment]::GetEnvironmentVariable('PVS_SLIM_BUILD')
+try {
+    if ($Slim) { $env:PVS_SLIM_BUILD = '1' } else { Remove-Item Env:PVS_SLIM_BUILD -ErrorAction SilentlyContinue }
+    & $python -m PyInstaller --clean --noconfirm ChatterboxStudio.spec
+    Assert-Success 'PyInstaller build failed'
+} finally {
+    if ($null -eq $oldSlim) { Remove-Item Env:PVS_SLIM_BUILD -ErrorAction SilentlyContinue }
+    else { $env:PVS_SLIM_BUILD = $oldSlim }
+}
 
 # Smoke-test the actual frozen executable, not just the source venv. This
 # catches missing importlib.metadata *.dist-info directories, such as the
@@ -104,6 +114,13 @@ if ($uiSmoke.ExitCode -ne 0 -or $uiResult.status -ne 'passed' -or $uiResult.vers
     throw "Frozen GUI startup test failed. Installer not created. Details:`n$details"
 }
 Write-Host 'Frozen Qt main-window test PASSED.'
+if ($Slim) {
+    $distModels = Join-Path $root 'dist\PlaguesVoiceStudio030Experimental\_internal\models'
+    if (Test-Path $distModels) {
+        $weights = @(Get-ChildItem -LiteralPath $distModels -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in @('.safetensors', '.pt', '.bin') })
+        if ($weights.Count -gt 0) { throw 'Slim build accidentally included Chatterbox weight files; abort packaging.' }
+    }
+}
 
 if ($FullOffline) {
     # PyInstaller onedir locates collected data under dist\App\_internal\.
@@ -112,7 +129,7 @@ if ($FullOffline) {
 }
 
 New-Item -ItemType Directory -Force artifacts | Out-Null
-$filename = if ($FullOffline) { 'PlaguesVoiceStudio030Experimental-FullOffline-Portable.zip' } else { 'PlaguesVoiceStudio030Experimental-Portable.zip' }
+$filename = if ($FullOffline) { 'PlaguesVoiceStudio030Experimental-FullOffline-Portable.zip' } elseif ($Slim) { 'PlaguesVoiceStudio030Experimental-Slim-Portable.zip' } else { 'PlaguesVoiceStudio030Experimental-Portable.zip' }
 $portable = Join-Path $root ('artifacts\' + $filename)
 if (Test-Path $portable) { Remove-Item $portable -Force }
 Compress-Archive -Path 'dist\PlaguesVoiceStudio030Experimental' -DestinationPath $portable -CompressionLevel Optimal
@@ -151,4 +168,4 @@ if (-not $SkipInstaller) {
         Write-Host "Standalone installer: $($setups[0].Name) ($($setups[0].Length) bytes). No extra disks or BIN files required."
     }
 }
-Write-Host 'Done. Target Windows machines do NOT require Python, pip or network access to synthesize speech in full-offline mode.'
+Write-Host 'Done. Slim installs require a one-time user-approved model download in Model Manager; FullOffline includes all Chatterbox weights.'
