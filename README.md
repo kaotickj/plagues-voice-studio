@@ -101,6 +101,8 @@ The [Windows GitHub Actions build](https://github.com/kaotickj/plagues-voice-stu
 
 **Installer note:** The standalone setup EXE is approximately 3 GB. There are **no numbered disks or companion BIN files**. The GitHub workflow builds with Inno Setup 6.5.2 or newer, rejects any disk slices, and verifies that the installer can install on a fresh Windows runner before declaring the workflow successful. Download the `PlaguesVoiceStudio-Windows-Standalone-Installer` artifact, extract the EXE from GitHub's ZIP, and run it normally.
 
+**Release automation:** On a tagged version such as `v1.0.0`, the workflow builds the package, runs the frozen GUI tests and installs the standalone installer on a clean Windows runner. Only after these pass does it publish an official GitHub Release with the portable ZIP, Windows setup EXE, and `SHA256SUMS.txt` hashes. Pre-release tags containing `rc`, `beta`, or `alpha` are marked as prereleases. Merges to `main` generate downloadable Actions artifacts but **do not publish a public GitHub Release**.
+
 
 Windows x64, Python 3.11, Git, internet for initial Chatterbox installation and model acquisition. Inno Setup 6 is optional.
 
