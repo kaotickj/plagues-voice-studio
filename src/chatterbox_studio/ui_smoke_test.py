@@ -16,7 +16,7 @@ from . import __version__
 def run(report_path: Path | None = None) -> int:
     report = {"version": __version__, "test": "Qt main-window and About dialog lifecycle", "status": "failed", "errors": []}
     try:
-        from PyQt6.QtCore import QTimer, QSettings
+        from PyQt6.QtCore import QTimer, QSettings, Qt
         from PyQt6.QtWidgets import QApplication, QPushButton, QDialog, QLabel, QLineEdit, QListWidget, QTabWidget, QPlainTextEdit
         from .app import MainWindow, CSS, _application_icon
         app = QApplication.instance() or QApplication([sys.argv[0]])
@@ -94,6 +94,46 @@ def run(report_path: Path | None = None) -> int:
                 help_search.clear()
                 if help_center.topic_list.count() < 6:
                     raise RuntimeError('Help topic list incomplete.')
+                # Release-candidate regression: exercise JSON transcript export
+                # and the ACTUAL packaged Export Library preview/copy widgets.
+                # This uses tiny synthetic WAV files, without loading TTS weights
+                # or touching the user's existing recordings.
+                from .export_metadata import write_export_metadata
+                from wave import open as open_wave
+                sample_dir = Path(tmp) / 'script-preview-acceptance'
+                sample_dir.mkdir()
+                script = '[narration] The Charles River is quiet.\n\n[whispering] Not for long, sweetheart.'
+                audio_path = sample_dir / 'test_story.wav'
+                with open_wave(str(audio_path), 'wb') as output_wave:
+                    output_wave.setnchannels(1)
+                    output_wave.setsampwidth(2)
+                    output_wave.setframerate(8000)
+                    output_wave.writeframes(b'\x00\x00' * 800)
+                write_export_metadata(audio_path, {
+                    'engine': 'chatterbox', 'model': 'turbo', 'text': script,
+                })
+                browser = window.export_browser
+                browser.add_root(sample_dir)
+                matches = browser.list.findItems(audio_path.name, Qt.MatchFlag.MatchExactly, 0)
+                if len(matches) != 1:
+                    raise RuntimeError('Generated Chatterbox WAV missing from Export Library.')
+                browser.list.setCurrentItem(matches[0])
+                if browser.script_preview.toPlainText() != script:
+                    raise RuntimeError('Export Library failed to display the exact saved script.')
+                if not browser.script_preview.isReadOnly() or not browser.copy_script.isEnabled():
+                    raise RuntimeError('Export script preview must be read-only and copyable.')
+                browser.copy_script.click()
+                if QApplication.clipboard().text() != script:
+                    raise RuntimeError('Copy script did not preserve the original tags and whitespace.')
+                legacy_path = sample_dir / 'older_without_script.wav'
+                legacy_path.write_bytes(b'not a playable recording; metadata-missing regression only')
+                browser.refresh()
+                matches = browser.list.findItems(legacy_path.name, Qt.MatchFlag.MatchExactly, 0)
+                if len(matches) != 1:
+                    raise RuntimeError('Legacy audio not listed in Export Library.')
+                browser.list.setCurrentItem(matches[0])
+                if browser.script_preview.toPlainText() or browser.copy_script.isEnabled():
+                    raise RuntimeError('Legacy recording reused a different audio file script.')
                 about_button.click()
                 if about_dialog.findChild(QTabWidget, 'about_tabs') is None:
                     raise RuntimeError('About credits and diagnostics tabs missing.')

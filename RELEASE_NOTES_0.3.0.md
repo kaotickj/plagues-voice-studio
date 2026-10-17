@@ -1,12 +1,14 @@
-# Plague's Voice Studio 0.3.0 — Multi-engine release
+# Plague's Voice Studio 0.3.0 RC1 — Multi-engine release candidate
 
 **Current status (October 17, 2026):** Chatterbox, Qwen3-TTS and IndexTTS 2.5 are supported locally. The creator confirmed successful speech generation with all three on the Windows machine used for development. An IndexTTS crash encountered while DJ Writer was also running stopped recurring when DJ Writer was closed; this suggests resource contention on that machine, not a permanent IndexTTS incompatibility.
 
 The full v0.3 application retains independently configured Python runtimes for Qwen3-TTS and IndexTTS. The independent v0.2.4 installation and data remain untouched. Engine weights, environment dependencies and licenses remain supplied/installed separately.
 
-The Export Library can display and copy the exact script from a recording's matching JSON file when such metadata exists. Newly generated Chatterbox recordings need the corresponding script-sidecar export fix in the installed build; older audio files without sidecars cannot be reconstructed automatically.
+The Export Library can display and copy the exact script from a recording's matching JSON file when such metadata exists. The merged Chatterbox engine now writes a matching JSON containing the exact input script for each successful WAV/MP3 render. An installed EXE must be rebuilt to include that fix; older audio files without sidecars cannot be reconstructed automatically.
 
-The visible application and installer version is **0.3.0**. Technical identifiers in executable names, paths, and Windows settings still include `Experimental` to preserve compatibility with existing installs and downloaded engine environments.
+The release-candidate application version is **0.3.0rc1** and the installer label is **0.3.0-rc1**. Technical identifiers in executable names, paths, and Windows settings still include `Experimental` to preserve compatibility with existing installs and downloaded engine environments.
+
+**RC acceptance:** The Windows GUI smoke test now exercises writing, previewing and copying script metadata without loading an AI model. A real newly built Chatterbox WAV/MP3 + JSON and Qwen3/IndexTTS regression check remain required before tagging a final release. See `RELEASE_CANDIDATE_CHECKLIST.md`.
 
 **Test scope:** successful real generation is confirmed on the creator's Windows setup. That does not imply Qwen3 1.7B, every GPU configuration, or clean-machine installer testing. Historical alpha notes below record the development timeline rather than current engine support.
 

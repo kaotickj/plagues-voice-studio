@@ -1,7 +1,7 @@
 <#
 Rebuild the v0.3 Windows executable using EXISTING .venv-build.
 No package/model downloads, no compression, no installer. Run in project root.
-Retained for compatibility with previous alpha4 source layouts; it also accepts v0.3.0.
+Retained for compatibility with previous alpha4 source layouts; it also accepts v0.3.0 and v0.3.0rc1.
 #>
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -35,7 +35,7 @@ foreach ($mode in @('--self-test','--ui-self-test')) {
     if ($p.ExitCode -ne 0 -or $check.status -ne 'passed') {
         throw "Smoke test failed; inspect $dest"
     }
-    if ($mode -eq '--ui-self-test' -and $check.version -notin @('0.3.0', '0.3.0-alpha4')) {
+    if ($mode -eq '--ui-self-test' -and $check.version -notin @('0.3.0rc1', '0.3.0', '0.3.0-alpha4')) {
         throw "Incorrect frozen version: $($check.version)"
     }
     Write-Host "PASSED: $mode"

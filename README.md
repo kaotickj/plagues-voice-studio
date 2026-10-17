@@ -1,4 +1,4 @@
-# Plague's Voice Studio v0.3.0
+# Plague's Voice Studio v0.3.0 RC1
 
 **Created by Kaotick Jay.** Local AI voice production for narration, radio, character voices, and Bethesda game dialogue.
 
@@ -13,7 +13,7 @@
 
 **Speech-engine status:** **Chatterbox, Qwen3-TTS and IndexTTS 2.5 are supported.** The creator has confirmed real speech generation with all three on the Windows setup used for development. Qwen3-TTS Base 0.6B and IndexTTS 2.5 have produced working audio. This describes verified use on that machine; it does not guarantee compatibility with every GPU, every model size or future upstream release.
 
-This is a **separately installed v0.3.0 build** based on the v0.2.4 stable source. Do not overwrite or uninstall v0.2.4. The preserved stable archive has SHA-256 `23464fb7c541e000d03f2c47f14e18629fe70d97f1b9b4d4ebadf556776d5928`.
+This is a **v0.3.0 release candidate**, separately installed from the v0.2.4 stable source. Do not overwrite or uninstall v0.2.4. The preserved stable archive has SHA-256 `23464fb7c541e000d03f2c47f14e18629fe70d97f1b9b4d4ebadf556776d5928`.
 
 ### What you can do
 
@@ -113,6 +113,12 @@ The result is `dist\PlaguesVoiceStudio030Experimental\PlaguesVoiceStudio030Exper
 To preview source UI with an already prepared `.venv-build` environment, run `PREVIEW_GUI.bat`. A source-code change does not update an existing EXE; rebuilding is required.
 
 Qwen3-TTS and IndexTTS 2.5 use separately installed Python runtimes, following `OPTIONAL_ENGINES.md`. The application does not install their packages automatically. Use **Voice Engines → Test selected engine** before generating. This checks imports; actual synthesis requires installed model weights. Downloads may be large.
+
+## Release-candidate validation
+
+**Chatterbox script saving is implemented on the current source branch.** New Chatterbox WAV/MP3 renders should create a same-stem JSON with an exact original-script `text` field; Qwen3 and IndexTTS already save analogous metadata. In **Export Library**, selecting any recording with saved metadata previews the text and enables **Copy script**. A previously built Windows EXE is not updated automatically by a GitHub merge.
+
+The RC Windows build first runs Chatterbox/JSON integration and Export Library regression tests, and then runs an expanded frozen-Windows GUI smoke test to verify JSON-to-Export-Library text preview and clipboard copying. A real Chatterbox render with a corresponding JSON sidecar is still required before final release. See **[Release candidate acceptance checklist](RELEASE_CANDIDATE_CHECKLIST.md)** for the specific pass criteria and steps.
 
 ## Testing status
 

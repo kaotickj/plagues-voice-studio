@@ -33,3 +33,12 @@ def test_about_action_is_nonmodal_and_exercised_by_frozen_smoke_test():
     assert 'about_button.click()' in ui_smoke
     assert "about_dialog.close()" in ui_smoke
     assert "plagues_about_dialog" in ui_smoke
+
+
+def test_release_candidate_exercises_export_library_script_preview():
+    root = SOURCE.parents[2]
+    smoke = (root / 'src' / 'chatterbox_studio' / 'ui_smoke_test.py').read_text(encoding='utf-8')
+    assert 'write_export_metadata(audio_path' in smoke
+    assert 'browser.script_preview.toPlainText() != script' in smoke
+    assert 'browser.copy_script.click()' in smoke
+    assert 'browser.copy_script.isEnabled()' in smoke

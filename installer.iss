@@ -1,5 +1,5 @@
 #define AppName "Plague's Voice Studio 0.3"
-#define AppVersion "0.3.0"
+#define AppVersion "0.3.0-rc1"
 #define AppPublisher "Kaotick Jay"
 #define AppExeName "PlaguesVoiceStudio030Experimental.exe"
 
