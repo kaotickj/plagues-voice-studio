@@ -105,11 +105,27 @@ The new default recording folder is `Music/Plague's Voice Studio` if your Music 
 
 Stable Bethesda project profiles are **not automatically imported**, preventing modifications to the stable data store. Recreate v0.3 mappings or manually back up/import compatible profiles only after verifying them.
 
+## Distribution editions
+
+**Standard Windows release: Slim/model-on-demand.** The automatic GitHub Actions build now uses `-Slim`. It packages the application and required Python libraries **without any Chatterbox model weight files**, even if the build checkout already contains `models/`. Install Voice Studio, open **Model Manager**, and download/validate the Chatterbox models you actually need. Qwen3 and IndexTTS require independently configured Python environments and their own models.
+
+**Optional Full Offline edition:** `powershell -ExecutionPolicy Bypass -File .\\scripts\\build_windows.ps1 -FullOffline` still bundles every Chatterbox model. This may produce a multi-gigabyte installer beyond GitHub Releases' per-file asset limit; distribute it separately after size and license checks. It does not bundle Qwen3/IndexTTS.
+
+**Build Slim locally:**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\\scripts\\build_windows.ps1 -Slim
+```
+
+The slim build fails if accidentally bundled speech weight files are found in its output. No model weights are downloaded just to build the slim installer.
+
 ## Building on Windows
 
-A [Windows GitHub Actions build](https://github.com/kaotickj/plagues-voice-studio/actions/workflows/windows-build.yml) on `develop` packages the current code as a portable application and a **single-file Windows setup EXE**. The build bundles the selected Chatterbox model; Qwen3-TTS still uses a separately installed local Python runtime and is not bundled in the installer.
+The [Windows GitHub Actions build](https://github.com/kaotickj/plagues-voice-studio/actions/workflows/windows-build.yml) runs automatically when application source or packaging files are pushed or merged to `main`, `develop` or a `release/**` branch, and for version tags (`v*`). You can also start one manually under **Actions → Plague's Voice Studio Windows package → Run workflow**. It packages the current code as a portable application and a **single-file Windows setup EXE**. The build bundles the selected Chatterbox model; Qwen3-TTS still uses a separately installed local Python runtime and is not bundled in the installer.
 
-**Installer note:** The standalone setup EXE is approximately 3 GB. There are **no numbered disks or companion BIN files**. The GitHub workflow builds with Inno Setup 6.5.2 or newer, rejects any disk slices, and verifies that the installer can install on a fresh Windows runner before declaring the workflow successful. Download the `PlaguesVoiceStudio-develop-Windows-Standalone-Installer` artifact, extract the EXE from GitHub's ZIP, and run it normally.
+**Installer note:** The standalone setup EXE is approximately 3 GB. There are **no numbered disks or companion BIN files**. The GitHub workflow builds with Inno Setup 6.5.2 or newer, rejects any disk slices, and verifies that the installer can install on a fresh Windows runner before declaring the workflow successful. Download the `PlaguesVoiceStudio-Windows-Standalone-Installer` artifact, extract the EXE from GitHub's ZIP, and run it normally.
+
+**Release automation:** On a tagged version such as `v1.0.0`, the workflow builds the package, runs the frozen GUI tests and installs the standalone installer on a clean Windows runner. Only after these pass does it publish an official GitHub Release with the portable ZIP, Windows setup EXE, and `SHA256SUMS.txt` hashes. Pre-release tags containing `rc`, `beta`, or `alpha` are marked as prereleases. Merges to `main` generate downloadable Actions artifacts but **do not publish a public GitHub Release**. **Important size gate:** GitHub Releases does not accept individual files of 2 GiB or more. The existing fully bundled installer is documented as roughly 3 GB; if its actual output exceeds this limit, the release-publish job intentionally fails before creating a release. A smaller model-on-demand installer or another trusted download host is required for official release downloads. The workflow does not split installers into multiple disks or publish an unusable release.
 
 
 Windows x64, Python 3.11, Git, internet for initial Chatterbox installation and model acquisition. Inno Setup 6 is optional.

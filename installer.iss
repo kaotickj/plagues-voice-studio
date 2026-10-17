@@ -21,7 +21,7 @@ OutputBaseFilename=PlaguesVoiceStudio030Experimental-Setup-{#AppVersion}
 Compression=lzma2
 SolidCompression=yes
 ; Inno Setup 6.5.2+ supports a single setup EXE up to nearly 4 GB.
-; This ~3 GB Nano installer must NEVER request additional media.
+; Slim release installers omit model weights; the application Model Manager downloads them later.\n; Fully bundled offline installers can be much larger and need separate hosting.
 ; Re-enable disk spanning only if the installer grows beyond that limit.
 DiskSpanning=no
 WizardStyle=modern

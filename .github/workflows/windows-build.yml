@@ -3,12 +3,14 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - develop
+      - 'release/**'
     tags:
       - 'v*'
     # Documentation, README screenshots and audio-showcase copy don't change
     # the Windows app. Avoid 20+ minute rebuilds for those commits.
-    # Path filters apply to branch pushes; release tag builds still run.
+    # Code changes on main/develop/release branches automatically build; tags build release packages.
     paths:
       - 'src/**'
       - 'scripts/**'
@@ -46,9 +48,9 @@ jobs:
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --yes --no-progress
-      - name: Build offline Nano portable and installer
+      - name: Build slim model-on-demand portable and installer
         shell: pwsh
-        run: ./scripts/build_windows.ps1 -Models nano
+        run: ./scripts/build_windows.ps1 -Slim
       # Reject multi-disk output. Users should never see an Insert Disk prompt.
       - name: Verify standalone installer
         shell: pwsh
@@ -62,16 +64,33 @@ jobs:
             throw "Standalone installer is too large to ship as a single EXE."
           }
           Write-Host "Verified single-file installer: $($setups[0].Name) ($($setups[0].Length) bytes)."
+      - name: Produce SHA-256 checksums
+        shell: pwsh
+        run: |
+          $packages = @(Get-ChildItem artifacts -File | Where-Object { $_.Extension -in @('.zip', '.exe') })
+          if ($packages.Count -lt 2) { throw 'Expected both portable ZIP and standalone installer before checksums.' }
+          $lines = foreach ($package in $packages) {
+            $hash = (Get-FileHash -LiteralPath $package.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($package.Name)"
+          }
+          [IO.File]::WriteAllLines((Join-Path (Resolve-Path artifacts) 'SHA256SUMS.txt'), $lines, [Text.UTF8Encoding]::new($false))
+          Get-Content artifacts/SHA256SUMS.txt
+      - name: Upload checksum manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlaguesVoiceStudio-Windows-Checksums
+          path: artifacts/SHA256SUMS.txt
+          if-no-files-found: error
       - name: Upload portable Windows package
         uses: actions/upload-artifact@v4
         with:
-          name: PlaguesVoiceStudio-develop-Windows-Portable
-          path: artifacts/PlaguesVoiceStudio030Experimental-Portable.zip
+          name: PlaguesVoiceStudio-Windows-Portable
+          path: artifacts/PlaguesVoiceStudio030Experimental-Slim-Portable.zip
           if-no-files-found: error
       - name: Upload complete Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: PlaguesVoiceStudio-develop-Windows-Standalone-Installer
+          name: PlaguesVoiceStudio-Windows-Standalone-Installer
           path: artifacts/PlaguesVoiceStudio030Experimental-Setup-*.exe
           if-no-files-found: error
 
@@ -86,7 +105,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: PlaguesVoiceStudio-develop-Windows-Standalone-Installer
+          name: PlaguesVoiceStudio-Windows-Standalone-Installer
           path: installer-payload
       - name: Install standalone EXE silently and verify target files
         shell: pwsh
@@ -113,3 +132,52 @@ jobs:
             throw "Install succeeded but application is missing at $app."
           }
           Write-Host "Standalone installation verified: $app"
+
+  publish_release:
+    name: Publish tagged GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: [windows, installer_smoke]
+    permissions:
+      contents: write
+    steps:
+      - name: Download tested portable build
+        uses: actions/download-artifact@v4
+        with:
+          name: PlaguesVoiceStudio-Windows-Portable
+          path: release-payload/portable
+      - name: Download tested standalone installer
+        uses: actions/download-artifact@v4
+        with:
+          name: PlaguesVoiceStudio-Windows-Standalone-Installer
+          path: release-payload/installer
+      - name: Download SHA-256 manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: PlaguesVoiceStudio-Windows-Checksums
+          path: release-payload/checksums
+      - name: Verify GitHub Release asset size limits
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          limit = 2 * 1024**3
+          paths = [*Path('release-payload/portable').glob('*.zip'),
+                   *Path('release-payload/installer').glob('*.exe')]
+          if len(paths) != 2:
+              raise SystemExit('Release is missing the portable ZIP or Windows setup EXE')
+          oversized = [p for p in paths if p.stat().st_size >= limit]
+          if oversized:
+              for p in oversized:
+                  print(f'GitHub Releases 2 GiB asset limit exceeded: {p.name} ({p.stat().st_size:,} bytes)')
+              raise SystemExit('Cannot publish this as a GitHub Release: build a smaller model-on-demand installer or host the full offline installer elsewhere. DO NOT publish a release that has no usable installer.')
+          PY
+      - name: Publish official release only after installer tests pass
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, 'rc') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+          files: |
+            release-payload/portable/*.zip
+            release-payload/installer/*.exe
+            release-payload/checksums/SHA256SUMS.txt
