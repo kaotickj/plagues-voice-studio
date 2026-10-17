@@ -4,10 +4,15 @@ Requires 64-bit Python 3.12, network and several GB free storage.
 Run only after reviewing https://github.com/QwenLM/Qwen3-TTS
 #>
 param(
-    [string]$EnvironmentDir = "$env:LOCALAPPDATA\PlaguesVoiceStudio-v030-Experimental\engines\qwen3",
+    [string]$EnvironmentDir = "",
     [string]$PythonVersion = '3.12'
 )
 $ErrorActionPreference = 'Stop'
+if (-not $EnvironmentDir) {
+    $old = Join-Path $env:LOCALAPPDATA 'PlaguesVoiceStudio-v030-Experimental\engines\qwen3'
+    $new = Join-Path $env:LOCALAPPDATA 'PlaguesVoiceStudio\engines\qwen3'
+    $EnvironmentDir = if (Test-Path (Join-Path $old 'Scripts\python.exe')) { $old } else { $new }
+}
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Write-Host 'Installing OPTIONAL Qwen3-TTS in a separate environment.'
 Write-Host 'Your Chatterbox environment, stable app, and saved voices will not be changed.'
