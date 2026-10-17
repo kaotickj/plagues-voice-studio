@@ -41,6 +41,20 @@ class EngineCancelled(EngineError):
     pass
 
 
+
+def native_exit_hint(returncode: int) -> str:
+    """Decode Windows native failure codes without mistaking them for Python errors."""
+    if (returncode & 0xFFFFFFFF) == 0xC0000005:
+        return (
+            '\nWindows native access violation (0xC0000005). '
+            'A compiled library crashed; this is not the Transformers GenerationMixin warning. '
+            'Check the fatal-error traceback above (if present) and Windows Event Viewer > '
+            'Windows Logs > Application for the faulting module. '
+            'Also retry with other AI applications closed to rule out memory pressure.'
+        )
+    return ''
+
+
 def runtime_script_path() -> Path:
     """Runner is a data file, not imported into the host process."""
     base = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[2]))
@@ -341,7 +355,7 @@ def execute_probe(engine: str, python_exe: str, repo: str = '', timeout: int = 1
     if cancelled is not None and cancelled.is_set():
         raise EngineCancelled('Cancelled')
     kwargs = {'cwd': str(Path(repo).resolve())} if engine == 'index25' else {}
-    command = [python_exe, '-I', '-u', str(runtime_script_path()), '--probe', engine]
+    command = [python_exe, '-I', '-X', 'faulthandler', '-u', str(runtime_script_path()), '--probe', engine]
     with tempfile.TemporaryDirectory(prefix='pvs-probe-') as temp:
         logfile = (_diagnostic_path(engine + '-probe', diagnostic_dir)
                    if diagnostic_dir is not None else Path(temp) / 'probe.log')
@@ -360,7 +374,8 @@ def execute_probe(engine: str, python_exe: str, repo: str = '', timeout: int = 1
                     _stop_process(proc)
         output = logfile.read_text(encoding='utf-8', errors='replace')
         if proc.returncode != 0:
-            raise EngineError(f'Engine probe exited {proc.returncode}:\n{output[-4000:]}\nLog: {logfile}')
+            raise EngineError(f'Engine probe exited {proc.returncode}'
+                              f'{native_exit_hint(proc.returncode)}:\n{output[-4000:]}\nLog: {logfile}')
         try:
             # The runner writes a JSON result on its final line. Upstream
             # packages may print warnings before that result.
@@ -390,7 +405,7 @@ def execute_generation(request: dict, python_exe: str, cancelled: Event | None =
         logfile = (_diagnostic_path(engine + '-generate', diagnostic_dir)
                    if diagnostic_dir is not None else root / 'process.log')
         source.write_text(json.dumps(request, ensure_ascii=False), encoding='utf-8')
-        command = [python_exe, '-I', '-u', str(runtime_script_path()), '--run', str(source), str(response)]
+        command = [python_exe, '-I', '-X', 'faulthandler', '-u', str(runtime_script_path()), '--run', str(source), str(response)]
         kwargs = {'cwd': str(Path(request['repo']).resolve())} if engine == 'index25' else {}
         start = time.monotonic()
         if log:
@@ -407,7 +422,8 @@ def execute_generation(request: dict, python_exe: str, cancelled: Event | None =
                     _stop_process(proc)
         detail = logfile.read_text(encoding='utf-8', errors='replace')[-7000:]
         if proc.returncode != 0:
-            raise EngineError(f'{ENGINES[engine]["label"]} exited {proc.returncode}:\n{detail}\nLog: {logfile}')
+            raise EngineError(f'{ENGINES[engine]["label"]} exited {proc.returncode}'
+                              f'{native_exit_hint(proc.returncode)}:\n{detail}\nLog: {logfile}')
         if not response.is_file():
             raise EngineError(f'Engine produced no response.\n{detail}\nLog: {logfile}')
         try:
