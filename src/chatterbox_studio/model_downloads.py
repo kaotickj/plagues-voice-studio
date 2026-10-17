@@ -153,7 +153,7 @@ if operation == 'check':
         path = snapshot_download(repo_id=repo, local_files_only=True)
         verify(path)
         print('PVS_CACHE_FOUND', flush=True)
-    except (OSError, ValueError, RuntimeError) as exc:
+    except Exception as exc:
         print("PVS_CACHE_INCOMPLETE " + str(exc), flush=True)
         print('PVS_CACHE_MISSING', flush=True)
 elif operation == 'download':
