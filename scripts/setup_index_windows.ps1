@@ -1,14 +1,19 @@
 <#
 Optional IndexTTS-2.5 setup. Requires git, uv, network and license review.
-Separate runtime is installed into the experimental LOCALAPPDATA directory.
+New engine runtimes use the permanent PlaguesVoiceStudio AppData path.
 This does not modify stable/Chatterbox environments or redistribute the weights.
 #>
 param(
-    [string]$RepositoryDir = "$env:LOCALAPPDATA\PlaguesVoiceStudio-v030-Experimental\engines\index-tts",
+    [string]$RepositoryDir = "",
     [switch]$DownloadModels,
     [switch]$LicenseReviewed
 )
 $ErrorActionPreference = 'Stop'
+if (-not $RepositoryDir) {
+    $old = Join-Path $env:LOCALAPPDATA 'PlaguesVoiceStudio-v030-Experimental\engines\index-tts'
+    $new = Join-Path $env:LOCALAPPDATA 'PlaguesVoiceStudio\engines\index-tts'
+    $RepositoryDir = if (Test-Path (Join-Path $old 'indextts\infer_v2_5.py')) { $old } else { $new }
+}
 if (-not $LicenseReviewed) {
     throw 'Read the upstream IndexTTS Bilibili Model Use License and DISCLAIMER first, then rerun with -LicenseReviewed.'
 }
