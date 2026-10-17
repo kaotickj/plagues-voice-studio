@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller one-folder package; models/ populated by download_models.py."""
 from pathlib import Path
+import os
 from PyInstaller.utils.hooks import collect_all, collect_submodules, copy_metadata
 
 project = Path(SPECPATH)
@@ -13,9 +14,12 @@ datas = [
     (str(project / 'optional_engine_runner.py'), '.'),
     (str(project / 'OPTIONAL_ENGINES.md'), '.'),
 ]
-for path in models.rglob('*'):
-    if path.is_file() and '.cache' not in path.parts and path.name != '.gitkeep':
-        datas.append((str(path), str(Path('models') / path.relative_to(models).parent)))
+# Slim installer intentionally ships no Chatterbox weights, even if models/
+# already exists on the build machine. Model Manager handles on-demand installs.
+if os.environ.get('PVS_SLIM_BUILD') != '1':
+    for path in models.rglob('*'):
+        if path.is_file() and '.cache' not in path.parts and path.name != '.gitkeep':
+            datas.append((str(path), str(Path('models') / path.relative_to(models).parent)))
 
 for package in ('chatterbox', 'imageio_ffmpeg', 's3tokenizer', 'perth'):
     pkg_datas, pkg_bins, pkg_hidden = collect_all(package, include_py_files=False)
