@@ -48,9 +48,9 @@ jobs:
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --yes --no-progress
-      - name: Build offline Nano portable and installer
+      - name: Build slim model-on-demand portable and installer
         shell: pwsh
-        run: ./scripts/build_windows.ps1 -Models nano
+        run: ./scripts/build_windows.ps1 -Slim
       # Reject multi-disk output. Users should never see an Insert Disk prompt.
       - name: Verify standalone installer
         shell: pwsh
@@ -85,7 +85,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: PlaguesVoiceStudio-Windows-Portable
-          path: artifacts/PlaguesVoiceStudio030Experimental-Portable.zip
+          path: artifacts/PlaguesVoiceStudio030Experimental-Slim-Portable.zip
           if-no-files-found: error
       - name: Upload complete Windows installer
         uses: actions/upload-artifact@v4
