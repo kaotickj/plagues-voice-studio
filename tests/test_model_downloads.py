@@ -69,3 +69,47 @@ def test_qwen_download_is_whitelisted_and_uses_isolated_python(tmp_path):
         md.qwen_command(str(python), md.MODELS['nano'], 'download')
     with pytest.raises(ValueError):
         md.qwen_command(str(python), md.MODELS['qwen-0.6b'], 'arbitrary-command')
+
+def _qwen_check_script(monkeypatch, tmp_path, *, complete):
+    """Run the lightweight embedded script with a fake local Hub snapshot."""
+    import contextlib
+    import io
+    hub = types.ModuleType('huggingface_hub')
+    hub.snapshot_download = lambda **kwargs: tmp_path
+    constants = types.ModuleType('huggingface_hub.constants')
+    constants.HF_HUB_CACHE = str(tmp_path)
+    monkeypatch.setitem(sys.modules, 'huggingface_hub', hub)
+    monkeypatch.setitem(sys.modules, 'huggingface_hub.constants', constants)
+    monkeypatch.setattr(sys, 'argv', ['-c', 'Qwen/Qwen3-TTS-12Hz-1.7B-Base', 'check'])
+    (tmp_path / 'speech_tokenizer').mkdir(exist_ok=True)
+    required = [
+        'config.json', 'model.safetensors', 'speech_tokenizer/config.json',
+        'speech_tokenizer/model.safetensors',
+    ]
+    for fn in (required if complete else required[:2]):
+        target = tmp_path / fn
+        target.write_bytes(b'synthetic model data' * 100)
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        exec(compile(md._QWEN_SCRIPT, 'qwen-check-script', 'exec'), {'__name__': '__main__'})
+    return output.getvalue()
+
+
+def test_qwen_cache_check_rejects_incomplete_snapshot(monkeypatch, tmp_path):
+    result = _qwen_check_script(monkeypatch, tmp_path, complete=False)
+    assert 'PVS_CACHE_INCOMPLETE' in result
+    assert 'PVS_CACHE_MISSING' in result
+    assert 'PVS_CACHE_FOUND' not in result
+
+
+def test_qwen_cache_check_accepts_complete_snapshot(monkeypatch, tmp_path):
+    result = _qwen_check_script(monkeypatch, tmp_path, complete=True)
+    assert 'PVS_MODEL_VERIFIED' in result
+    assert 'PVS_CACHE_FOUND' in result
+    assert 'PVS_CACHE_MISSING' not in result
+
+
+def test_qwen_script_avoids_revision_only_cache_check():
+    assert 'scan_cache_dir' not in md._QWEN_SCRIPT
+    assert 'local_files_only=True' in md._QWEN_SCRIPT
+    assert 'speech_tokenizer/model.safetensors' in md._QWEN_SCRIPT
