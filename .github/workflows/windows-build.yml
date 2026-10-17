@@ -3,12 +3,14 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - develop
+      - 'release/**'
     tags:
       - 'v*'
     # Documentation, README screenshots and audio-showcase copy don't change
     # the Windows app. Avoid 20+ minute rebuilds for those commits.
-    # Path filters apply to branch pushes; release tag builds still run.
+    # Code changes on main/develop/release branches automatically build; tags build release packages.
     paths:
       - 'src/**'
       - 'scripts/**'
@@ -65,13 +67,13 @@ jobs:
       - name: Upload portable Windows package
         uses: actions/upload-artifact@v4
         with:
-          name: PlaguesVoiceStudio-develop-Windows-Portable
+          name: PlaguesVoiceStudio-Windows-Portable
           path: artifacts/PlaguesVoiceStudio030Experimental-Portable.zip
           if-no-files-found: error
       - name: Upload complete Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: PlaguesVoiceStudio-develop-Windows-Standalone-Installer
+          name: PlaguesVoiceStudio-Windows-Standalone-Installer
           path: artifacts/PlaguesVoiceStudio030Experimental-Setup-*.exe
           if-no-files-found: error
 
@@ -86,7 +88,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: PlaguesVoiceStudio-develop-Windows-Standalone-Installer
+          name: PlaguesVoiceStudio-Windows-Standalone-Installer
           path: installer-payload
       - name: Install standalone EXE silently and verify target files
         shell: pwsh
