@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 from . import __version__
 from .jobs import LANGUAGES, MODEL_CHOICES, NarrationJob
 from .paths import user_data_dir
+from .settings_migration import copy_legacy_settings
 from .pvs_library import CompatibleVoiceLibrary, new_export_directory, narration_basename
 from .export_browser import ExportBrowser
 from .worker import RenderWorker
@@ -89,7 +90,8 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(940, 650)
         self.storage = user_data_dir()
         self.voices = CompatibleVoiceLibrary(self.storage)
-        self.settings = QSettings("KaotickJay", "PlaguesVoiceStudio030Experimental")
+        self.settings = QSettings("KaotickJay", "PlaguesVoiceStudio")
+        copy_legacy_settings(self.settings, QSettings("KaotickJay", "PlaguesVoiceStudio030Experimental"))
         self.queue: list[NarrationJob] = []
         self.results: dict[str, str] = {}
         self.states: dict[str, str] = {}
