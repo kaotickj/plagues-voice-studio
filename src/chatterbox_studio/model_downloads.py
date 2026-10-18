@@ -11,6 +11,7 @@ from pathlib import Path
 from threading import Event
 from fnmatch import fnmatch
 import os
+import subprocess
 import time
 
 from .paths import bundled_models_dir, canonical_data_dir, legacy_v030_dir

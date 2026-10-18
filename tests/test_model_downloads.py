@@ -16,6 +16,26 @@ def test_catalog_contains_production_engines_only():
     assert md.MODELS['qwen-0.6b'].repo.endswith('0.6B-Base')
 
 
+@pytest.mark.parametrize('key', ['qwen-0.6b', 'qwen-1.7b'])
+@pytest.mark.parametrize('operation', ['check', 'download'])
+def test_qwen_task_launches_and_reads_completion(tmp_path, monkeypatch, key, operation):
+    python = tmp_path / 'python.exe'
+    python.write_bytes(b'python')
+    calls = []
+
+    def spawn(command, **kwargs):
+        calls.append((command, kwargs['stderr']))
+        kwargs['stdout'].write(b'PVS_CACHE_FOUND\nPVS_DOWNLOAD_COMPLETE model\n')
+        return types.SimpleNamespace(returncode=0, poll=lambda: 0)
+
+    monkeypatch.setattr(md, '_spawn_optional_interpreter', spawn)
+    monkeypatch.setattr(md, '_watch_engine_process', lambda *args: None)
+    assert md.qwen_task(md.MODELS[key], str(python), operation, Event(),
+                        lambda *_: None, tmp_path / 'logs')
+    assert calls[0][0][-2:] == [md.MODELS[key].repo, operation]
+    assert calls[0][1] == md.subprocess.STDOUT
+
+
 def test_chatterbox_status_only_accepts_nonempty_required_files(tmp_path, monkeypatch):
     item = md.MODELS['nano']
     monkeypatch.setattr(md, 'bundled_models_dir', lambda: tmp_path / 'no-bundle')

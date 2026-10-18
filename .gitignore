@@ -1,6 +1,7 @@
 # Build/runtime environments (never committed)
 .venv/
 .venv*/
+.test-deps/
 venv/
 env/
 __pycache__/
