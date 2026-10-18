@@ -95,6 +95,15 @@ TOPICS: tuple[tuple[str, str, str], ...] = (
 <p><b>Qwen3-TTS runtime:</b> install it in its own Python environment and use <b>Test selected engine</b> to verify imports. Loading cached model weights and CPU speech generation can take time. Generation progress, errors, and saved logs appear in the engine diagnostics panel.</p>
 <p><b>SoX warning:</b> if SoX is already installed but not found, run <code>sox --version</code> in a new terminal and ensure the directory containing <code>sox.exe</code> is on PATH. The warning is not always fatal to generation.</p>
 '''),
+    ('Checking for updates', 'update upgrades version github releases notify startup install download', '''
+<h2>Checking for updates</h2>
+<p>Select <b>Check for updates</b> in the application header. Voice Studio checks the official GitHub Releases API for a newer <b>stable</b> release. If one is available, choose <b>View official release</b> to read the notes and download the installer in your browser.</p>
+<p><b>Nothing is installed or downloaded automatically.</b> The app does not replace its own executable, model files, scripts, saved voices, character profiles or local project data.</p>
+<p><b>Optional startup checks:</b> In the Updates dialog, enable <b>Check for updates automatically when Voice Studio starts</b>. This preference is <b>off by default</b>. An automatic check runs once when the program starts, does not interrupt speech generation, and opens the dialog only when a newer stable release is found. It skips beta and release-candidate builds until a stable release is published.</p>
+<p>An update check contacts GitHub to retrieve public release metadata. No audio, script, profile or reference voice is uploaded. As with any visit to GitHub, its servers may see the usual request information such as IP address. Without network access, the app continues to work and the update check displays an error.</p>
+<p><b>Installing an update:</b> Download the installer from the official project Releases page, finish any active speech generation, close Voice Studio, then run the installer. Keep the existing installation and data paths unless release notes explicitly require a migration. Preserve the v0.2.4 installation separately.</p>
+<p>Official releases: <a href="https://github.com/kaotickj/plagues-voice-studio/releases">github.com/kaotickj/plagues-voice-studio/releases</a>.</p>
+'''),
     ('Privacy and licenses', 'permissions watermark local data licensing credits copyright internet', '''
 <h2>Privacy, permissions and licenses</h2>
 <p>Chatterbox, Qwen3-TTS and IndexTTS 2.5 synthesize speech locally after their required models have been downloaded. Initial model retrieval may contact Hugging Face or other upstream model providers. Qwen3-TTS uses its own local Python environment.</p>

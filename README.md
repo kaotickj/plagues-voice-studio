@@ -24,6 +24,14 @@ This is a **separately installed v0.3.0 build** based on the v0.2.4 stable sourc
 **Memory note:** IndexTTS/Qwen3 and a local LLM writer can both demand substantial system RAM and paging capacity. On the creator's Windows machine, closing DJ Writer before rendering IndexTTS resolved an access-violation crash. Run heavy generators sequentially if resources are tight.
 
 
+## Checking for future updates
+
+Voice Studio includes a **Check for updates** action in the top bar. It queries only the official [GitHub Releases](https://github.com/kaotickj/plagues-voice-studio/releases) API for newer stable releases. This check is manual by default; you can enable a single, non-blocking check on startup from the Updates dialog.
+
+When a newer stable version is available, **View official release** opens the validated GitHub release page so you can review its notes and download the appropriate installer. The application does **not** download, execute, or replace software automatically; model runtimes, scripts, profiles, audio files, and installed voices remain unchanged. The update lookup sends no audio or script data. GitHub receives an ordinary request to its release metadata endpoint. Prereleases (including release candidates) are intentionally not promoted as stable updates.
+
+**Before public release:** verify a working automatic Windows build and the upgrade installer on a clean Windows machine. A release-check UI alone is not a complete unattended update/rollback mechanism. Versioned installers, published checksums and signed packages are recommended for future releases.
+
 ## Live engine diagnostics and isolated runtimes
 
 - No pop-up command prompt when launching optional Qwen / Index Python on Windows.

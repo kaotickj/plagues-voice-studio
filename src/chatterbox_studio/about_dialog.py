@@ -106,7 +106,7 @@ the creator's Windows installation.</p>
 <p>Browse earlier recordings in Export Library and prepare Fallout 4 / Skyrim
 WAV, LIP, XWM and FUZ voice assets using compatible external utilities you supply.
 Game dialogue plugins are not edited.</p>
-<h3>Our approach</h3><p>Local-first voice production, clear engine choices,
+<h3>Updates</h3><p>Select <b>Check for updates</b> in the main window to compare your version with the official GitHub stable releases. Update checks are optional. Voice Studio does not download or install updates itself and does not upload scripts, recordings or voice profiles.</p><h3>Our approach</h3><p>Local-first voice production, clear engine choices,
 reusable creative workflows, previewable exports and respect for speaker permission.
 An initial model download may require an internet connection.</p>
 <p>© 2026 Kaotick Jay. Original application.</p>''')

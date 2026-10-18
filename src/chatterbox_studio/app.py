@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from PyQt6.QtCore import QSettings, QThread, Qt, QUrl
+from PyQt6.QtCore import QSettings, QThread, Qt, QUrl, QTimer
 from PyQt6.QtGui import QAction, QCloseEvent, QDesktopServices, QFont, QKeySequence, QIcon, QPixmap
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtWidgets import (
@@ -29,6 +29,7 @@ from .engine_lab import EngineLab
 from .model_manager import ModelManager
 from .help_center import HelpCenter
 from .about_dialog import AboutDialog
+from .update_dialog import UpdateDialog
 from .ui_theme import CSS
 
 
@@ -104,6 +105,7 @@ class MainWindow(QMainWindow):
         self.audio_output.setVolume(0.85)
         self.playback_file = ""
         self._about_dialog: AboutDialog | None = None
+        self._update_dialog: UpdateDialog | None = None
         self._preferred_voice_id = str(self.settings.value('last_voice', '') or '')
         self.player.playbackStateChanged.connect(self._playback_changed)
         self._build_ui()
@@ -112,6 +114,9 @@ class MainWindow(QMainWindow):
         self.bethesda_tab.reapply_selected_voice()
         self._on_model_changed()
         self._on_text_changed()
+        # Update checks are disabled by default and never block the first paint.
+        if UpdateDialog._setting_enabled(self.settings.value(UpdateDialog.SETTING, False)):
+            QTimer.singleShot(1500, self._check_updates_on_start)
 
     def _build_ui(self):
         root = QWidget()
@@ -139,6 +144,11 @@ class MainWindow(QMainWindow):
         title_block.addWidget(tagline)
         header.addLayout(title_block)
         header.addStretch()
+        updates_button = QPushButton('Check for updates')
+        updates_button.setObjectName('updates_button')
+        updates_button.setToolTip('Check official GitHub releases. No automatic download or install.')
+        updates_button.clicked.connect(self._show_updates)
+        header.addWidget(updates_button)
         help_button = QPushButton('Help center')
         help_button.setObjectName('quietButton')
         help_button.clicked.connect(self._show_help)
@@ -758,6 +768,21 @@ class MainWindow(QMainWindow):
         self.tabs.setCurrentWidget(self.help_center)
         self.help_center.focus_search()
 
+    def _get_updates_dialog(self) -> UpdateDialog:
+        if self._update_dialog is None:
+            self._update_dialog = UpdateDialog(self)
+        return self._update_dialog
+
+    def _show_updates(self):
+        dialog = self._get_updates_dialog()
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+
+    def _check_updates_on_start(self):
+        if UpdateDialog._setting_enabled(self.settings.value(UpdateDialog.SETTING, False)):
+            self._get_updates_dialog().check_now(automatic=True)
+
     def _about(self):
         """Persistent About dialog, no nested Qt event loop or model imports."""
         if self._about_dialog is None:
@@ -779,6 +804,11 @@ class MainWindow(QMainWindow):
         self.chunk.setValue(int(self.settings.value("max_chars", 220)))
 
     def closeEvent(self, event: QCloseEvent):
+        if self._update_dialog is not None and self._update_dialog.is_checking:
+            QMessageBox.information(self, 'Checking for updates',
+                'An update check is finishing. Please try closing Voice Studio again shortly.')
+            event.ignore()
+            return
         if self.thread is not None or self.bethesda_tab.is_busy or self.engine_lab.is_busy or self.model_manager.is_busy:
             QMessageBox.information(self, "Generation running",
                 "Please stop generation or model downloads and wait until all tasks finish before closing.")

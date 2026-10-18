@@ -51,6 +51,20 @@ def run(report_path: Path | None = None) -> int:
                 if not about_dialog.isVisible():
                     raise RuntimeError('About dialog did not reopen.')
                 about_dialog.close()
+                # Regression: the update-check dialog opens without networking
+                # or creating a thread. Auto-checks must be off by default.
+                update_button = window.findChild(QPushButton, 'updates_button')
+                if update_button is None:
+                    raise RuntimeError('Check for updates button missing.')
+                update_button.click()
+                update_dialog = window.findChild(QDialog, 'pvs_updates_dialog')
+                if update_dialog is None or not update_dialog.isVisible():
+                    raise RuntimeError('Updates dialog failed to open.')
+                if update_dialog.auto.isChecked() or update_dialog.is_checking:
+                    raise RuntimeError('Updates should be opt-in and idle by default.')
+                if not update_dialog.findChild(QPushButton, 'updates_check_now'):
+                    raise RuntimeError('Manual update button missing.')
+                update_dialog.close()
                 # Regression: help is searchable, can render a topic, and the
                 # About dialog includes diagnostics without importing torch.
                 model_manager = window.model_manager
