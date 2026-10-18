@@ -88,14 +88,24 @@ def index_run(req: dict) -> None:
     device = _device(req.get('device', 'cpu'), torch)
     root = Path(req['repo']).resolve()
     checkpoints = root / 'checkpoints'
-    # The official IndexTTS code chooses its own torch device during init.
-    # CUDA flag below only requests BF16 when CUDA is selected. CPU support
-    # depends on upstream and must be tested on the target Windows machine.
-    if device.startswith('cpu') and torch.cuda.is_available():
-        raise RuntimeError('IndexTTS CPU forced on CUDA-capable system; unsupported by this adapter.')
-    stage('Loading IndexTTS model and checkpoints')
-    synthesizer = IndexTTS2(cfg_path=str(checkpoints / 'config.yaml'),
-                            model_dir=str(checkpoints), use_bf16=device.startswith('cuda'))
+    # Keep diagnostic output ahead of the memory-intensive constructor: native
+    # extensions can abort Python without raising a catchable exception.
+    stage(f'IndexTTS runtime: Python {sys.version.split()[0]}, '
+          f'PyTorch {torch.__version__}, device {device}, '
+          f'CPU inference threads {torch.get_num_threads()}')
+    stage('Loading IndexTTS model and checkpoints (conservative backend)')
+    synthesizer = IndexTTS2(
+        cfg_path=str(checkpoints / 'config.yaml'),
+        model_dir=str(checkpoints),
+        device=device,
+        use_bf16=device.startswith('cuda'),
+        use_cuda_kernel=False,
+        use_deepspeed=False,
+        use_accel=False,
+        use_torch_compile=False,
+        use_qwen_emo=False,
+    )
+    stage('IndexTTS model initialization finished')
     options = {
         'spk_audio_prompt': req['voice_path'], 'text': req['text'],
         'lang': req['language'], 'output_path': req['output_path'],
