@@ -1,3 +1,7 @@
+# CI bootstrap repair - October 19, 2026
+
+Run 39204861363 failed during dependency metadata preparation: Perth requires uv_build, absent from the no-build-isolation bootstrap. Added pinned uv_build 0.12.7 before installing the dependency lock and put the venv Scripts directory on PATH so its executable can be found. A fresh workspace Python 3.12 venv successfully built the exact pinned Perth commit with these tools (artifacts/ci-perth-wheel.log). Ten targeted release/packaging tests pass. Updated checkout/setup-python to Node 24 action versions. A new hosted build must still confirm the full pipeline.
+
 # Release candidate 1.0.0rc1 validation - October 19, 2026
 
 Built locally using Python 3.12.10 and the pinned Windows CPU toolchain.

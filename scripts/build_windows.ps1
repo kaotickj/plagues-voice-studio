@@ -57,14 +57,19 @@ $python = Join-Path $root '.venv-build\Scripts\python.exe'
 $pythonVersion = & $python -c 'import sys; print("%d.%d" % sys.version_info[:2])'
 Assert-Success 'Could not inspect the build interpreter'
 if ($pythonVersion -ne '3.12') { throw 'The validated release lock requires Python 3.12. Use a separate Python 3.12 build environment.' }
+$bootstrapPath = $env:PATH
+try {
+    # uv_build locates its executable through PATH, even when pip uses an absolute interpreter.
+    $env:PATH = (Split-Path -Parent $python) + ';' + $bootstrapPath
 if (-not $SkipDependencies) {
-    & $python -m pip install --no-deps 'pip==26.2.1' 'setuptools==84.0.0' 'wheel==0.48.0' 'packaging==26.3'
+    & $python -m pip install --no-deps 'pip==26.2.1' 'setuptools==84.0.0' 'wheel==0.48.0' 'packaging==26.3' 'uv_build==0.12.7'
     Assert-Success 'pip bootstrap failed'
     & $python -m pip install --no-deps --no-build-isolation --extra-index-url https://download.pytorch.org/whl/cpu -r requirements-release.txt
     Assert-Success 'Locked dependency installation failed'
     & $python -m pip install --no-deps --no-build-isolation -e '.[build,test]'
     Assert-Success 'Project installation failed'
 }
+} finally { $env:PATH = $bootstrapPath }
 & $python -m pip check
 Assert-Success 'Installed build dependencies are inconsistent'
 $expectedVersion = & $python -c 'from chatterbox_studio import __version__; print(__version__)'
