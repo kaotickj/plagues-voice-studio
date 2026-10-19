@@ -17,7 +17,7 @@ from urllib.request import Request, urlopen
 LATEST_RELEASE_API = "https://api.github.com/repos/kaotickj/plagues-voice-studio/releases/latest"
 RELEASE_PREFIX = "/kaotickj/plagues-voice-studio/releases/tag/"
 MAX_METADATA_BYTES = 256 * 1024
-_VERSION_PATTERN = re.compile(r"^v?(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:(a|b|rc)(0|[1-9][0-9]*))?$", re.IGNORECASE)
+_VERSION_PATTERN = re.compile(r"^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:(a|b|rc)(0|[1-9][0-9]*))?$", re.IGNORECASE)
 _STAGE_ORDER = {"a": 0, "b": 1, "rc": 2}
 
 
@@ -91,9 +91,11 @@ def latest_stable_release(*, opener=urlopen, timeout: float = 8.0) -> ReleaseInf
         raise UpdateCheckError("GitHub release is missing a valid version or link.")
     if not trusted_release_url(url, tag):
         raise UpdateCheckError("GitHub returned an unexpected release link; refusing to open it.")
+    if version_key(tag)[3] != 3:
+        return None  # The tag itself must be stable, even if its API flag is wrong.
     name = data.get("name")
     return ReleaseInfo(
-        tag=tag, version=tag.removeprefix("v"), url=url,
+        tag=tag, version=tag[1:] if tag[:1].lower() == 'v' else tag, url=url,
         name=name[:160] if isinstance(name, str) else tag,
     )
 

@@ -26,7 +26,7 @@ def test_workflow_triggers_main_and_builds_slim_by_default():
     assert "      - develop\n" in workflow
     assert "      - 'release/**'\n" in workflow
     assert "run: ./scripts/build_windows.ps1 -Slim" in workflow
-    assert "PlaguesVoiceStudio030Experimental-Slim-Portable.zip" in workflow
+    assert "PlaguesVoiceStudio-Slim-Portable.zip" in workflow
     assert "publish_release:" in workflow
     assert "needs: [windows, installer_smoke]" in workflow
     assert "SHA256SUMS.txt" in workflow

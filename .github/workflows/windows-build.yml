@@ -24,6 +24,7 @@ on:
       - 'ChatterboxStudio.spec'
       - 'installer.iss'
       - 'pyproject.toml'
+      - 'requirements-release.txt'
       - 'tests/**'
       - 'OPTIONAL_ENGINES.md'
       - 'THIRD_PARTY_NOTICES.md'
@@ -45,19 +46,30 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
           architecture: x64
+      - name: Verify source and release tag identity
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            python scripts/check_release_version.py --tag $env:GITHUB_REF_NAME
+          } else {
+            python scripts/check_release_version.py
+          }
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --yes --no-progress
       - name: Build slim model-on-demand portable and installer
         shell: pwsh
         run: ./scripts/build_windows.ps1 -Slim
+      - name: Verify isolated install, reinstall, startup and data preservation
+        shell: pwsh
+        run: ./scripts/test_installer.ps1 -SourceDirectory 'dist\PlaguesVoiceStudio030Experimental'
       # Reject multi-disk output. Users should never see an Insert Disk prompt.
       - name: Verify standalone installer
         shell: pwsh
         run: |
-          $setups = @(Get-ChildItem artifacts -Filter 'PlaguesVoiceStudio030Experimental-Setup-*.exe' -File)
+          $setups = @(Get-ChildItem artifacts -Filter 'PlaguesVoiceStudio-Setup-*.exe' -File)
           $slices = @(Get-ChildItem artifacts -Filter '*.bin' -File)
           if ($setups.Count -ne 1 -or $slices.Count -ne 0) {
             throw "Expected one standalone setup EXE with no BIN slices; got $($setups.Count) EXE(s), $($slices.Count) BIN(s)."
@@ -87,13 +99,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: PlaguesVoiceStudio-Windows-Portable
-          path: artifacts/PlaguesVoiceStudio030Experimental-Slim-Portable.zip
+          path: artifacts/PlaguesVoiceStudio-Slim-Portable.zip
           if-no-files-found: error
       - name: Upload complete Windows installer
         uses: actions/upload-artifact@v4
         with:
           name: PlaguesVoiceStudio-Windows-Standalone-Installer
-          path: artifacts/PlaguesVoiceStudio030Experimental-Setup-*.exe
+          path: artifacts/PlaguesVoiceStudio-Setup-*.exe
           if-no-files-found: error
 
   # Install on a fresh Windows runner, not just compile on the build machine.
@@ -112,7 +124,7 @@ jobs:
       - name: Install standalone EXE silently and verify target files
         shell: pwsh
         run: |
-          $exes = @(Get-ChildItem installer-payload -Filter 'PlaguesVoiceStudio030Experimental-Setup-*.exe' -File)
+          $exes = @(Get-ChildItem installer-payload -Filter 'PlaguesVoiceStudio-Setup-*.exe' -File)
           $bins = @(Get-ChildItem installer-payload -Filter '*.bin' -File)
           if ($exes.Count -ne 1 -or $bins.Count -ne 0) {
             throw 'Expected one standalone setup EXE with no external disk slices.'
@@ -134,6 +146,21 @@ jobs:
             throw "Install succeeded but application is missing at $app."
           }
           Write-Host "Standalone installation verified: $app"
+      - name: Verify installed runtime, GUI and repeated startup
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP 'PVS-Single-File-Install'
+          $app = Join-Path $target 'PlaguesVoiceStudio030Experimental.exe'
+          foreach ($mode in @('--self-test','--ui-self-test','--ui-self-test')) {
+            $report = Join-Path $env:RUNNER_TEMP ('installed-' + [guid]::NewGuid().ToString('N') + '.json')
+            $process = Start-Process -FilePath $app -ArgumentList @($mode, ('"' + $report + '"')) -PassThru -WindowStyle Hidden
+            if (-not $process.WaitForExit(180000)) { $process.Kill(); throw 'Installed application test timed out.' }
+            if ($process.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $report)) { throw 'Installed application test failed.' }
+            $result = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+            if ($result.status -ne 'passed') { throw ($result.errors -join "`n") }
+          }
 
   publish_release:
     name: Publish tagged GitHub Release

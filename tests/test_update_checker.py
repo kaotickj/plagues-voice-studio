@@ -64,6 +64,31 @@ def test_prerelease_never_offered_as_stable():
     assert latest_stable_release(opener=opener) is None
 
 
+@pytest.mark.parametrize('tag', ['v2.0.0a1', 'v2.0.0b2', 'v2.0.0rc1'])
+def test_prerelease_tag_rejected_even_when_api_flag_is_false(tag):
+    opener, _ = fake_opener(tag, prerelease=False)
+    assert find_update('1.0.0', opener=opener) is None
+
+
+@pytest.mark.parametrize('value', ['1x0x0', '1\\a0\\b0', '01.0.0', '1.0', '1.0.0/../../other'])
+def test_malformed_versions_are_rejected(value):
+    with pytest.raises(ValueError):
+        version_key(value)
+
+
+def test_uppercase_version_prefix_is_normalized():
+    opener, _ = fake_opener('V1.0.1')
+    assert find_update('0.3.0', opener=opener).version == '1.0.1'
+
+
+def test_offline_check_reports_a_nonfatal_error():
+    from urllib.error import URLError
+    def offline(req, *, timeout):
+        raise URLError('offline')
+    with pytest.raises(UpdateCheckError, match='Could not reach GitHub'):
+        find_update('0.3.0', opener=offline)
+
+
 @pytest.mark.parametrize('url', [
     'http://github.com/kaotickj/plagues-voice-studio/releases/tag/v1.0.1',
     'https://evil.example/releases/tag/v1.0.1',

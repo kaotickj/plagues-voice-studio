@@ -6,9 +6,34 @@ import sys
 import threading
 import time
 import wave
+import subprocess
 
 import pytest
 from chatterbox_studio import optional_engines as oe
+
+
+@pytest.mark.skipif(sys.platform != 'win32', reason='Windows venv/child process cancellation')
+def test_cancellation_stops_owned_descendants_and_releases_their_files(tmp_path):
+    held = tmp_path / 'child-held.log'
+    script = tmp_path / 'owned_parent.py'
+    child = "import time; f=open(" + repr(str(held)) + ", 'w'); f.write('ready'); f.flush(); time.sleep(20)"
+    script.write_text('import subprocess,sys,time\n'
+                     f'subprocess.Popen([sys.executable,"-I","-c",{child!r}])\n'
+                     'time.sleep(20)\n', encoding='utf-8')
+    proc = oe._spawn_optional_interpreter([sys.executable, '-I', str(script)],
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        deadline = time.monotonic() + 8
+        while not held.exists() and time.monotonic() < deadline:
+            time.sleep(.05)
+        assert held.exists(), 'Owned test child did not start'
+        oe._stop_process(proc)
+        assert proc.poll() is not None
+        # Windows refuses removal while the surviving child holds this handle.
+        held.unlink()
+    finally:
+        if proc.poll() is None:
+            oe._stop_process(proc)
 
 
 def runner(tmp_path):

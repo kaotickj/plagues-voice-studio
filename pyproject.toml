@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "plagues-voice-studio-v030"
-version = "0.3.0a4"
+version = "1.0.0rc1"
 description = "Plague's Voice Studio, created by Kaotick Jay: local voice synthesis and narration"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
@@ -12,7 +12,7 @@ license = {text = "MIT"}
 dependencies = [
   "PyQt6>=6.7,<7",
   "PyQt6-Qt6>=6.7,<7",
-  "chatterbox-tts @ git+https://github.com/resemble-ai/chatterbox.git@master",
+  "chatterbox-tts @ git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2",
   "soundfile>=0.12,<1",
   "imageio-ffmpeg>=0.5,<1",
   "numpy>=1.24,<2",

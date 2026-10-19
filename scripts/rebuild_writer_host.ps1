@@ -1,5 +1,8 @@
 <# Rebuild the complete slim host in a separate portable directory using an installed build environment. #>
-param([string]$PythonExecutable = '', [string]$OutputDirectory = 'dist\WriterPluginPreview')
+param([string]$PythonExecutable = '', [string]$OutputDirectory = 'dist\WriterPluginPreview',
+      [string]$ReportDirectory = 'artifacts\writer-host-build',
+      [string]$ArchiveName = 'PlaguesVoiceStudio-WriterPlugin-Portable.zip',
+      [string]$WorkDirectory = 'build\writer-plugin-host')
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 if (-not $PythonExecutable) { $PythonExecutable = Join-Path $repo '.venv-build\Scripts\python.exe' }
@@ -8,8 +11,15 @@ $output = [IO.Path]::GetFullPath((Join-Path $repo $OutputDirectory))
 if (-not $output.StartsWith($repo + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
     throw 'Build output must stay inside this checkout.'
 }
-$work = Join-Path $repo 'build\writer-plugin-host'
-$reports = Join-Path $repo 'artifacts\writer-host-build'
+$work = [IO.Path]::GetFullPath((Join-Path $repo $WorkDirectory))
+if (-not $work.StartsWith($repo + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+    throw 'Build work must stay inside this checkout.'
+}
+$reports = [IO.Path]::GetFullPath((Join-Path $repo $ReportDirectory))
+if (-not $reports.StartsWith($repo + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+    throw 'Reports must stay inside this checkout.'
+}
+if ([IO.Path]::GetFileName($ArchiveName) -ne $ArchiveName) { throw 'ArchiveName must be a filename.' }
 New-Item -ItemType Directory -Force -Path $reports | Out-Null
 $savedPath = $env:PATH; $savedSlim = $env:PVS_SLIM_BUILD; $savedQt = $env:QT_QPA_PLATFORM
 Push-Location $repo
@@ -34,7 +44,7 @@ try {
         throw 'Generic writer plugin is missing from the package.'
     }
     if (Test-Path -LiteralPath (Join-Path $folder '_internal\plugins\dj-writer')) { throw 'Branded standalone must not be bundled.' }
-    $archive = Join-Path $reports 'PlaguesVoiceStudio-WriterPlugin-Portable.zip'
+    $archive = Join-Path $reports $ArchiveName
     Compress-Archive -LiteralPath $folder -DestinationPath $archive -Force
     $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
     "$hash  $([IO.Path]::GetFileName($archive))" | Set-Content (Join-Path $reports 'SHA256SUMS.txt')

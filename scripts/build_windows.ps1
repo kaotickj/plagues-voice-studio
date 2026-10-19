@@ -2,18 +2,21 @@
 .SYNOPSIS
   Build a bundled Windows portable package and Inno Setup installer.
 .DESCRIPTION
-  Build machine: Windows x64, Python 3.11, Git, internet to download weights,
+  Build machine: Windows x64, Python 3.12, Git, internet to download weights,
   and Inno Setup 6 for the optional conventional installer.
   -FullOffline downloads AND validates all four models, then bundles an
   offline-only policy marker so runtime will never silently download weights.
-  -Slim builds a model-on-demand setup without bundling existing model weights.\n  -SkipModels can be used with -FullOffline ONLY if all weights were previously
+  -Slim builds a model-on-demand setup without bundling existing model weights.
+  -SkipModels can be used with -FullOffline ONLY if all weights were previously
   downloaded to models/. The preflight validation will still run.
 .EXAMPLE
   .\scripts\build_windows.ps1 -FullOffline
 .EXAMPLE
   .\scripts\build_windows.ps1 -FullOffline -SkipModels
 .EXAMPLE
-  .\scripts\build_windows.ps1 -Slim\n.EXAMPLE\n  .\scripts\build_windows.ps1 -Models nano
+  .\scripts\build_windows.ps1 -Slim
+.EXAMPLE
+  .\scripts\build_windows.ps1 -Models nano
 #>
 param(
     [ValidateSet('nano','turbo','english','multilingual-v3')]
@@ -21,7 +24,8 @@ param(
     [switch]$FullOffline,
     [switch]$Slim,
     [switch]$SkipModels,
-    [switch]$SkipInstaller
+    [switch]$SkipInstaller,
+    [switch]$SkipDependencies
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -46,14 +50,31 @@ if ($FullOffline) {
 }
 
 if (-not (Test-Path '.venv-build\Scripts\python.exe')) {
-    py -3.11 -m venv .venv-build
-    Assert-Success 'Could not create venv. Install 64-bit Python 3.11.'
+    py -3.12 -m venv .venv-build
+    Assert-Success 'Could not create venv. Install 64-bit Python 3.12.'
 }
 $python = Join-Path $root '.venv-build\Scripts\python.exe'
-& $python -m pip install --upgrade pip setuptools wheel
-Assert-Success 'pip bootstrap failed'
-& $python -m pip install -e '.[build]'
-Assert-Success 'Project dependency installation failed'
+$pythonVersion = & $python -c 'import sys; print("%d.%d" % sys.version_info[:2])'
+Assert-Success 'Could not inspect the build interpreter'
+if ($pythonVersion -ne '3.12') { throw 'The validated release lock requires Python 3.12. Use a separate Python 3.12 build environment.' }
+if (-not $SkipDependencies) {
+    & $python -m pip install --no-deps 'pip==26.2.1' 'setuptools==84.0.0' 'wheel==0.48.0' 'packaging==26.3'
+    Assert-Success 'pip bootstrap failed'
+    & $python -m pip install --no-deps --no-build-isolation --extra-index-url https://download.pytorch.org/whl/cpu -r requirements-release.txt
+    Assert-Success 'Locked dependency installation failed'
+    & $python -m pip install --no-deps --no-build-isolation -e '.[build,test]'
+    Assert-Success 'Project installation failed'
+}
+& $python -m pip check
+Assert-Success 'Installed build dependencies are inconsistent'
+$expectedVersion = & $python -c 'from chatterbox_studio import __version__; print(__version__)'
+# Release archives must never bypass the complete regression suite.
+$previousQt = $env:QT_QPA_PLATFORM
+try {
+    $env:QT_QPA_PLATFORM = 'offscreen'
+    & $python -m pytest -q
+    Assert-Success 'Regression tests failed; packaging aborted'
+} finally { $env:QT_QPA_PLATFORM = $previousQt }
 
 # Remove stale strict mode marker before preparing a new build.
 $marker = Join-Path $root 'models\offline-bundle.json'
@@ -69,14 +90,20 @@ if ($FullOffline) {
 
 # Never reuse previous frozen Python modules. Source edits do not change a built EXE.
 if (Test-Path 'dist\PlaguesVoiceStudio030Experimental') {
-    Remove-Item -LiteralPath 'dist\PlaguesVoiceStudio030Experimental' -Recurse -Force
+    $cleanTarget = (Resolve-Path -LiteralPath 'dist\PlaguesVoiceStudio030Experimental').Path
+    $expectedTarget = Join-Path $root 'dist\PlaguesVoiceStudio030Experimental'
+    if ($cleanTarget -ne $expectedTarget) { throw 'Unexpected build cleanup target.' }
+    Remove-Item -LiteralPath $cleanTarget -Recurse -Force
 }
 $oldSlim = [Environment]::GetEnvironmentVariable('PVS_SLIM_BUILD')
+$oldBuildPath = $env:PATH
 try {
     if ($Slim) { $env:PVS_SLIM_BUILD = '1' } else { Remove-Item Env:PVS_SLIM_BUILD -ErrorAction SilentlyContinue }
+    $env:PATH = (Split-Path -Parent $python) + ';' + (Join-Path $env:SystemRoot 'System32') + ';' + $env:SystemRoot
     & $python -m PyInstaller --clean --noconfirm ChatterboxStudio.spec
     Assert-Success 'PyInstaller build failed'
 } finally {
+    $env:PATH = $oldBuildPath
     if ($null -eq $oldSlim) { Remove-Item Env:PVS_SLIM_BUILD -ErrorAction SilentlyContinue }
     else { $env:PVS_SLIM_BUILD = $oldSlim }
 }
@@ -88,7 +115,7 @@ $exe = Join-Path $root 'dist\PlaguesVoiceStudio030Experimental\PlaguesVoiceStudi
 $report = Join-Path $root 'build\frozen-smoke-test.json'
 if (Test-Path $report) { Remove-Item $report -Force }
 Write-Host 'Testing frozen runtime and dependency metadata...'
-$smoke = Start-Process -FilePath $exe -ArgumentList @('--self-test', ('"' + $report + '"')) -Wait -PassThru
+$smoke = Start-Process -FilePath $exe -ArgumentList @('--self-test', ('"' + $report + '"')) -Wait -PassThru -WindowStyle Hidden
 if (-not (Test-Path $report)) {
     throw "Frozen self-test did not produce a report (exit code $($smoke.ExitCode))."
 }
@@ -104,12 +131,12 @@ Write-Host 'Frozen runtime self-test PASSED (all checked package metadata and mo
 $uiReport = Join-Path $root 'build\frozen-ui-smoke-test.json'
 if (Test-Path $uiReport) { Remove-Item -LiteralPath $uiReport -Force }
 Write-Host 'Smoke-testing packaged Qt GUI initialization...'
-$uiSmoke = Start-Process -FilePath $exe -ArgumentList @('--ui-self-test', ('"' + $uiReport + '"')) -Wait -PassThru
+$uiSmoke = Start-Process -FilePath $exe -ArgumentList @('--ui-self-test', ('"' + $uiReport + '"')) -Wait -PassThru -WindowStyle Hidden
 if (-not (Test-Path $uiReport)) {
     throw "Frozen GUI test did not produce a report (exit code $($uiSmoke.ExitCode)). The installer was NOT created."
 }
 $uiResult = Get-Content -LiteralPath $uiReport -Raw | ConvertFrom-Json
-if ($uiSmoke.ExitCode -ne 0 -or $uiResult.status -ne 'passed' -or $uiResult.version -ne '0.3.0') {
+if ($uiSmoke.ExitCode -ne 0 -or $uiResult.status -ne 'passed' -or $uiResult.version -ne $expectedVersion) {
     $details = ($uiResult.errors | Out-String).Trim()
     throw "Frozen GUI startup test failed. Installer not created. Details:`n$details"
 }
@@ -129,7 +156,7 @@ if ($FullOffline) {
 }
 
 New-Item -ItemType Directory -Force artifacts | Out-Null
-$filename = if ($FullOffline) { 'PlaguesVoiceStudio030Experimental-FullOffline-Portable.zip' } elseif ($Slim) { 'PlaguesVoiceStudio030Experimental-Slim-Portable.zip' } else { 'PlaguesVoiceStudio030Experimental-Portable.zip' }
+$filename = if ($FullOffline) { 'PlaguesVoiceStudio-FullOffline-Portable.zip' } elseif ($Slim) { 'PlaguesVoiceStudio-Slim-Portable.zip' } else { 'PlaguesVoiceStudio-Portable.zip' }
 $portable = Join-Path $root ('artifacts\' + $filename)
 if (Test-Path $portable) { Remove-Item $portable -Force }
 Compress-Archive -Path 'dist\PlaguesVoiceStudio030Experimental' -DestinationPath $portable -CompressionLevel Optimal
@@ -142,21 +169,23 @@ if (-not $SkipInstaller) {
         if (Test-Path $candidate) { $iscc = @{ Source=$candidate } }
     }
     if (-not $iscc) {
-        Write-Warning 'Inno Setup 6 not found; installer skipped. The portable ZIP was built.'
+        throw 'Inno Setup 6 not found. Install it for a release installer or explicitly request -SkipInstaller for a portable-only build.'
     } else {
         if (Test-Path 'dist-installer') {
             # Avoid copying stale BIN slices from earlier builds.
-            Remove-Item dist-installer -Recurse -Force
+            $installerClean = (Resolve-Path -LiteralPath 'dist-installer').Path
+            if ($installerClean -ne (Join-Path $root 'dist-installer')) { throw 'Unexpected installer cleanup target.' }
+            Remove-Item -LiteralPath $installerClean -Recurse -Force
         }
         & $iscc.Source installer.iss
         Assert-Success 'Inno Setup compilation failed'
         # Prevent stale multi-disk installers from leaking into a new artifact.
-        Get-ChildItem artifacts -Filter 'PlaguesVoiceStudio030Experimental-Setup-*' -File |
+        Get-ChildItem artifacts -Filter 'PlaguesVoiceStudio-Setup-*' -File |
             Remove-Item -Force
 
         # Inno Setup 6.5.2+ builds a self-contained EXE under ~4 GB without
         # media slices. Abort if disk spanning returns or the build is incomplete.
-        $setups = @(Get-ChildItem dist-installer -Filter 'PlaguesVoiceStudio030Experimental-Setup-*.exe' -File)
+        $setups = @(Get-ChildItem dist-installer -Filter 'PlaguesVoiceStudio-Setup-*.exe' -File)
         $slices = @(Get-ChildItem dist-installer -Filter '*.bin' -File)
         if ($setups.Count -ne 1 -or $slices.Count -ne 0) {
             throw "Expected ONE self-contained setup EXE and ZERO BIN slices, found $($setups.Count) EXE(s) and $($slices.Count) slice(s)."

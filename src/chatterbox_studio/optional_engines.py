@@ -337,9 +337,22 @@ def _watch_engine_process(proc: subprocess.Popen, logfile: Path,
 
 
 def _stop_process(proc: subprocess.Popen) -> None:
-    """Cooperatively stop the optional engine, escalating after a short wait."""
+    """Stop only the owned engine tree, including Windows launcher children."""
     if proc.poll() is not None:
         return
+    if sys.platform == 'win32':
+        # A Windows venv interpreter may be a launcher with a child Python
+        # process. Killing only the launcher leaves model memory/log handles
+        # alive. Target only this owned process tree, never all Python tasks.
+        taskkill = Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32' / 'taskkill.exe'
+        with _spawn_optional_interpreter(
+                [str(taskkill), '/PID', str(proc.pid), '/T', '/F'],
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL) as stopper:
+            stopper.wait(timeout=10)
+        if stopper.returncode == 0 or proc.poll() is not None:
+            proc.wait(timeout=5)
+            return
     proc.terminate()
     try:
         proc.wait(timeout=5)

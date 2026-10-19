@@ -1,3 +1,18 @@
+# Release candidate 1.0.0rc1 validation - October 19, 2026
+
+Built locally using Python 3.12.10 and the pinned Windows CPU toolchain.
+
+- Source suite: 216 passed, 1 skipped, 1 deselected. The deselected Windows process-tree cancellation test passed separately with normal Windows permissions (1 passed). Restricted sandbox process termination prevents that test from running reliably there.
+- Dependency consistency and release/tag identity checks pass.
+- Frozen runtime self-test passes, with project metadata 1.0.0rc1 and PyTorch 2.6.0+cpu. Initial sandbox launch timed out; the approved launch outside the sandbox passed.
+- Frozen GUI self-test and isolated installer acceptance have not executed: automatic permission review failed at capacity (installer review also timed out before its permitted retry). These remain release gates; no successful installation is claimed.
+- Inno Setup compiled the single-file production installer successfully: 289,421,943 bytes.
+- Portable ZIP: 406,503,543 bytes; CRC integrity passes. Generic writer is included; branded DJ Writer and model weights are excluded.
+- Packages, runtime report and SHA256SUMS.txt: artifacts/1.0.0rc1/. Logs: artifacts/rc1-*.log. Generated artifacts are not committed.
+- GitHub Actions and installed-engine generation on this candidate remain unverified. No release tag or public release has been created.
+
+The following sections are historical records, superseded by this candidate's results where they differ.
+
 # Windows writer-plugin portable rebuild — October 18, 2026
 
 The complete CPU slim portable host was rebuilt in a separate

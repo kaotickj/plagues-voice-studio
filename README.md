@@ -1,4 +1,6 @@
-# Plague's Voice Studio v0.3.0
+# Plague's Voice Studio v1.0.0rc1
+
+**Release candidate:** this is a prerelease for acceptance testing. See [RC notes](RELEASE_NOTES_1.0.0rc1.md) and [remaining release gates](RELEASE_READINESS.md).
 
 **Writer plugin:** source builds now include **Plugins → Promotional Writer** for
 generic ad copy, promotions, announcements and custom writing. It uses a separate
@@ -134,34 +136,47 @@ The slim build fails if accidentally bundled speech weight files are found in it
 
 ## Building on Windows
 
-The [Windows GitHub Actions build](https://github.com/kaotickj/plagues-voice-studio/actions/workflows/windows-build.yml) runs automatically when application source or packaging files are pushed or merged to `main`, `develop` or a `release/**` branch, and for version tags (`v*`). You can also start one manually under **Actions → Plague's Voice Studio Windows package → Run workflow**. It packages the current code as a portable application and a **single-file Windows setup EXE**. The build bundles the selected Chatterbox model; Qwen3-TTS still uses a separately installed local Python runtime and is not bundled in the installer.
-
-**Installer note:** The standalone setup EXE is approximately 3 GB. There are **no numbered disks or companion BIN files**. The GitHub workflow builds with Inno Setup 6.5.2 or newer, rejects any disk slices, and verifies that the installer can install on a fresh Windows runner before declaring the workflow successful. Download the `PlaguesVoiceStudio-Windows-Standalone-Installer` artifact, extract the EXE from GitHub's ZIP, and run it normally.
-
-**Release automation:** On a tagged version such as `v1.0.0`, the workflow builds the package, runs the frozen GUI tests and installs the standalone installer on a clean Windows runner. Only after these pass does it publish an official GitHub Release with the portable ZIP, Windows setup EXE, and `SHA256SUMS.txt` hashes. Pre-release tags containing `rc`, `beta`, or `alpha` are marked as prereleases. Merges to `main` generate downloadable Actions artifacts but **do not publish a public GitHub Release**. **Important size gate:** GitHub Releases does not accept individual files of 2 GiB or more. The existing fully bundled installer is documented as roughly 3 GB; if its actual output exceeds this limit, the release-publish job intentionally fails before creating a release. A smaller model-on-demand installer or another trusted download host is required for official release downloads. The workflow does not split installers into multiple disks or publish an unusable release.
-
-
-Windows x64, Python 3.11, Git, internet for initial Chatterbox installation and model acquisition. Inno Setup 6 is optional.
+The [Windows build workflow](https://github.com/kaotickj/plagues-voice-studio/actions/workflows/windows-build.yml)
+runs on application changes to `main`, `develop`, `release/**` and version tags.
+The validated Windows CPU toolchain uses **Python 3.12** and the immutable
+`requirements-release.txt` snapshot. The normal workflow builds a model-on-demand
+portable ZIP and a single-file installer; it does not bundle speech/writer weights.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1 -Models turbo
+./scripts/build_windows.ps1 -Slim
 ```
 
-The result is `dist\PlaguesVoiceStudio030Experimental\PlaguesVoiceStudio030Experimental.exe` after successful frozen metadata and GUI smoke tests. For bundling all **four Chatterbox models**, use `-FullOffline`; this does **not** install Qwen3-TTS or IndexTTS. If all models are already in the new source's `models\` directory, add `-SkipModels` to avoid downloading again.
+Git and internet are required for initial dependency installation. Inno Setup 6
+is required for the installer; use `-SkipInstaller` for a portable-only build.
+Use `-SkipDependencies` only with a matching, already prepared build environment.
+Every release build checks dependency consistency, runs the complete regression
+suite and exercises the actual frozen runtime and GUI/plugin menu before packaging.
 
-To preview source UI with an already prepared `.venv-build` environment, run `PREVIEW_GUI.bat`. A source-code change does not update an existing EXE; rebuilding is required.
+The installed-application acceptance script uses a separate test-only AppId:
 
-Qwen3-TTS and IndexTTS 2.5 use separately installed Python runtimes, following `OPTIONAL_ENGINES.md`. The application does not install their packages automatically. Use **Voice Engines → Test selected engine** before generating. This checks imports; actual synthesis requires installed model weights. Downloads may be large.
+```powershell
+./scripts/test_installer.ps1 -SourceDirectory 'dist/PlaguesVoiceStudio030Experimental'
+```
 
-## Testing status
+It tests install, reinstall, repeated installed startup, uninstall and preservation
+of seeded data/user-plugin files. Production Actions also install the real setup
+on a fresh Windows runner and verify its runtime and GUI before publishing.
 
-The Python source and protocol have automated tests, and the creator has verified live Windows narration with Chatterbox, Qwen3-TTS and IndexTTS 2.5. This does **not** claim universal hardware support, Qwen3 1.7B validation, AMD GPU acceleration or Bethesda in-game compatibility. The Windows build runs a frozen Qt smoke test before packaging.
+Tagged versions such as `v1.0.0rc1` can publish a **prerelease** only after the build
+and installer jobs pass. Main-branch pushes create Actions artifacts, not a public
+release. Published assets include the portable ZIP, setup EXE and SHA-256 manifest.
+The size gate rejects files at or above 2 GiB and never splits the installer into
+disks. Full-offline editions require separate size/license validation and hosting.
 
-**Compatibility note:** The existing executable filename and earlier v0.3 engine installation paths may still contain `Experimental` for compatibility. The writable user-data and QSettings identities are now permanent and unversioned. Existing engine runtimes remain at their installed paths to avoid breaking Python environments. The visible application and installer version remains 0.3.0.
+The legacy executable filename and default installation directory retain `030`
+and `Experimental` for upgrade compatibility. The visible version is 1.0.0rc1;
+AppData and QSettings identities remain permanent and unversioned. No engine
+runtime or large model folder is moved. Actual new-candidate engine inference and
+in-game Bethesda acceptance remain separate manual gates.
 
 ## Qwen3-TTS Base 1.7B cache verification
 
-The **1.7B model has not yet been validated on the creator's Windows setup**. The official repository is several gigabytes, including a large weight file and a separate speech tokenizer. The Model Manager previously considered any Hugging Face cached *revision* sufficient evidence of model availability, even if needed files were absent. The improved check now opens the cached snapshot offline and verifies the main model and tokenizer files exist and are nonempty. The download task reports free disk space on the cache volume and confirms required files before recording success.
+The creator has reported successful **1.7B cache checks**; actual candidate speech generation still needs validation. The official repository is several gigabytes, including a large weight file and a separate speech tokenizer. The Model Manager previously considered any Hugging Face cached *revision* sufficient evidence of model availability, even if needed files were absent. The improved check now opens the cached snapshot offline and verifies the main model and tokenizer files exist and are nonempty. The download task reports free disk space on the cache volume and confirms required files before recording success.
 
 A failed 1.7B download still needs its diagnostic log reviewed; network interruptions, partial files, free disk space, Hugging Face cache/Xet behavior, and engine dependency compatibility may be involved. No cache or user model is deleted automatically. 0.6B stays supported.
 
