@@ -24,8 +24,8 @@ These results precede the new candidate and do not replace candidate acceptance.
 
 ## Candidate acceptance gates
 
-- [ ] Complete frozen runtime and GUI checks on the 1.0.0rc1 payload. Compilation alone is insufficient.
-- [ ] Run isolated installer acceptance using the previous 0.3 payload: upgrade, reinstall, repeated startup, uninstall and preservation of seeded user/plugin files.
+- [x] Frozen runtime and GUI checks pass on the installed 1.0.0rc1 payload, including repeated startup.
+- [x] Isolated installer acceptance passes using the previous 0.3 payload: upgrade, reinstall, repeated startup, uninstall and preservation of all nine seeded user/plugin files.
 - [ ] Verify GitHub Actions on the release-preparation commit and inspect uploaded assets/checksums.
 - [ ] Test installed candidate generation with Chatterbox, Qwen3 0.6B and IndexTTS 2.5, including reference voices and saved transcripts.
 - [ ] Verify actual Qwen3 1.7B inference; cache success alone is insufficient.

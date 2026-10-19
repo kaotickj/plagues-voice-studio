@@ -1,3 +1,7 @@
+# Completed local installer acceptance - October 19, 2026
+
+After the user authorized retrying, the isolated acceptance test passed. It installed the previous 0.3 payload, upgraded to 1.0.0rc1, reinstalled, verified runtime and GUI startup at every stage, then uninstalled. All nine synthetic user-data/plugin sentinels retained their SHA-256 hashes. The test used a separate AppId, no shortcuts and a workspace-only target; it did not install over the user's real application. Evidence: artifacts/installer-acceptance/09030ea1b2b7455cad71987077b30889/result.json and adjacent reports/logs. This supersedes the earlier permission-review-blocked GUI/installer status below. Real legacy-profile migration and installed-engine inference still need user acceptance.
+
 # CI bootstrap repair - October 19, 2026
 
 Run 39204861363 failed during dependency metadata preparation: Perth requires uv_build, absent from the no-build-isolation bootstrap. Added pinned uv_build 0.12.7 before installing the dependency lock and put the venv Scripts directory on PATH so its executable can be found. A fresh workspace Python 3.12 venv successfully built the exact pinned Perth commit with these tools (artifacts/ci-perth-wheel.log). Ten targeted release/packaging tests pass. Updated checkout/setup-python to Node 24 action versions. A new hosted build must still confirm the full pipeline.
