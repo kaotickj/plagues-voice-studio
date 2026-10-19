@@ -8,6 +8,12 @@ CSS = r"""
 QWidget { background-color: #101719; color: #e4f0e8; font-family: 'Segoe UI', 'Arial', sans-serif; font-size: 13px; }
 QMainWindow, QDialog, QTabWidget::pane { background-color: #0e1516; }
 QToolTip { background: #182b25; color: #edf9ef; border: 1px solid #508960; padding: 7px; }
+QMenuBar, QMenu { background:#15231e; color:#e4f0e8; }
+QMenu { border:1px solid #4b7255; padding:5px; }
+QMenuBar::item { background:transparent; color:#e4f0e8; padding:5px 10px; }
+QMenu::item { background:transparent; color:#e4f0e8; padding:7px 26px 7px 12px; }
+QMenuBar::item:selected, QMenu::item:selected { background:#355b3d; color:#ffffff; }
+QMenu::item:disabled { color:#8a9d90; }
 QLabel { background: transparent; }
 QLabel#sectionTitle { color: #b1ffc0; font-size: 17px; font-weight: 700; }
 QLabel#mutedText { color: #adc5b3; }

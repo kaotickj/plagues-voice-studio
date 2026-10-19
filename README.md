@@ -1,5 +1,10 @@
 # Plague's Voice Studio v0.3.0
 
+**Writer plugin:** source builds now include **Plugins → Promotional Writer** for
+generic ad copy, promotions, announcements and custom writing. It uses a separate
+local writing model and sends reviewed text to Narration Studio. The Goodneighbor
+DJ standalone is not bundled. See [plugin setup and source testing](plugins/promotional-writer/README.md).
+
 **Created by Kaotick Jay.** Local AI voice production for narration, radio, character voices, and Bethesda game dialogue.
 
 ## Project roadmap and audio showcase

@@ -1,0 +1,9 @@
+{
+  "id": "promotional-writer",
+  "name": "Promotional Writer",
+  "version": "1.0.0",
+  "api_version": 1,
+  "entry_point": "__init__.py",
+  "description": "Local ad copy, promotions, announcements and custom writing.",
+  "author": "Kaotick Jay / Plagued Mods"
+}

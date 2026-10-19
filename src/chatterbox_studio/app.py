@@ -31,6 +31,7 @@ from .help_center import HelpCenter
 from .about_dialog import AboutDialog
 from .update_dialog import UpdateDialog
 from .ui_theme import CSS
+from .plugin_manager import PluginManager
 
 
 
@@ -109,6 +110,7 @@ class MainWindow(QMainWindow):
         self._preferred_voice_id = str(self.settings.value('last_voice', '') or '')
         self.player.playbackStateChanged.connect(self._playback_changed)
         self._build_ui()
+        self.plugins = PluginManager(self)
         self._restore_settings()
         self._refresh_voices()
         self.bethesda_tab.reapply_selected_voice()
@@ -584,6 +586,25 @@ class MainWindow(QMainWindow):
         if path and Path(path).suffix.lower() in (".wav", ".mp3"):
             self.output.setText(str(Path(path).with_suffix('.' + self.format.currentData())))
 
+    def _accept_plugin_text(self, text: str) -> bool:
+        """Transfer reviewed copy into the editor without starting speech generation."""
+        if self.thread is not None:
+            QMessageBox.information(self, 'Narration running', 'Wait for narration to finish before replacing the script.')
+            return False
+        if not text.strip():
+            return False
+        if self.editor.toPlainText().strip():
+            answer = QMessageBox.question(self, 'Replace narration script?',
+                'Replace the current narration text with the reviewed writer draft? Copy or save the current text first if needed.',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            if answer != QMessageBox.StandardButton.Yes:
+                return False
+        self.editor.setPlainText(text)
+        self.tabs.setCurrentIndex(0)
+        self.raise_(); self.activateWindow()
+        self.status_label.setText('Reviewed writer draft loaded. Choose a voice and Generate when ready.')
+        return True
+
     def _load_script(self):
         filename, _ = QFileDialog.getOpenFileName(self, "Open script", "", "Text files (*.txt *.md);;All files (*)")
         if filename:
@@ -648,6 +669,9 @@ class MainWindow(QMainWindow):
         self._start_jobs(ready)
 
     def _start_jobs(self, jobs: list[NarrationJob]):
+        if self.plugins.is_busy:
+            QMessageBox.information(self, 'Writer running', 'Finish or cancel the writer operation before starting narration.')
+            return
         if self.thread is not None:
             return
         self.current_jobs = jobs[:]
@@ -804,6 +828,12 @@ class MainWindow(QMainWindow):
         self.chunk.setValue(int(self.settings.value("max_chars", 220)))
 
     def closeEvent(self, event: QCloseEvent):
+        if self.plugins.is_busy:
+            self.plugins.cancel_all()
+            QMessageBox.information(self, 'Stopping plugin operation',
+                'The writer is stopping its model or download. Close Voice Studio again after it finishes.')
+            event.ignore()
+            return
         if self._update_dialog is not None and self._update_dialog.is_checking:
             QMessageBox.information(self, 'Checking for updates',
                 'An update check is finishing. Please try closing Voice Studio again shortly.')
@@ -820,6 +850,7 @@ class MainWindow(QMainWindow):
         self.settings.setValue("max_chars", self.chunk.value())
         self.bethesda_tab._save_tools()
         self.player.stop()
+        self.plugins.close_all()
         super().closeEvent(event)
 
 

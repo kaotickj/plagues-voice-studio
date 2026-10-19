@@ -1,0 +1,2932 @@
+{
+  "version": "0.4.0",
+  "scenes": [
+    {
+      "id": "open-lights",
+      "category": "Broadcast opener",
+      "mood": "Comforting",
+      "setup": [
+        "There's still a lamp burning in somebody's window tonight.",
+        "Goodneighbor's holding on to its last few lights tonight.",
+        "Out there, one little window's still lit against the dark."
+      ],
+      "thought": [
+        "Could be a welcome home. Could be somebody refusing to give up.",
+        "You never know who's waiting on the other side of a dark street."
+      ],
+      "landing": [
+        "Wherever this finds you, {dj} is here with another hour of {station}.",
+        "I'm {dj}. Come keep me company on {station}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "open-rain",
+      "category": "Broadcast opener",
+      "mood": "Atmospheric",
+      "setup": [
+        "The rain's working its way down Goodneighbor's old brick tonight.",
+        "Wet pavement's making the neon look twice as tired."
+      ],
+      "thought": [
+        "The streets don't get any cleaner, but they do get a little quieter.",
+        "Seems like every drop knows a sad tune already."
+      ],
+      "landing": [
+        "I'm {dj}, and this is {station}. Pull up a chair.",
+        "Stay inside a while. {dj} here, keeping {station} on the air."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "open-road",
+      "category": "Broadcast opener",
+      "mood": "Reflective",
+      "setup": [
+        "If you made it back off the road today, count that as a victory.",
+        "Another hard day's found its way into the rearview mirror."
+      ],
+      "thought": [
+        "Out here even the short trips can feel like a lifetime.",
+        "Sometimes getting home is all the good news you need."
+      ],
+      "landing": [
+        "I'm {dj}. Welcome back to {station}.",
+        "This is {station}, and I'm {dj}. Glad you made it."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "open-coffee",
+      "category": "Broadcast opener",
+      "mood": "Wry",
+      "setup": [
+        "The coffee's burnt, the chair's uneven, and the transmitter's holding by a prayer.",
+        "My coffee's lost the will to live, but the radio's still got some fight."
+      ],
+      "thought": [
+        "That's what passes for a fine evening around these parts.",
+        "I'd complain, but complaints cost more than coffee now."
+      ],
+      "landing": [
+        "I'm {dj}, and you're listening to {station}.",
+        "Pull up a chair. {dj} is on the air at {station}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "open-lonely",
+      "category": "Broadcast opener",
+      "mood": "Melancholy",
+      "setup": [
+        "The city's full of people who still feel alone tonight.",
+        "Every empty stool tells a story after midnight."
+      ],
+      "thought": [
+        "Nobody can make every silence disappear.",
+        "There's no shame in wanting somebody to hear you."
+      ],
+      "landing": [
+        "I'm {dj}. For a little while, let {station} keep you company.",
+        "You've got {station}. I'm {dj}, and I'm not going anywhere just yet."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "id-basic",
+      "category": "Station ID",
+      "mood": "Comforting",
+      "setup": [
+        "Still here, neighbor.",
+        "You're in good company tonight."
+      ],
+      "thought": [
+        "No fancy promises. Just songs with some miles on them.",
+        "That's about all we need."
+      ],
+      "landing": [
+        "I'm {dj}. This is {station}.",
+        "You're listening to {station} with {dj}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "id-weather",
+      "category": "Station ID",
+      "mood": "Atmospheric",
+      "setup": [
+        "From the crooked streets of Goodneighbor, we're still broadcasting.",
+        "Under the hum of old neon, our signal's still reaching out."
+      ],
+      "thought": [
+        "As long as these old wires hold, we'll be around.",
+        "Some nights that little signal is enough."
+      ],
+      "landing": [
+        "This is {station}. I'm {dj}.",
+        "{station}, with {dj} keeping watch."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "id-humor",
+      "category": "Station ID",
+      "mood": "Wry",
+      "setup": [
+        "No guarantees about the reception. None about the coffee either.",
+        "Broadcasting on borrowed time and a suspicious amount of duct tape."
+      ],
+      "thought": [
+        "But if you can hear me, the evening's not a total loss.",
+        "Somehow, the needle still drops where it's meant to."
+      ],
+      "landing": [
+        "{station}. I'm {dj}.",
+        "You're tuned to {station} with {dj}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "break-second-chance",
+      "category": "Station break",
+      "mood": "Reflective",
+      "setup": [
+        "Goodneighbor's never been the place you come to look respectable.",
+        "Around here, folks learn not to ask too much about yesterday."
+      ],
+      "thought": [
+        "Most everybody's trying to get one thing right before the day is over.",
+        "There's room for a second chance if you make a little space for it."
+      ],
+      "landing": [
+        "No judgments from this microphone. I'm {dj}, and this is {station}.",
+        "Whatever yesterday cost you, you're here tonight. {station}, with {dj}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "break-quiet",
+      "category": "Station break",
+      "mood": "Comforting",
+      "setup": [
+        "Maybe the day asked more from you than you had to give.",
+        "If today wore you down, I hope you're somewhere safe now."
+      ],
+      "thought": [
+        "Don't mistake being tired for being finished.",
+        "You can set the weight down for a song or two."
+      ],
+      "landing": [
+        "Stay a while. I'm {dj}, and this is {station}.",
+        "Take what rest you can find. {station}, with {dj}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "break-noise",
+      "category": "Station break",
+      "mood": "Wry",
+      "setup": [
+        "Somebody's arguing with a busted generator down the street.",
+        "I heard somebody threaten a vending machine with a tire iron earlier."
+      ],
+      "thought": [
+        "The generator appears to be winning.",
+        "Can't say the machine looked worried."
+      ],
+      "landing": [
+        "Goodneighbor hasn't changed a bit. I'm {dj} on {station}.",
+        "That's a normal Tuesday around here. {station}, with {dj}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "break-absence",
+      "category": "Station break",
+      "mood": "Melancholy",
+      "setup": [
+        "There's an empty chair at more than one table tonight.",
+        "Every neighborhood has names nobody says aloud anymore."
+      ],
+      "thought": [
+        "Sometimes remembering is the best we can do.",
+        "A song won't bring somebody back, but it can keep a little of them close."
+      ],
+      "landing": [
+        "This next stretch is for the ones we're missing. {station}, with {dj}.",
+        "Keep their memory warm tonight. I'm {dj}, here on {station}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "break-night",
+      "category": "Station break",
+      "mood": "Atmospheric",
+      "setup": [
+        "The old signs are buzzing above the street again.",
+        "Somewhere beyond the walls, the Commonwealth's gone almost quiet."
+      ],
+      "thought": [
+        "Quiet doesn't mean peaceful, but it gives a song room to breathe.",
+        "Some nights the hum of a radio is the friendliest sound you'll hear."
+      ],
+      "landing": [
+        "Leave your dial right here. {station}, with {dj}.",
+        "We're still on the air. I'm {dj}, and this is {station}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "intro-memory",
+      "category": "Song introduction",
+      "mood": "Melancholy",
+      "setup": [
+        "Some records find the hurt you thought you'd put away.",
+        "There's a kind of song that knows exactly what you miss."
+      ],
+      "thought": [
+        "It's not always easy listening. That doesn't make it any less worth hearing.",
+        "The right voice can make an old memory feel brand-new."
+      ],
+      "landing": [
+        "Here's {title}{artist_phrase}. Let it say what it needs to.",
+        "Up next is {title}{artist_phrase}. Listen close."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "intro-swing",
+      "category": "Song introduction",
+      "mood": "Wry",
+      "setup": [
+        "If your boots still work, they might have a job to do.",
+        "This one's liable to wake up a room full of tired feet."
+      ],
+      "thought": [
+        "Don't blame me if the floor starts complaining.",
+        "I take no responsibility for broken furniture."
+      ],
+      "landing": [
+        "Coming up, {title}{artist_phrase}. Turn it up.",
+        "Let's hear {title}{artist_phrase}. Give it some room."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "intro-relief",
+      "category": "Song introduction",
+      "mood": "Comforting",
+      "setup": [
+        "You don't have to solve a single problem for the next few minutes.",
+        "Whatever's chasing you can wait until this record ends."
+      ],
+      "thought": [
+        "A little music won't repair the world. It might make it easier to face.",
+        "For now, the only job is to listen."
+      ],
+      "landing": [
+        "Here's {title}{artist_phrase}. This one's for you.",
+        "Up next, {title}{artist_phrase}. Take a load off."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "intro-soul",
+      "category": "Song introduction",
+      "mood": "Reflective",
+      "setup": [
+        "A good blues song tells the truth without making a speech.",
+        "Some singers can put a whole hard life into one line."
+      ],
+      "thought": [
+        "It's a rare gift, saying what everybody else is too tired to say.",
+        "When that happens, the best thing a DJ can do is get out of the way."
+      ],
+      "landing": [
+        "Here's {title}{artist_phrase}. I'll let the music speak.",
+        "Coming up, {title}{artist_phrase}. No introduction can improve on it."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "intro-rain",
+      "category": "Song introduction",
+      "mood": "Atmospheric",
+      "setup": [
+        "That wind outside's tapping against the window again.",
+        "The rain's settled in for a long evening."
+      ],
+      "thought": [
+        "Good weather for staying in close to the speaker.",
+        "Seems like the right kind of night for a record with some miles on it."
+      ],
+      "landing": [
+        "Next on the turntable, {title}{artist_phrase}.",
+        "Let's play {title}{artist_phrase}. Stay dry out there."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "outro-echo",
+      "category": "Song outro",
+      "mood": "Melancholy",
+      "setup": [
+        "That last note's still hanging in the room.",
+        "I almost hate to let the silence back in after that one."
+      ],
+      "thought": [
+        "Some songs leave you thinking about somebody who isn't here.",
+        "That kind of ache can take its time leaving."
+      ],
+      "landing": [
+        "That was {title}{artist_phrase}. You're with {station}.",
+        "You just heard {title}{artist_phrase}. I'm {dj}, still here on {station}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "outro-grit",
+      "category": "Song outro",
+      "mood": "Wry",
+      "setup": [
+        "That record came through with both elbows out.",
+        "If that one didn't shake the dust loose, nothing will."
+      ],
+      "thought": [
+        "I'll have to check whether the old speaker's still attached to the wall.",
+        "We might owe the furniture an apology."
+      ],
+      "landing": [
+        "That was {title}{artist_phrase}. This is {station}.",
+        "You heard {title}{artist_phrase}. I'm {dj}, and we've got more coming."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "outro-reflect",
+      "category": "Song outro",
+      "mood": "Reflective",
+      "setup": [
+        "That's the kind of performance that stays with you.",
+        "There's a lot of living tucked inside a tune like that."
+      ],
+      "thought": [
+        "Sometimes the rough edges tell more truth than the polished ones.",
+        "There's no need to tidy up what a good singer laid bare."
+      ],
+      "landing": [
+        "You just heard {title}{artist_phrase}. I'm {dj} on {station}.",
+        "That was {title}{artist_phrase}. Keep your dial here at {station}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "outro-warm",
+      "category": "Song outro",
+      "mood": "Comforting",
+      "setup": [
+        "Hope that song gave you a moment to breathe.",
+        "I hope that one found you at the right time."
+      ],
+      "thought": [
+        "One decent melody can make a hard night less lonely.",
+        "Sometimes a few good notes really are enough."
+      ],
+      "landing": [
+        "That was {title}{artist_phrase}. More good company ahead on {station}.",
+        "You just heard {title}{artist_phrase}. I'm {dj}, keeping {station} going."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "outro-street",
+      "category": "Song outro",
+      "mood": "Atmospheric",
+      "setup": [
+        "The street outside's gone quiet, but that last note didn't.",
+        "Even the neon seems to have stopped buzzing for a second."
+      ],
+      "thought": [
+        "That's the sort of song you carry out the door with you.",
+        "Some performances make the whole city feel a little smaller."
+      ],
+      "landing": [
+        "That was {title}{artist_phrase}. You're tuned to {station}.",
+        "You just heard {title}{artist_phrase}. More from {station} in a moment."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "close-home",
+      "category": "Broadcast closer",
+      "mood": "Comforting",
+      "setup": [
+        "The records are back in their sleeves, and the night's getting old.",
+        "That's our last spin for the evening."
+      ],
+      "thought": [
+        "If you're headed home, I hope someone's left a light on.",
+        "Thanks for sharing a little piece of your night with me."
+      ],
+      "landing": [
+        "I'm {dj}. Goodnight from {station}. Look after each other.",
+        "This is {dj} signing off from {station}. Make it home safe."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "close-dark",
+      "category": "Broadcast closer",
+      "mood": "Melancholy",
+      "setup": [
+        "Another evening's slipped away before we could hold onto it.",
+        "Even the last record eventually reaches the run-out groove."
+      ],
+      "thought": [
+        "There are things we couldn't put right tonight. Tomorrow we'll try again.",
+        "Maybe the morning will be a little kinder."
+      ],
+      "landing": [
+        "I'm {dj}. This has been {station}. Goodnight, neighbor.",
+        "From {station}, this is {dj} wishing you some peace tonight."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "close-wry",
+      "category": "Broadcast closer",
+      "mood": "Wry",
+      "setup": [
+        "The transmitter's warm and my coffee's officially beyond saving.",
+        "The old turntable's earned itself a rest."
+      ],
+      "thought": [
+        "I reckon we've pushed our luck far enough for one night.",
+        "The equipment and I have agreed to stop arguing until tomorrow."
+      ],
+      "landing": [
+        "I'm {dj}, signing off from {station}. Don't do anything I wouldn't do.",
+        "That's all from {station}. I'm {dj}. Keep your boots dry."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "close-street",
+      "category": "Broadcast closer",
+      "mood": "Atmospheric",
+      "setup": [
+        "The neon's thinning out and the alleys have gone still.",
+        "There's a faint light over Goodneighbor, but the night belongs to the street now."
+      ],
+      "thought": [
+        "Somebody will be up to greet the dawn. Maybe it'll be you.",
+        "We'll leave the quiet to the late walkers."
+      ],
+      "landing": [
+        "I'm {dj}, and this has been {station}. Goodnight.",
+        "Until next time, {dj} signing off from {station}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "close-account",
+      "category": "Broadcast closer",
+      "mood": "Reflective",
+      "setup": [
+        "We played what we could, and said what needed saying.",
+        "Every show ends before all the stories are finished."
+      ],
+      "thought": [
+        "Leave a little room for tomorrow's stories.",
+        "Nobody knows what the next day brings, but there's always another song."
+      ],
+      "landing": [
+        "I'm {dj}. Thanks for listening to {station}. Take care.",
+        "From {station}, this is {dj}. We'll meet on the dial again."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "ad-third-rail",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "Need a place where the stools are steady and the conversation isn't?",
+        "If you've spent all day bargaining with trouble, you might need a chair."
+      ],
+      "thought": [
+        "The Third Rail has its own ideas about a peaceful evening.",
+        "The Third Rail isn't promising to fix your problems, but it'll pour you something while you think."
+      ],
+      "landing": [
+        "Drop by the Third Rail in Goodneighbor. Tell them you heard about it on {station}.",
+        "The Third Rail, right here in Goodneighbor. A fictional spot from your friends at {station}."
+      ],
+      "sponsor": "The Third Rail",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-den",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "setup": [
+        "Got a memory you keep coming back to?",
+        "If yesterday's been knocking louder than today, there's a place you might know."
+      ],
+      "thought": [
+        "Some memories deserve care, and some deserve questions.",
+        "There's a difference between remembering and moving back in."
+      ],
+      "landing": [
+        "The Memory Den in Goodneighbor. Take your memories seriously.",
+        "Ask around about the Memory Den. Remember to keep a foot in the present."
+      ],
+      "sponsor": "Memory Den",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-station",
+      "category": "Ad / promo",
+      "mood": "Comforting",
+      "setup": [
+        "Couldn't sleep? Neither could we.",
+        "When the streets are quiet, your radio doesn't have to be."
+      ],
+      "thought": [
+        "We're just keeping a light on for anybody who needs one.",
+        "A little music travels farther than you think."
+      ],
+      "landing": [
+        "{station}. Honest songs, no shiny promises.",
+        "Tune in to {station}. We're glad you're here."
+      ],
+      "sponsor": "Goodneighbor Blues",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-station-wry",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "Our records are scratched, and so are most of our listeners.",
+        "Fancy broadcasting equipment? No. Excellent taste? That's debatable."
+      ],
+      "thought": [
+        "At least we're not charging admission to your own radio.",
+        "All we can promise is another song."
+      ],
+      "landing": [
+        "{station}. Keep the dial right where it is.",
+        "That's {station}. Accept no imitations."
+      ],
+      "sponsor": "Goodneighbor Blues",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-custom",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "setup": [
+        "A message tonight from {sponsor}.",
+        "Taking a moment for our friends at {sponsor}."
+      ],
+      "thought": [
+        "Before spending your caps, be sure to ask what they offer and what it costs.",
+        "We won't pretend to know what they can do for you. Ask them directly."
+      ],
+      "landing": [
+        "Find out more about {sponsor} before making a deal. Now, back to {station}.",
+        "That's {sponsor}. You're listening to {station}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "ad-plague-radio-night",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "sponsor": "Plague Radio",
+      "setup": [
+        "Somewhere beyond the static, another signal is still awake.",
+        "If you like your late nights a little louder, there is another frequency calling.",
+        "When the blues run out of words, sometimes the guitars do the talking."
+      ],
+      "thought": [
+        "Plague Radio brings the heavier side of the Commonwealth to the airwaves.",
+        "Expect fierce guitars, dark stories, and a voice that does not apologize for either."
+      ],
+      "landing": [
+        "Plague Radio. Turn the dial when you need a little thunder. Then come home to {station}.",
+        "When you want the heavier soundtrack, tune in to Plague Radio. This is {station}.",
+        "Plague Radio, for the nights that call for something louder. You are listening to {station}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "ad-plague-radio-wry",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "sponsor": "Plague Radio",
+      "setup": [
+        "This next message comes from the loud end of the dial.",
+        "Our friends at Plague Radio have a different definition of easy listening."
+      ],
+      "thought": [
+        "Not everybody settles their troubles with a slow piano and a glass of something strong.",
+        "Sometimes a quiet night needs a very loud interruption."
+      ],
+      "landing": [
+        "Plague Radio. Less whispering, more distortion. Back to {station}.",
+        "For the Commonwealth with its volume turned up, there is Plague Radio. And here is {station}.",
+        "Plague Radio, the other side of a long night. Now back to {station}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "ad-plague-radio-reflect",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "sponsor": "Plague Radio",
+      "setup": [
+        "A sad song and a loud song can carry the same old truth.",
+        "Every station has its way of keeping the dark company."
+      ],
+      "thought": [
+        "Around here we let the blues breathe; on Plague Radio, they give the hard feelings a set of amplifiers.",
+        "No two voices tell the same story exactly the same way."
+      ],
+      "landing": [
+        "Give Plague Radio a listen when the mood strikes. You are tuned to {station}.",
+        "Plague Radio has the louder songs. We have the late-night blues on {station}."
+      ],
+      "profile": "blues"
+    },
+    {
+      "id": "plague-open-signal",
+      "category": "Broadcast opener",
+      "mood": "Ominous",
+      "profile": "plague",
+      "setup": [
+        "You hear that hum underneath the static?",
+        "Another night, another signal they swore would never reach you."
+      ],
+      "thought": [
+        "The transmitters are awake, and somebody out there would rather we stayed quiet.",
+        "Maybe it is only bad wiring. Then why does it stop when I start talking?"
+      ],
+      "landing": [
+        "This is {dj} on {station}. Turn it up. The metal comes first, and the questions come right after.",
+        "{dj} here. You found {station}. Heavy riffs, open eyes, and no promises about what follows."
+      ]
+    },
+    {
+      "id": "plague-open-watch",
+      "category": "Broadcast opener",
+      "mood": "Suspicious",
+      "profile": "plague",
+      "setup": [
+        "Good evening to everyone listening behind a locked door.",
+        "Welcome back, citizens, drifters, and anyone who knows an antenna can listen both ways."
+      ],
+      "thought": [
+        "I saw a man in a clean coat counting the lights on the rooftops. Maybe he just likes arithmetic.",
+        "Funny how the cameras are always pointed away just before something happens."
+      ],
+      "landing": [
+        "{dj}, {station}. Keep your radios loud and your explanations ready.",
+        "This is {station}. The guitars are loud because whispers never got anybody an answer."
+      ]
+    },
+    {
+      "id": "plague-id-noise",
+      "category": "Station ID",
+      "mood": "Ominous",
+      "profile": "plague",
+      "setup": [
+        "You are still on the frequency they told you was empty.",
+        "If the dial suddenly went quiet, I would be worried."
+      ],
+      "thought": [
+        "A little distortion is proof the signal is alive.",
+        "Some people call it interference. I call it company."
+      ],
+      "landing": [
+        "{station}. {dj}. Metal for the awake and the suspicious.",
+        "You found {station}, and {dj} is still transmitting."
+      ]
+    },
+    {
+      "id": "plague-id-questions",
+      "category": "Station ID",
+      "mood": "Suspicious",
+      "profile": "plague",
+      "setup": [
+        "No, I have not stopped asking questions.",
+        "The official story keeps changing. The bass line does not."
+      ],
+      "thought": [
+        "Answers are easy. Evidence takes longer.",
+        "The Commonwealth has too many locked doors and too many perfect smiles."
+      ],
+      "landing": [
+        "{dj} on {station}. Stay loud, stay curious.",
+        "{station}, with {dj}. They can keep the silence."
+      ]
+    },
+    {
+      "id": "plague-break-synths",
+      "category": "Station break",
+      "mood": "Suspicious",
+      "profile": "plague",
+      "setup": [
+        "Ever notice how some people remember things they never lived?",
+        "A perfect stranger smiled at me like we had met in a basement laboratory."
+      ],
+      "thought": [
+        "Does that prove anything? No. Does it bother me? Absolutely.",
+        "Could have been a misunderstanding. Could have been something with wires under its skin."
+      ],
+      "landing": [
+        "I am not telling you who to trust. I am telling you to look twice. {station}.",
+        "Keep the questions. Keep your eyes open. The next riff is coming up on {station}."
+      ]
+    },
+    {
+      "id": "plague-break-birds",
+      "category": "Station break",
+      "mood": "Ominous",
+      "profile": "plague",
+      "setup": [
+        "Three ravens on the same roof for four straight nights.",
+        "The mannequins on that corner have changed places again."
+      ],
+      "thought": [
+        "Maybe the wind is doing it. Maybe the wind has been taking orders.",
+        "Some say I see patterns everywhere. Maybe they should ask who laid them out."
+      ],
+      "landing": [
+        "Call me paranoid. Just do not call me surprised. {station}.",
+        "I would dismiss it too, if I had not seen it myself. More metal on {station}."
+      ]
+    },
+    {
+      "id": "plague-intro-guitar",
+      "category": "Song introduction",
+      "mood": "Ominous",
+      "profile": "plague",
+      "setup": [
+        "Next up, something loud enough to rattle the bolts loose.",
+        "I have a record here that sounds like a generator fighting for its life."
+      ],
+      "thought": [
+        "If you cannot hear yourself think, maybe nobody else can hear you either.",
+        "The guitar sounds like it knows something and refuses to testify."
+      ],
+      "landing": [
+        "Here comes {title}{artist_phrase}. {station}.",
+        "Turn it up for {title}{artist_phrase}, right here on {station}."
+      ]
+    },
+    {
+      "id": "plague-intro-warning",
+      "category": "Song introduction",
+      "mood": "Suspicious",
+      "profile": "plague",
+      "setup": [
+        "They say a loud record cannot change your mind.",
+        "There is a reason the people in charge prefer everyone sitting quietly."
+      ],
+      "thought": [
+        "I am not saying this song is a warning. I am saying it sounds like one.",
+        "Listen to the drums; they do not ask for permission."
+      ],
+      "landing": [
+        "{title}{artist_phrase}. Metal and questions on {station}.",
+        "Here is {title}{artist_phrase}. Make enough noise to be noticed."
+      ]
+    },
+    {
+      "id": "plague-outro-echo",
+      "category": "Song outro",
+      "mood": "Ominous",
+      "profile": "plague",
+      "setup": [
+        "That last guitar note is still crawling around the walls.",
+        "If the windows shake again, this time it was probably the amplifier."
+      ],
+      "thought": [
+        "There was enough distortion in that record to hide a confession.",
+        "I did not hear any strange voices in it. Not clearly, anyway."
+      ],
+      "landing": [
+        "You are with {dj} on {station}. Do not touch that dial.",
+        "That was {title}{artist_phrase}. Still listening? Good. {station}."
+      ]
+    },
+    {
+      "id": "plague-outro-facts",
+      "category": "Song outro",
+      "mood": "Suspicious",
+      "profile": "plague",
+      "setup": [
+        "Now that was a proper dose of sonic distrust.",
+        "That riff raised more questions than it answered."
+      ],
+      "thought": [
+        "A loud guitar does not prove a theory. But it certainly gives it a soundtrack.",
+        "Some people hear noise. I hear somebody refusing to go quietly."
+      ],
+      "landing": [
+        "{dj} here. More metal ahead on {station}.",
+        "That was {title}{artist_phrase}. Keep questioning, keep listening."
+      ]
+    },
+    {
+      "id": "plague-ad-station",
+      "category": "Ad / promo",
+      "mood": "Ominous",
+      "profile": "plague",
+      "setup": [
+        "A word from the only station that leaves the lights on.",
+        "If the silence between broadcasts worries you, good."
+      ],
+      "thought": [
+        "We do not sell certainty. We play heavy metal.",
+        "The reports may be classified, but the guitar solos are not."
+      ],
+      "landing": [
+        "{station}, with {dj}. More metal, fewer comfortable answers.",
+        "Keep listening to {station}. The music is loud, and the questions are louder."
+      ],
+      "sponsor": "Plague Radio"
+    },
+    {
+      "id": "plague-ad-blues",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "profile": "plague",
+      "setup": [
+        "Even a conspiracy broadcaster needs somewhere to put the volume down.",
+        "For every sleepless night full of questions, there is a song that understands the weight."
+      ],
+      "thought": [
+        "Goodneighbor Blues plays the old hurts without pretending to solve them.",
+        "Sometimes you need a saxophone instead of another siren."
+      ],
+      "landing": [
+        "When the noise gets heavy, tune into Goodneighbor Blues, 95.77. Then find your way back to {station}.",
+        "Goodneighbor Blues, 95.77, for the nights you need a slower truth. {station} will still be here."
+      ],
+      "sponsor": "Goodneighbor Blues"
+    },
+    {
+      "id": "plague-close-static",
+      "category": "Broadcast closer",
+      "mood": "Ominous",
+      "profile": "plague",
+      "setup": [
+        "The hour is late, and the static is getting thick.",
+        "Time to shut this microphone down before the power cuts out for us."
+      ],
+      "thought": [
+        "I have notes to check and a rooftop to watch.",
+        "Some of you will sleep. Some of you will hear that humming and wonder."
+      ],
+      "landing": [
+        "{dj} signing off from {station}. Stay suspicious, but stay alive.",
+        "This is {dj}, leaving {station} for tonight. If they ask, you never heard me."
+      ]
+    },
+    {
+      "id": "plague-close-ravens",
+      "category": "Broadcast closer",
+      "mood": "Suspicious",
+      "profile": "plague",
+      "setup": [
+        "The ravens have gone quiet again.",
+        "That mannequin across the street is still facing the window."
+      ],
+      "thought": [
+        "Maybe I will have a sensible explanation by tomorrow. I would not wager on it.",
+        "Maybe it is nothing. That is what they said last time."
+      ],
+      "landing": [
+        "{dj}, {station}. Good night, and keep an eye on the shadows.",
+        "The signal is going dark. The questions are not. {station}, signing off."
+      ]
+    },
+    {
+      "id": "ad-blues-last-call",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "profile": "blues",
+      "sponsor": "The Third Rail",
+      "setup": [
+        "Down at the Third Rail, the lights always seem a little softer.",
+        "Some evenings call for a place where the world can wait outside."
+      ],
+      "thought": [
+        "The music finds the cracks the daylight missed.",
+        "A good room never asks you to explain the look on your face."
+      ],
+      "landing": [
+        "The Third Rail in Goodneighbor. Come for the atmosphere; stay for the stories.",
+        "If you need a little music with your company, the Third Rail is worth remembering."
+      ]
+    },
+    {
+      "id": "ad-blues-magnolia",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "profile": "blues",
+      "sponsor": "The Third Rail",
+      "setup": [
+        "Some voices can make an entire room pay attention.",
+        "There is a kind of song that makes even a rough town hold still."
+      ],
+      "thought": [
+        "In Goodneighbor, you know the sound when you hear it.",
+        "A melody can make a hard evening easier to carry."
+      ],
+      "landing": [
+        "Hear Magnolia at the Third Rail, right here in Goodneighbor.",
+        "The Third Rail. And when Magnolia sings, you ought to listen."
+      ]
+    },
+    {
+      "id": "ad-blues-rough-crowd",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "profile": "blues",
+      "sponsor": "The Third Rail",
+      "setup": [
+        "If you want polished manners, the Third Rail may surprise you.",
+        "A quiet table in Goodneighbor is a relative thing."
+      ],
+      "thought": [
+        "Bring a sense of humor and keep an eye on your drink.",
+        "Around here, the interesting stories rarely come from the quiet ones."
+      ],
+      "landing": [
+        "The Third Rail. Come as you are, and mind your own business.",
+        "The Third Rail in Goodneighbor. No promises about the company."
+      ]
+    },
+    {
+      "id": "ad-blues-old-days",
+      "category": "Ad / promo",
+      "mood": "Melancholy",
+      "profile": "blues",
+      "sponsor": "Memory Den",
+      "setup": [
+        "Some memories hurt worse than the injuries that made them.",
+        "Every once in a while, yesterday knocks a little too hard."
+      ],
+      "thought": [
+        "People come looking for a moment they thought was lost.",
+        "A familiar place can feel miles away in the Commonwealth."
+      ],
+      "landing": [
+        "The Memory Den in Goodneighbor, for those willing to revisit the past.",
+        "The Memory Den. Some doors open backward."
+      ]
+    },
+    {
+      "id": "ad-blues-recollection",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "profile": "blues",
+      "sponsor": "Memory Den",
+      "setup": [
+        "We all carry a few moments that never quite leave us.",
+        "There are places you cannot return to, except in memory."
+      ],
+      "thought": [
+        "The past is complicated, even when it was beautiful.",
+        "Sometimes remembering is its own kind of journey."
+      ],
+      "landing": [
+        "Ask about the Memory Den in Goodneighbor.",
+        "Goodneighbors Memory Den. Yesterday has an address."
+      ]
+    },
+    {
+      "id": "ad-blues-delicate",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "profile": "blues",
+      "sponsor": "Memory Den",
+      "setup": [
+        "Behind an unassuming Goodneighbor doorway, old memories have a way of waking.",
+        "Not every journey begins by leaving town."
+      ],
+      "thought": [
+        "Some recollections are comforting. Others ask difficult questions.",
+        "Be careful which memories you choose to hold close."
+      ],
+      "landing": [
+        "The Memory Den in Goodneighbor. Go in with your eyes open.",
+        "The Memory Den. Visit yesterday, if you really want to."
+      ]
+    },
+    {
+      "id": "ad-blues-distorted-guitar",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "profile": "blues",
+      "sponsor": "Plague Radio",
+      "setup": [
+        "Maybe the blues have done all they can for you tonight.",
+        "If you are looking for something louder than a broken heart, try the other dial."
+      ],
+      "thought": [
+        "The guitars are heavy and the host is suspicious of absolutely everything.",
+        "Over there, even the static sounds like a warning."
+      ],
+      "landing": [
+        "Plague Radio. Metal for the nights when quiet just will not do.",
+        "Turn over to Plague Radio for metal, mysteries, and a man asking too many questions."
+      ]
+    },
+    {
+      "id": "ad-blues-warning-signal",
+      "category": "Ad / promo",
+      "mood": "Ominous",
+      "profile": "blues",
+      "sponsor": "Plague Radio",
+      "setup": [
+        "There is another voice broadcasting after dark.",
+        "Sometimes the other end of the dial sounds like a warning siren."
+      ],
+      "thought": [
+        "He has questions about the Institute, and none of the answers make him happy.",
+        "He does not trust the mannequins. You might not either."
+      ],
+      "landing": [
+        "Plague Radio. Loud guitars, darker questions.",
+        "Plague Radio, where the metal is heavy and the theories get heavier."
+      ]
+    },
+    {
+      "id": "ad-blues-neighborly",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "profile": "blues",
+      "sponsor": "Plague Radio",
+      "setup": [
+        "Some nights call for a slow blues. Some nights call for a wall of guitars.",
+        "We may not agree with everything that man says on the air."
+      ],
+      "thought": [
+        "Our colleague on the other frequency prefers his comfort at full volume.",
+        "But at least he keeps people asking questions."
+      ],
+      "landing": [
+        "Give Plague Radio a listen when you are ready for something heavier.",
+        "Plague Radio. Different music, same Commonwealth after dark."
+      ]
+    },
+    {
+      "id": "ad-blues-antenna",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "profile": "blues",
+      "sponsor": "Plague Radio",
+      "setup": [
+        "Past midnight, another signal pushes through the interference.",
+        "You can hear the distorted guitars before the announcer opens his mouth."
+      ],
+      "thought": [
+        "Somewhere between the music, a broadcaster keeps tracking strange details.",
+        "Static, feedback, and the occasional theory that lands a little too close to home."
+      ],
+      "landing": [
+        "Plague Radio. Find the metal in the static.",
+        "That is Plague Radio. Turn it up and keep your eyes open."
+      ]
+    },
+    {
+      "id": "ad-blues-room-for-you",
+      "category": "Ad / promo",
+      "mood": "Comforting",
+      "profile": "blues",
+      "sponsor": "Goodneighbor Blues",
+      "setup": [
+        "The road is long and the night can be longer.",
+        "Even a tough old town deserves somewhere soft to land."
+      ],
+      "thought": [
+        "Sometimes a familiar voice is enough to get through the next hour.",
+        "There is room here for whatever kind of day you have had."
+      ],
+      "landing": [
+        "Goodneighbor Blues, 95.77. There is room for you here.",
+        "Stay close to the dial. Goodneighbor Blues, 95.77."
+      ]
+    },
+    {
+      "id": "ad-blues-authentic-records",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "profile": "blues",
+      "sponsor": "Goodneighbor Blues",
+      "setup": [
+        "Some songs sound better with a little wear on them.",
+        "The old blues do not pretend life is easy."
+      ],
+      "thought": [
+        "Scratches on a record just mean the record has lived.",
+        "You do not have to dress up the truth to sing it."
+      ],
+      "landing": [
+        "Hear the blues on Goodneighbor Blues, 95.77.",
+        "Goodneighbor Blues, 95.77. Songs with stories left in them."
+      ]
+    },
+    {
+      "id": "ad-blues-late-coffee",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "profile": "blues",
+      "sponsor": "Goodneighbor Blues",
+      "setup": [
+        "The coffee is questionable. The records are not.",
+        "We have one good chair, two bad lamps, and a mountain of blues records."
+      ],
+      "thought": [
+        "The transmitter still works, which is more than I can say for the coffee pot.",
+        "Nobody is charging admission to this little corner of the night."
+      ],
+      "landing": [
+        "Goodneighbor Blues, 95.77. Pull up a chair.",
+        "You know the frequency. Goodneighbor Blues, 95.77."
+      ]
+    },
+    {
+      "id": "ad-plague-metal-detector",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "profile": "plague",
+      "sponsor": "Plague Radio",
+      "setup": [
+        "Some people hear a heavy guitar and call it noise.",
+        "If the Institute does not like loud music, that is another reason to play it."
+      ],
+      "thought": [
+        "Good. The noise covers the transmitter. Probably.",
+        "They cannot easily listen for whispers under a wall of metal."
+      ],
+      "landing": [
+        "Plague Radio. Maximum distortion, minimum trust.",
+        "Plague Radio. Crank the metal and question everything."
+      ]
+    },
+    {
+      "id": "ad-plague-mannequin-break",
+      "category": "Ad / promo",
+      "mood": "Ominous",
+      "profile": "plague",
+      "sponsor": "Plague Radio",
+      "setup": [
+        "The mannequin by the busted shop window was facing east yesterday.",
+        "Here is an unpaid announcement: mannequins do not need to move to be suspicious."
+      ],
+      "thought": [
+        "Today it is facing the studio. You tell me what that means.",
+        "Who keeps dusting them? You ever think about that?"
+      ],
+      "landing": [
+        "Plague Radio. Stay loud and keep your eyes on the corners.",
+        "Plague Radio, where the music hits hard and the questions hit harder."
+      ]
+    },
+    {
+      "id": "ad-plague-redacted",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "profile": "plague",
+      "sponsor": "Plague Radio",
+      "setup": [
+        "Our last station promo was mysteriously interrupted by static.",
+        "Somebody keeps trying to drown out this broadcast."
+      ],
+      "thought": [
+        "Either the antenna is falling apart or somebody has a problem with the questions.",
+        "The wiring is bad, I admit that. The timing is worse."
+      ],
+      "landing": [
+        "Plague Radio. We play metal. We also notice things.",
+        "Plague Radio. The truth may be buried, but the guitars are not."
+      ]
+    },
+    {
+      "id": "ad-plague-night-watch",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "profile": "plague",
+      "sponsor": "Plague Radio",
+      "setup": [
+        "When the Commonwealth goes quiet, the night watch begins.",
+        "This broadcast comes to you from somewhere they would rather we were not."
+      ],
+      "thought": [
+        "I have fresh coffee, loud records, and a very short list of people I trust.",
+        "The signal may fade, but the questions do not."
+      ],
+      "landing": [
+        "This is Plague Radio. Sleep if you can.",
+        "Plague Radio. Heavy metal after dark, eyes wide open."
+      ]
+    },
+    {
+      "id": "ad-plague-low-frequency",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "profile": "plague",
+      "sponsor": "Goodneighbor Blues",
+      "setup": [
+        "Even I cannot listen for surveillance drones all night.",
+        "There comes a time when you have to put the conspiracy board down."
+      ],
+      "thought": [
+        "Not forever. Just long enough to hear somebody sing about a different kind of trouble.",
+        "Do not mistake a quiet song for a safe world."
+      ],
+      "landing": [
+        "Goodneighbor Blues, 95.77. They play the kind of music you can think to.",
+        "Switch to Goodneighbor Blues, 95.77, when your nerves need a slower beat."
+      ]
+    },
+    {
+      "id": "ad-plague-suspicion-break",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "profile": "plague",
+      "sponsor": "Goodneighbor Blues",
+      "setup": [
+        "I have checked their records. Mostly harmless.",
+        "The folks over at Goodneighbor Blues keep asking me to relax."
+      ],
+      "thought": [
+        "That is not a guarantee, but it is a respectable start.",
+        "Suspicious advice. Excellent music, though."
+      ],
+      "landing": [
+        "Goodneighbor Blues, 95.77. I will allow it.",
+        "Goodneighbor Blues, 95.77. Even I recommend a little blues sometimes."
+      ]
+    },
+    {
+      "id": "ad-plague-eyewitness",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "profile": "plague",
+      "sponsor": "The Third Rail",
+      "setup": [
+        "You hear more interesting things in a bar than in an official briefing.",
+        "The Third Rail attracts people who notice more than they say."
+      ],
+      "thought": [
+        "Of course, what you hear depends on who is doing the talking.",
+        "Do not confuse a good story with proof. I never do. Usually."
+      ],
+      "landing": [
+        "The Third Rail in Goodneighbor. Listen carefully.",
+        "The Third Rail. Good music, interesting company, and plenty of questions."
+      ]
+    },
+    {
+      "id": "ad-plague-unplug",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "profile": "plague",
+      "sponsor": "The Third Rail",
+      "setup": [
+        "The Third Rail has music that does not come with a threat assessment.",
+        "Even a man like me needs a break from the evidence wall."
+      ],
+      "thought": [
+        "I checked. Nobody asked me to surrender my notebook.",
+        "That is not a formal endorsement of their security practices."
+      ],
+      "landing": [
+        "The Third Rail in Goodneighbor. Tell them you heard about it on Plague Radio.",
+        "The Third Rail. Just remember, the walls have ears. Probably."
+      ]
+    },
+    {
+      "id": "ad-plague-memory-evidence",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "profile": "plague",
+      "sponsor": "Memory Den",
+      "setup": [
+        "People say memory is unreliable. That is convenient, is it not?",
+        "A place called the Memory Den ought to raise a few questions."
+      ],
+      "thought": [
+        "Then again, I am not claiming the Memory Den is hiding anything.",
+        "Recollections can lead you places official reports will not."
+      ],
+      "landing": [
+        "The Memory Den in Goodneighbor. Bring your questions.",
+        "The Memory Den. Remember carefully, and question the details."
+      ]
+    },
+    {
+      "id": "ad-plague-ghosts",
+      "category": "Ad / promo",
+      "mood": "Ominous",
+      "profile": "plague",
+      "sponsor": "Memory Den",
+      "setup": [
+        "Some ghosts do not haunt buildings. They haunt your own head.",
+        "The past has a way of returning without knocking."
+      ],
+      "thought": [
+        "You cannot always tell memory from the story you have told yourself.",
+        "Which is why I never trust a neat explanation."
+      ],
+      "landing": [
+        "The Memory Den, Goodneighbor. Not every mystery is outside your skull.",
+        "The Memory Den. Some old answers are worth examining twice."
+      ]
+    },
+    {
+      "id": "ad-blues-essentials",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "profile": "blues",
+      "sponsor": "Daisy’s Discounts",
+      "setup": [
+        "When the road calls for supplies, wishful thinking will not do.",
+        "Goodneighbor has a way of reminding you what you forgot to pack."
+      ],
+      "thought": [
+        "Some days you need practical things more than a grand speech.",
+        "Take a look around before you set off again."
+      ],
+      "landing": [
+        "Stop by Daisy’s Discounts in Goodneighbor.",
+        "Daisy’s Discounts. A familiar stop when you need to stock up."
+      ]
+    },
+    {
+      "id": "ad-blues-shopkeeper",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "profile": "blues",
+      "sponsor": "Daisy’s Discounts",
+      "setup": [
+        "Goodneighbor is held together by people who keep showing up to work.",
+        "There is something reassuring about a familiar shop after a rough trip."
+      ],
+      "thought": [
+        "Out here, trading is part of how a community gets through another day.",
+        "A steady counter can mean a lot in an unsteady world."
+      ],
+      "landing": [
+        "Daisy’s Discounts, right here in Goodneighbor.",
+        "When you need supplies, remember Daisy’s Discounts."
+      ]
+    },
+    {
+      "id": "ad-plague-supply-check",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "profile": "plague",
+      "sponsor": "Daisy’s Discounts",
+      "setup": [
+        "Before investigating strange signals, check your supplies.",
+        "Conspiracy boards are useless if you forget the basics."
+      ],
+      "thought": [
+        "That is not paranoia. That is planning.",
+        "And do not ask me why I always buy extra batteries."
+      ],
+      "landing": [
+        "Daisy’s Discounts in Goodneighbor. Prepare accordingly.",
+        "Daisy’s Discounts. Because being prepared is not a conspiracy."
+      ]
+    },
+    {
+      "id": "ad-blues-gear",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "profile": "blues",
+      "sponsor": "KL-E-0’s Guns",
+      "setup": [
+        "Goodneighbor is not exactly famous for being gentle.",
+        "Everybody hopes the road stays quiet."
+      ],
+      "thought": [
+        "There is nothing wrong with thinking ahead.",
+        "But hope alone will not fix a bad piece of equipment."
+      ],
+      "landing": [
+        "KL-E-0’s Guns in Goodneighbor. Make your own decisions and travel carefully.",
+        "Ask around for KL-E-0’s Guns when planning your next trip."
+      ]
+    },
+    {
+      "id": "ad-blues-local-character",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "profile": "blues",
+      "sponsor": "KL-E-0’s Guns",
+      "setup": [
+        "Some shopkeepers are unforgettable. Goodneighbor has more than its share.",
+        "There is a familiar storefront in town with a very distinctive proprietor."
+      ],
+      "thought": [
+        "KL-E-0 does not exactly blend into the scenery.",
+        "If you have met her, you know what I mean."
+      ],
+      "landing": [
+        "That would be KL-E-0’s Guns, here in Goodneighbor.",
+        "KL-E-0’s Guns. A Goodneighbor name you will remember."
+      ]
+    },
+    {
+      "id": "ad-plague-robot",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "profile": "plague",
+      "sponsor": "KL-E-0’s Guns",
+      "setup": [
+        "An Assaultron selling weapons. You know I have questions.",
+        "KL-E-0 runs a store and never seems bothered by my suspicions."
+      ],
+      "thought": [
+        "Now, that is not evidence of anything. I am simply observing.",
+        "I respect an independent machine. I still watch its hands."
+      ],
+      "landing": [
+        "KL-E-0’s Guns, Goodneighbor. Ask questions before you buy.",
+        "KL-E-0’s Guns. I am watching, but that is hardly news."
+      ]
+    },
+    {
+      "id": "ad-blues-bed",
+      "category": "Ad / promo",
+      "mood": "Comforting",
+      "profile": "blues",
+      "sponsor": "Hotel Rexford",
+      "setup": [
+        "There are evenings when all you want is a door that closes.",
+        "A long journey makes even a plain bed sound wonderful."
+      ],
+      "thought": [
+        "You do not have to tell the whole town where you have been.",
+        "Sometimes rest is the best plan you have."
+      ],
+      "landing": [
+        "Hotel Rexford in Goodneighbor. Ask about a room.",
+        "Looking for a place to rest? Try Hotel Rexford."
+      ]
+    },
+    {
+      "id": "ad-blues-roadside",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "profile": "blues",
+      "sponsor": "Hotel Rexford",
+      "setup": [
+        "Boots on the sidewalk, old neon overhead, and nowhere else to go tonight.",
+        "The streets get quieter as the hour gets later."
+      ],
+      "thought": [
+        "Even wanderers have to stop moving eventually.",
+        "Morning can handle its own troubles."
+      ],
+      "landing": [
+        "Hotel Rexford in Goodneighbor. There is a name to remember.",
+        "Hotel Rexford. A stop along the way through Goodneighbor."
+      ]
+    },
+    {
+      "id": "ad-plague-rest",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "profile": "plague",
+      "sponsor": "Hotel Rexford",
+      "setup": [
+        "I do sleep, contrary to certain allegations.",
+        "Even a watchful broadcaster needs a locked door sometimes."
+      ],
+      "thought": [
+        "I simply prefer to know where the exits are.",
+        "You cannot investigate anomalies on three hours of sleep forever."
+      ],
+      "landing": [
+        "Hotel Rexford in Goodneighbor. You can ask about a room.",
+        "Hotel Rexford. Rest while you can."
+      ]
+    },
+    {
+      "id": "ad-v05-the-rusty-lantern-blues-1",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "setup": [
+        "The Lantern keeps its lights on for folks whose luck went out hours ago.",
+        "A word from The Rusty Lantern, before the next record. The Lantern keeps its lights on for folks whose luck went out hours ago."
+      ],
+      "thought": [
+        "No dress code, unless you count being tired.",
+        "No dress code, unless you count being tired. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Rusty Lantern. Pull up a chair and keep your elbows off the broken bits.",
+        "The Rusty Lantern. Pull up a chair and keep your elbows off the broken bits. Now, back to {station}."
+      ],
+      "sponsor": "The Rusty Lantern",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-rusty-lantern-blues-2",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "setup": [
+        "An empty stool and a warm corner can feel like luxury out here.",
+        "A word from The Rusty Lantern, before the next record. An empty stool and a warm corner can feel like luxury out here."
+      ],
+      "thought": [
+        "The owner says nobody has to tell their story to earn a seat.",
+        "The owner says nobody has to tell their story to earn a seat. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Rusty Lantern. Your silence is welcome, your caps are appreciated.",
+        "The Rusty Lantern. Your silence is welcome, your caps are appreciated. Now, back to {station}."
+      ],
+      "sponsor": "The Rusty Lantern",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-rusty-lantern-blues-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "There is a sign outside the Rusty Lantern that says OPEN.",
+        "A word from The Rusty Lantern, before the next record. There is a sign outside the Rusty Lantern that says OPEN."
+      ],
+      "thought": [
+        "Underneath, somebody scratched IN THEORY.",
+        "Underneath, somebody scratched IN THEORY. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Rusty Lantern. At least the sign is honest.",
+        "The Rusty Lantern. At least the sign is honest. Now, back to {station}."
+      ],
+      "sponsor": "The Rusty Lantern",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-rusty-lantern-plague-1",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "This next message comes from The Rusty Lantern. The Lantern keeps its lights on for folks whose luck went out hours ago.",
+        "Our sponsor is The Rusty Lantern. The Lantern keeps its lights on for folks whose luck went out hours ago."
+      ],
+      "thought": [
+        "No dress code, unless you count being tired. I checked the fine print. You should too.",
+        "No dress code, unless you count being tired. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Rusty Lantern. Pull up a chair and keep your elbows off the broken bits. You are tuned to {station}.",
+        "The Rusty Lantern. Pull up a chair and keep your elbows off the broken bits. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Rusty Lantern",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-the-rusty-lantern-plague-2",
+      "category": "Ad / promo",
+      "mood": "Ominous",
+      "setup": [
+        "This next message comes from The Rusty Lantern. An empty stool and a warm corner can feel like luxury out here.",
+        "Our sponsor is The Rusty Lantern. An empty stool and a warm corner can feel like luxury out here."
+      ],
+      "thought": [
+        "The owner says nobody has to tell their story to earn a seat. I checked the fine print. You should too.",
+        "The owner says nobody has to tell their story to earn a seat. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Rusty Lantern. Your silence is welcome, your caps are appreciated. You are tuned to {station}.",
+        "The Rusty Lantern. Your silence is welcome, your caps are appreciated. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Rusty Lantern",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-the-rusty-lantern-plague-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "This next message comes from The Rusty Lantern. There is a sign outside the Rusty Lantern that says OPEN.",
+        "Our sponsor is The Rusty Lantern. There is a sign outside the Rusty Lantern that says OPEN."
+      ],
+      "thought": [
+        "Underneath, somebody scratched IN THEORY. I checked the fine print. You should too.",
+        "Underneath, somebody scratched IN THEORY. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Rusty Lantern. At least the sign is honest. You are tuned to {station}.",
+        "The Rusty Lantern. At least the sign is honest. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Rusty Lantern",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-mirelight-repairs-blues-1",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "setup": [
+        "Your lantern flickers like it knows something you do not.",
+        "A word from Mirelight Repairs, before the next record. Your lantern flickers like it knows something you do not."
+      ],
+      "thought": [
+        "Mirelight Repairs claims it can coax another winter out of old wiring.",
+        "Mirelight Repairs claims it can coax another winter out of old wiring. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Mirelight Repairs. Bring the lamp, leave the ominous buzzing.",
+        "Mirelight Repairs. Bring the lamp, leave the ominous buzzing. Now, back to {station}."
+      ],
+      "sponsor": "Mirelight Repairs",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-mirelight-repairs-blues-2",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "setup": [
+        "Some things are worth fixing, even when the repair costs more than the thing.",
+        "A word from Mirelight Repairs, before the next record. Some things are worth fixing, even when the repair costs more than the thing."
+      ],
+      "thought": [
+        "Especially if that thing kept your whole home bright.",
+        "Especially if that thing kept your whole home bright. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Mirelight Repairs. Ask about a quote before the sparks fly.",
+        "Mirelight Repairs. Ask about a quote before the sparks fly. Now, back to {station}."
+      ],
+      "sponsor": "Mirelight Repairs",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-mirelight-repairs-blues-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "If your generator starts singing in the middle of the night, that is not a good sign.",
+        "A word from Mirelight Repairs, before the next record. If your generator starts singing in the middle of the night, that is not a good sign."
+      ],
+      "thought": [
+        "The folks at Mirelight Repairs say they have heard worse.",
+        "The folks at Mirelight Repairs say they have heard worse. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Mirelight Repairs. Working lights, fewer mysteries.",
+        "Mirelight Repairs. Working lights, fewer mysteries. Now, back to {station}."
+      ],
+      "sponsor": "Mirelight Repairs",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-mirelight-repairs-plague-1",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "This next message comes from Mirelight Repairs. Your lantern flickers like it knows something you do not.",
+        "Our sponsor is Mirelight Repairs. Your lantern flickers like it knows something you do not."
+      ],
+      "thought": [
+        "Mirelight Repairs claims it can coax another winter out of old wiring. I checked the fine print. You should too.",
+        "Mirelight Repairs claims it can coax another winter out of old wiring. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Mirelight Repairs. Bring the lamp, leave the ominous buzzing. You are tuned to {station}.",
+        "Mirelight Repairs. Bring the lamp, leave the ominous buzzing. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Mirelight Repairs",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-mirelight-repairs-plague-2",
+      "category": "Ad / promo",
+      "mood": "Ominous",
+      "setup": [
+        "This next message comes from Mirelight Repairs. Some things are worth fixing, even when the repair costs more than the thing.",
+        "Our sponsor is Mirelight Repairs. Some things are worth fixing, even when the repair costs more than the thing."
+      ],
+      "thought": [
+        "Especially if that thing kept your whole home bright. I checked the fine print. You should too.",
+        "Especially if that thing kept your whole home bright. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Mirelight Repairs. Ask about a quote before the sparks fly. You are tuned to {station}.",
+        "Mirelight Repairs. Ask about a quote before the sparks fly. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Mirelight Repairs",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-mirelight-repairs-plague-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "This next message comes from Mirelight Repairs. If your generator starts singing in the middle of the night, that is not a good sign.",
+        "Our sponsor is Mirelight Repairs. If your generator starts singing in the middle of the night, that is not a good sign."
+      ],
+      "thought": [
+        "The folks at Mirelight Repairs say they have heard worse. I checked the fine print. You should too.",
+        "The folks at Mirelight Repairs say they have heard worse. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Mirelight Repairs. Working lights, fewer mysteries. You are tuned to {station}.",
+        "Mirelight Repairs. Working lights, fewer mysteries. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Mirelight Repairs",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-the-last-stop-diner-blues-1",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "setup": [
+        "The last place open after midnight might be exactly where you need to be.",
+        "A word from The Last Stop Diner, before the next record. The last place open after midnight might be exactly where you need to be."
+      ],
+      "thought": [
+        "The Last Stop Diner serves coffee strong enough to reconsider your plans.",
+        "The Last Stop Diner serves coffee strong enough to reconsider your plans. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Last Stop Diner. Breakfast when the sun refuses to cooperate.",
+        "The Last Stop Diner. Breakfast when the sun refuses to cooperate. Now, back to {station}."
+      ],
+      "sponsor": "The Last Stop Diner",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-last-stop-diner-blues-2",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "setup": [
+        "Some nights you need a friend. Other nights you need potatoes.",
+        "A word from The Last Stop Diner, before the next record. Some nights you need a friend. Other nights you need potatoes."
+      ],
+      "thought": [
+        "The Last Stop Diner makes no promises about the first one.",
+        "The Last Stop Diner makes no promises about the first one. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Last Stop Diner. Come hungry, leave with a better problem.",
+        "The Last Stop Diner. Come hungry, leave with a better problem. Now, back to {station}."
+      ],
+      "sponsor": "The Last Stop Diner",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-last-stop-diner-blues-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "That cook at the Last Stop Diner has never smiled once.",
+        "A word from The Last Stop Diner, before the next record. That cook at the Last Stop Diner has never smiled once."
+      ],
+      "thought": [
+        "But the plates come out hot, and that counts for something.",
+        "But the plates come out hot, and that counts for something. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Last Stop Diner. Service with precisely the amount of cheer you ordered.",
+        "The Last Stop Diner. Service with precisely the amount of cheer you ordered. Now, back to {station}."
+      ],
+      "sponsor": "The Last Stop Diner",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-last-stop-diner-plague-1",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "This next message comes from The Last Stop Diner. The last place open after midnight might be exactly where you need to be.",
+        "Our sponsor is The Last Stop Diner. The last place open after midnight might be exactly where you need to be."
+      ],
+      "thought": [
+        "The Last Stop Diner serves coffee strong enough to reconsider your plans. I checked the fine print. You should too.",
+        "The Last Stop Diner serves coffee strong enough to reconsider your plans. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Last Stop Diner. Breakfast when the sun refuses to cooperate. You are tuned to {station}.",
+        "The Last Stop Diner. Breakfast when the sun refuses to cooperate. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Last Stop Diner",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-the-last-stop-diner-plague-2",
+      "category": "Ad / promo",
+      "mood": "Ominous",
+      "setup": [
+        "This next message comes from The Last Stop Diner. Some nights you need a friend. Other nights you need potatoes.",
+        "Our sponsor is The Last Stop Diner. Some nights you need a friend. Other nights you need potatoes."
+      ],
+      "thought": [
+        "The Last Stop Diner makes no promises about the first one. I checked the fine print. You should too.",
+        "The Last Stop Diner makes no promises about the first one. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Last Stop Diner. Come hungry, leave with a better problem. You are tuned to {station}.",
+        "The Last Stop Diner. Come hungry, leave with a better problem. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Last Stop Diner",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-the-last-stop-diner-plague-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "This next message comes from The Last Stop Diner. That cook at the Last Stop Diner has never smiled once.",
+        "Our sponsor is The Last Stop Diner. That cook at the Last Stop Diner has never smiled once."
+      ],
+      "thought": [
+        "But the plates come out hot, and that counts for something. I checked the fine print. You should too.",
+        "But the plates come out hot, and that counts for something. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Last Stop Diner. Service with precisely the amount of cheer you ordered. You are tuned to {station}.",
+        "The Last Stop Diner. Service with precisely the amount of cheer you ordered. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Last Stop Diner",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-commonwealth-casket-company-blues-1",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "setup": [
+        "The Commonwealth does not offer many guarantees.",
+        "A word from Commonwealth Casket Company, before the next record. The Commonwealth does not offer many guarantees."
+      ],
+      "thought": [
+        "The Commonwealth Casket Company says it can at least guarantee a box.",
+        "The Commonwealth Casket Company says it can at least guarantee a box. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Commonwealth Casket Company. Plan ahead. Preferably very far ahead.",
+        "Commonwealth Casket Company. Plan ahead. Preferably very far ahead. Now, back to {station}."
+      ],
+      "sponsor": "Commonwealth Casket Company",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-commonwealth-casket-company-blues-2",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "setup": [
+        "A good casket ought to keep the rain out.",
+        "A word from Commonwealth Casket Company, before the next record. A good casket ought to keep the rain out."
+      ],
+      "thought": [
+        "The Commonwealth Casket Company would appreciate it if you did not test that claim personally.",
+        "The Commonwealth Casket Company would appreciate it if you did not test that claim personally. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Commonwealth Casket Company. Sturdy construction, inconvenient timing.",
+        "Commonwealth Casket Company. Sturdy construction, inconvenient timing. Now, back to {station}."
+      ],
+      "sponsor": "Commonwealth Casket Company",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-commonwealth-casket-company-blues-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "The sales pitch is simple: everybody needs somewhere to rest eventually.",
+        "A word from Commonwealth Casket Company, before the next record. The sales pitch is simple: everybody needs somewhere to rest eventually."
+      ],
+      "thought": [
+        "A customer asked for a refund once. They are still waiting.",
+        "A customer asked for a refund once. They are still waiting. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Commonwealth Casket Company. Our customers rarely complain twice.",
+        "Commonwealth Casket Company. Our customers rarely complain twice. Now, back to {station}."
+      ],
+      "sponsor": "Commonwealth Casket Company",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-commonwealth-casket-company-plague-1",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "This next message comes from Commonwealth Casket Company. The Commonwealth does not offer many guarantees.",
+        "Our sponsor is Commonwealth Casket Company. The Commonwealth does not offer many guarantees."
+      ],
+      "thought": [
+        "The Commonwealth Casket Company says it can at least guarantee a box. I checked the fine print. You should too.",
+        "The Commonwealth Casket Company says it can at least guarantee a box. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Commonwealth Casket Company. Plan ahead. Preferably very far ahead. You are tuned to {station}.",
+        "Commonwealth Casket Company. Plan ahead. Preferably very far ahead. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Commonwealth Casket Company",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-commonwealth-casket-company-plague-2",
+      "category": "Ad / promo",
+      "mood": "Ominous",
+      "setup": [
+        "This next message comes from Commonwealth Casket Company. A good casket ought to keep the rain out.",
+        "Our sponsor is Commonwealth Casket Company. A good casket ought to keep the rain out."
+      ],
+      "thought": [
+        "The Commonwealth Casket Company would appreciate it if you did not test that claim personally. I checked the fine print. You should too.",
+        "The Commonwealth Casket Company would appreciate it if you did not test that claim personally. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Commonwealth Casket Company. Sturdy construction, inconvenient timing. You are tuned to {station}.",
+        "Commonwealth Casket Company. Sturdy construction, inconvenient timing. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Commonwealth Casket Company",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-commonwealth-casket-company-plague-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "This next message comes from Commonwealth Casket Company. The sales pitch is simple: everybody needs somewhere to rest eventually.",
+        "Our sponsor is Commonwealth Casket Company. The sales pitch is simple: everybody needs somewhere to rest eventually."
+      ],
+      "thought": [
+        "A customer asked for a refund once. They are still waiting. I checked the fine print. You should too.",
+        "A customer asked for a refund once. They are still waiting. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Commonwealth Casket Company. Our customers rarely complain twice. You are tuned to {station}.",
+        "Commonwealth Casket Company. Our customers rarely complain twice. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Commonwealth Casket Company",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-rad-roach-exterminators-blues-1",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "setup": [
+        "If the roaches have started charging rent, you have a problem.",
+        "A word from Rad-Roach Exterminators, before the next record. If the roaches have started charging rent, you have a problem."
+      ],
+      "thought": [
+        "Rad-Roach Exterminators says they know how to make an eviction notice stick.",
+        "Rad-Roach Exterminators says they know how to make an eviction notice stick. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Rad-Roach Exterminators. Reclaim the kitchen.",
+        "Rad-Roach Exterminators. Reclaim the kitchen. Now, back to {station}."
+      ],
+      "sponsor": "Rad-Roach Exterminators",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-rad-roach-exterminators-blues-2",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "setup": [
+        "Something in the pantry just moved your sugar tin.",
+        "A word from Rad-Roach Exterminators, before the next record. Something in the pantry just moved your sugar tin."
+      ],
+      "thought": [
+        "It was not the wind, and it was certainly not your imagination.",
+        "It was not the wind, and it was certainly not your imagination. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Rad-Roach Exterminators. Call before the pantry calls back.",
+        "Rad-Roach Exterminators. Call before the pantry calls back. Now, back to {station}."
+      ],
+      "sponsor": "Rad-Roach Exterminators",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-rad-roach-exterminators-blues-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "The exterminator says the good news is the nest is small.",
+        "A word from Rad-Roach Exterminators, before the next record. The exterminator says the good news is the nest is small."
+      ],
+      "thought": [
+        "The bad news is that small is relative in the Commonwealth.",
+        "The bad news is that small is relative in the Commonwealth. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Rad-Roach Exterminators. Ask for a quote before opening the cellar.",
+        "Rad-Roach Exterminators. Ask for a quote before opening the cellar. Now, back to {station}."
+      ],
+      "sponsor": "Rad-Roach Exterminators",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-rad-roach-exterminators-plague-1",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "This next message comes from Rad-Roach Exterminators. If the roaches have started charging rent, you have a problem.",
+        "Our sponsor is Rad-Roach Exterminators. If the roaches have started charging rent, you have a problem."
+      ],
+      "thought": [
+        "Rad-Roach Exterminators says they know how to make an eviction notice stick. I checked the fine print. You should too.",
+        "Rad-Roach Exterminators says they know how to make an eviction notice stick. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Rad-Roach Exterminators. Reclaim the kitchen. You are tuned to {station}.",
+        "Rad-Roach Exterminators. Reclaim the kitchen. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Rad-Roach Exterminators",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-rad-roach-exterminators-plague-2",
+      "category": "Ad / promo",
+      "mood": "Ominous",
+      "setup": [
+        "This next message comes from Rad-Roach Exterminators. Something in the pantry just moved your sugar tin.",
+        "Our sponsor is Rad-Roach Exterminators. Something in the pantry just moved your sugar tin."
+      ],
+      "thought": [
+        "It was not the wind, and it was certainly not your imagination. I checked the fine print. You should too.",
+        "It was not the wind, and it was certainly not your imagination. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Rad-Roach Exterminators. Call before the pantry calls back. You are tuned to {station}.",
+        "Rad-Roach Exterminators. Call before the pantry calls back. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Rad-Roach Exterminators",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-rad-roach-exterminators-plague-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "This next message comes from Rad-Roach Exterminators. The exterminator says the good news is the nest is small.",
+        "Our sponsor is Rad-Roach Exterminators. The exterminator says the good news is the nest is small."
+      ],
+      "thought": [
+        "The bad news is that small is relative in the Commonwealth. I checked the fine print. You should too.",
+        "The bad news is that small is relative in the Commonwealth. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Rad-Roach Exterminators. Ask for a quote before opening the cellar. You are tuned to {station}.",
+        "Rad-Roach Exterminators. Ask for a quote before opening the cellar. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Rad-Roach Exterminators",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-ash-ember-salvage-blues-1",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "setup": [
+        "That pile of scrap might be somebody else’s next working heater.",
+        "A word from Ash & Ember Salvage, before the next record. That pile of scrap might be somebody else’s next working heater."
+      ],
+      "thought": [
+        "Ash & Ember Salvage sees useful things where the rest of us see rust.",
+        "Ash & Ember Salvage sees useful things where the rest of us see rust. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Ash & Ember Salvage. Nothing stays useless forever.",
+        "Ash & Ember Salvage. Nothing stays useless forever. Now, back to {station}."
+      ],
+      "sponsor": "Ash & Ember Salvage",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-ash-ember-salvage-blues-2",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "setup": [
+        "There is honest work in sorting yesterday’s wreckage.",
+        "A word from Ash & Ember Salvage, before the next record. There is honest work in sorting yesterday’s wreckage."
+      ],
+      "thought": [
+        "And dishonest work in saying every bent pipe is a rare collectible.",
+        "And dishonest work in saying every bent pipe is a rare collectible. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Ash & Ember Salvage. Fair offers, no miracle claims.",
+        "Ash & Ember Salvage. Fair offers, no miracle claims. Now, back to {station}."
+      ],
+      "sponsor": "Ash & Ember Salvage",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-ash-ember-salvage-blues-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "Old steel can tell a long story if you know where to look.",
+        "A word from Ash & Ember Salvage, before the next record. Old steel can tell a long story if you know where to look."
+      ],
+      "thought": [
+        "Ash & Ember Salvage mostly wants to know if it will hold a bolt.",
+        "Ash & Ember Salvage mostly wants to know if it will hold a bolt. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Ash & Ember Salvage. Bring scrap, take possibilities.",
+        "Ash & Ember Salvage. Bring scrap, take possibilities. Now, back to {station}."
+      ],
+      "sponsor": "Ash & Ember Salvage",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-ash-ember-salvage-plague-1",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "This next message comes from Ash & Ember Salvage. That pile of scrap might be somebody else’s next working heater.",
+        "Our sponsor is Ash & Ember Salvage. That pile of scrap might be somebody else’s next working heater."
+      ],
+      "thought": [
+        "Ash & Ember Salvage sees useful things where the rest of us see rust. I checked the fine print. You should too.",
+        "Ash & Ember Salvage sees useful things where the rest of us see rust. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Ash & Ember Salvage. Nothing stays useless forever. You are tuned to {station}.",
+        "Ash & Ember Salvage. Nothing stays useless forever. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Ash & Ember Salvage",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-ash-ember-salvage-plague-2",
+      "category": "Ad / promo",
+      "mood": "Ominous",
+      "setup": [
+        "This next message comes from Ash & Ember Salvage. There is honest work in sorting yesterday’s wreckage.",
+        "Our sponsor is Ash & Ember Salvage. There is honest work in sorting yesterday’s wreckage."
+      ],
+      "thought": [
+        "And dishonest work in saying every bent pipe is a rare collectible. I checked the fine print. You should too.",
+        "And dishonest work in saying every bent pipe is a rare collectible. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Ash & Ember Salvage. Fair offers, no miracle claims. You are tuned to {station}.",
+        "Ash & Ember Salvage. Fair offers, no miracle claims. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Ash & Ember Salvage",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-ash-ember-salvage-plague-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "This next message comes from Ash & Ember Salvage. Old steel can tell a long story if you know where to look.",
+        "Our sponsor is Ash & Ember Salvage. Old steel can tell a long story if you know where to look."
+      ],
+      "thought": [
+        "Ash & Ember Salvage mostly wants to know if it will hold a bolt. I checked the fine print. You should too.",
+        "Ash & Ember Salvage mostly wants to know if it will hold a bolt. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Ash & Ember Salvage. Bring scrap, take possibilities. You are tuned to {station}.",
+        "Ash & Ember Salvage. Bring scrap, take possibilities. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Ash & Ember Salvage",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-the-midnight-courier-blues-1",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "setup": [
+        "Some messages are too important to trust to a rumor.",
+        "A word from The Midnight Courier, before the next record. Some messages are too important to trust to a rumor."
+      ],
+      "thought": [
+        "The Midnight Courier says it carries sealed notes across the rough parts of town.",
+        "The Midnight Courier says it carries sealed notes across the rough parts of town. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Midnight Courier. If it must arrive, ask about the route.",
+        "The Midnight Courier. If it must arrive, ask about the route. Now, back to {station}."
+      ],
+      "sponsor": "The Midnight Courier",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-midnight-courier-blues-2",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "setup": [
+        "You can walk your letter across the Commonwealth yourself.",
+        "A word from The Midnight Courier, before the next record. You can walk your letter across the Commonwealth yourself."
+      ],
+      "thought": [
+        "Or you could pay somebody who already knows which roads are missing.",
+        "Or you could pay somebody who already knows which roads are missing. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Midnight Courier. Less walking, more wondering.",
+        "The Midnight Courier. Less walking, more wondering. Now, back to {station}."
+      ],
+      "sponsor": "The Midnight Courier",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-midnight-courier-blues-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "The Midnight Courier says it is discreet.",
+        "A word from The Midnight Courier, before the next record. The Midnight Courier says it is discreet."
+      ],
+      "thought": [
+        "Of course, that is exactly what you want a courier to say.",
+        "Of course, that is exactly what you want a courier to say. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Midnight Courier. Read the terms before handing over a secret.",
+        "The Midnight Courier. Read the terms before handing over a secret. Now, back to {station}."
+      ],
+      "sponsor": "The Midnight Courier",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-midnight-courier-plague-1",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "This next message comes from The Midnight Courier. Some messages are too important to trust to a rumor.",
+        "Our sponsor is The Midnight Courier. Some messages are too important to trust to a rumor."
+      ],
+      "thought": [
+        "The Midnight Courier says it carries sealed notes across the rough parts of town. I checked the fine print. You should too.",
+        "The Midnight Courier says it carries sealed notes across the rough parts of town. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Midnight Courier. If it must arrive, ask about the route. You are tuned to {station}.",
+        "The Midnight Courier. If it must arrive, ask about the route. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Midnight Courier",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-the-midnight-courier-plague-2",
+      "category": "Ad / promo",
+      "mood": "Ominous",
+      "setup": [
+        "This next message comes from The Midnight Courier. You can walk your letter across the Commonwealth yourself.",
+        "Our sponsor is The Midnight Courier. You can walk your letter across the Commonwealth yourself."
+      ],
+      "thought": [
+        "Or you could pay somebody who already knows which roads are missing. I checked the fine print. You should too.",
+        "Or you could pay somebody who already knows which roads are missing. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Midnight Courier. Less walking, more wondering. You are tuned to {station}.",
+        "The Midnight Courier. Less walking, more wondering. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Midnight Courier",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-the-midnight-courier-plague-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "This next message comes from The Midnight Courier. The Midnight Courier says it is discreet.",
+        "Our sponsor is The Midnight Courier. The Midnight Courier says it is discreet."
+      ],
+      "thought": [
+        "Of course, that is exactly what you want a courier to say. I checked the fine print. You should too.",
+        "Of course, that is exactly what you want a courier to say. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Midnight Courier. Read the terms before handing over a secret. You are tuned to {station}.",
+        "The Midnight Courier. Read the terms before handing over a secret. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Midnight Courier",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-vault-tec-surplus-outlet-blues-1",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "setup": [
+        "Remember those cheerful promises about a brighter future?",
+        "A word from Vault-Tec Surplus Outlet, before the next record. Remember those cheerful promises about a brighter future?"
+      ],
+      "thought": [
+        "Vault-Tec Surplus Outlet has leftover promotional mugs with all the optimism intact.",
+        "Vault-Tec Surplus Outlet has leftover promotional mugs with all the optimism intact. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Vault-Tec Surplus Outlet. Yesterday’s reassurance at today’s prices.",
+        "Vault-Tec Surplus Outlet. Yesterday’s reassurance at today’s prices. Now, back to {station}."
+      ],
+      "sponsor": "Vault-Tec Surplus Outlet",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-vault-tec-surplus-outlet-blues-2",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "setup": [
+        "Looking for a sturdy clipboard with a suspiciously familiar logo?",
+        "A word from Vault-Tec Surplus Outlet, before the next record. Looking for a sturdy clipboard with a suspiciously familiar logo?"
+      ],
+      "thought": [
+        "Vault-Tec Surplus Outlet might have one, with the fine print removed by time.",
+        "Vault-Tec Surplus Outlet might have one, with the fine print removed by time. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Vault-Tec Surplus Outlet. Collectibles, questionable history, no returns on nostalgia.",
+        "Vault-Tec Surplus Outlet. Collectibles, questionable history, no returns on nostalgia. Now, back to {station}."
+      ],
+      "sponsor": "Vault-Tec Surplus Outlet",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-vault-tec-surplus-outlet-blues-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "A bargain does not get better just because it came out of a vault.",
+        "A word from Vault-Tec Surplus Outlet, before the next record. A bargain does not get better just because it came out of a vault."
+      ],
+      "thought": [
+        "The sales clerk would prefer you stop asking about the previous owner.",
+        "The sales clerk would prefer you stop asking about the previous owner. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "Vault-Tec Surplus Outlet. Browse carefully.",
+        "Vault-Tec Surplus Outlet. Browse carefully. Now, back to {station}."
+      ],
+      "sponsor": "Vault-Tec Surplus Outlet",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-vault-tec-surplus-outlet-plague-1",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "This next message comes from Vault-Tec Surplus Outlet. Remember those cheerful promises about a brighter future?",
+        "Our sponsor is Vault-Tec Surplus Outlet. Remember those cheerful promises about a brighter future?"
+      ],
+      "thought": [
+        "Vault-Tec Surplus Outlet has leftover promotional mugs with all the optimism intact. I checked the fine print. You should too.",
+        "Vault-Tec Surplus Outlet has leftover promotional mugs with all the optimism intact. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Vault-Tec Surplus Outlet. Yesterday’s reassurance at today’s prices. You are tuned to {station}.",
+        "Vault-Tec Surplus Outlet. Yesterday’s reassurance at today’s prices. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Vault-Tec Surplus Outlet",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-vault-tec-surplus-outlet-plague-2",
+      "category": "Ad / promo",
+      "mood": "Ominous",
+      "setup": [
+        "This next message comes from Vault-Tec Surplus Outlet. Looking for a sturdy clipboard with a suspiciously familiar logo?",
+        "Our sponsor is Vault-Tec Surplus Outlet. Looking for a sturdy clipboard with a suspiciously familiar logo?"
+      ],
+      "thought": [
+        "Vault-Tec Surplus Outlet might have one, with the fine print removed by time. I checked the fine print. You should too.",
+        "Vault-Tec Surplus Outlet might have one, with the fine print removed by time. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Vault-Tec Surplus Outlet. Collectibles, questionable history, no returns on nostalgia. You are tuned to {station}.",
+        "Vault-Tec Surplus Outlet. Collectibles, questionable history, no returns on nostalgia. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Vault-Tec Surplus Outlet",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-vault-tec-surplus-outlet-plague-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "This next message comes from Vault-Tec Surplus Outlet. A bargain does not get better just because it came out of a vault.",
+        "Our sponsor is Vault-Tec Surplus Outlet. A bargain does not get better just because it came out of a vault."
+      ],
+      "thought": [
+        "The sales clerk would prefer you stop asking about the previous owner. I checked the fine print. You should too.",
+        "The sales clerk would prefer you stop asking about the previous owner. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "Vault-Tec Surplus Outlet. Browse carefully. You are tuned to {station}.",
+        "Vault-Tec Surplus Outlet. Browse carefully. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "Vault-Tec Surplus Outlet",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-the-tin-can-clinic-blues-1",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "setup": [
+        "A squeaking robot can be a cry for help.",
+        "A word from The Tin Can Clinic, before the next record. A squeaking robot can be a cry for help."
+      ],
+      "thought": [
+        "The Tin Can Clinic offers diagnostics for the machines you keep trusting with your chores.",
+        "The Tin Can Clinic offers diagnostics for the machines you keep trusting with your chores. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Tin Can Clinic. Better a loose bolt found today than a missing arm tomorrow.",
+        "The Tin Can Clinic. Better a loose bolt found today than a missing arm tomorrow. Now, back to {station}."
+      ],
+      "sponsor": "The Tin Can Clinic",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-tin-can-clinic-blues-2",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "setup": [
+        "That old Mister Handy has developed a temper and a grinding noise.",
+        "A word from The Tin Can Clinic, before the next record. That old Mister Handy has developed a temper and a grinding noise."
+      ],
+      "thought": [
+        "The Tin Can Clinic can at least look at the grinding noise.",
+        "The Tin Can Clinic can at least look at the grinding noise. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Tin Can Clinic. Mechanical repair, not personality counseling.",
+        "The Tin Can Clinic. Mechanical repair, not personality counseling. Now, back to {station}."
+      ],
+      "sponsor": "The Tin Can Clinic",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-tin-can-clinic-blues-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "A robot that stops to stare at the wall is unnerving.",
+        "A word from The Tin Can Clinic, before the next record. A robot that stops to stare at the wall is unnerving."
+      ],
+      "thought": [
+        "The Tin Can Clinic would like to inspect its navigation system before you blame ghosts.",
+        "The Tin Can Clinic would like to inspect its navigation system before you blame ghosts. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Tin Can Clinic. Diagnose first, panic later.",
+        "The Tin Can Clinic. Diagnose first, panic later. Now, back to {station}."
+      ],
+      "sponsor": "The Tin Can Clinic",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-tin-can-clinic-plague-1",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "This next message comes from The Tin Can Clinic. A squeaking robot can be a cry for help.",
+        "Our sponsor is The Tin Can Clinic. A squeaking robot can be a cry for help."
+      ],
+      "thought": [
+        "The Tin Can Clinic offers diagnostics for the machines you keep trusting with your chores. I checked the fine print. You should too.",
+        "The Tin Can Clinic offers diagnostics for the machines you keep trusting with your chores. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Tin Can Clinic. Better a loose bolt found today than a missing arm tomorrow. You are tuned to {station}.",
+        "The Tin Can Clinic. Better a loose bolt found today than a missing arm tomorrow. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Tin Can Clinic",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-the-tin-can-clinic-plague-2",
+      "category": "Ad / promo",
+      "mood": "Ominous",
+      "setup": [
+        "This next message comes from The Tin Can Clinic. That old Mister Handy has developed a temper and a grinding noise.",
+        "Our sponsor is The Tin Can Clinic. That old Mister Handy has developed a temper and a grinding noise."
+      ],
+      "thought": [
+        "The Tin Can Clinic can at least look at the grinding noise. I checked the fine print. You should too.",
+        "The Tin Can Clinic can at least look at the grinding noise. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Tin Can Clinic. Mechanical repair, not personality counseling. You are tuned to {station}.",
+        "The Tin Can Clinic. Mechanical repair, not personality counseling. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Tin Can Clinic",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-the-tin-can-clinic-plague-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "This next message comes from The Tin Can Clinic. A robot that stops to stare at the wall is unnerving.",
+        "Our sponsor is The Tin Can Clinic. A robot that stops to stare at the wall is unnerving."
+      ],
+      "thought": [
+        "The Tin Can Clinic would like to inspect its navigation system before you blame ghosts. I checked the fine print. You should too.",
+        "The Tin Can Clinic would like to inspect its navigation system before you blame ghosts. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Tin Can Clinic. Diagnose first, panic later. You are tuned to {station}.",
+        "The Tin Can Clinic. Diagnose first, panic later. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Tin Can Clinic",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-the-red-rocket-wash-blues-1",
+      "category": "Ad / promo",
+      "mood": "Atmospheric",
+      "setup": [
+        "Your coat has traveled farther than most pre-war cars.",
+        "A word from The Red Rocket Wash, before the next record. Your coat has traveled farther than most pre-war cars."
+      ],
+      "thought": [
+        "The Red Rocket Wash has brushes, buckets, and a strict no-radscorpion policy.",
+        "The Red Rocket Wash has brushes, buckets, and a strict no-radscorpion policy. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Red Rocket Wash. A little less wasteland on your sleeves.",
+        "The Red Rocket Wash. A little less wasteland on your sleeves. Now, back to {station}."
+      ],
+      "sponsor": "The Red Rocket Wash",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-red-rocket-wash-blues-2",
+      "category": "Ad / promo",
+      "mood": "Reflective",
+      "setup": [
+        "Some stains are memories. Others are radioactive mud.",
+        "A word from The Red Rocket Wash, before the next record. Some stains are memories. Others are radioactive mud."
+      ],
+      "thought": [
+        "The Red Rocket Wash is willing to take a look at the second kind.",
+        "The Red Rocket Wash is willing to take a look at the second kind. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Red Rocket Wash. Results vary. Smell improves.",
+        "The Red Rocket Wash. Results vary. Smell improves. Now, back to {station}."
+      ],
+      "sponsor": "The Red Rocket Wash",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-red-rocket-wash-blues-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "If the dust on your boots could vote, it would form a settlement.",
+        "A word from The Red Rocket Wash, before the next record. If the dust on your boots could vote, it would form a settlement."
+      ],
+      "thought": [
+        "The Red Rocket Wash recommends getting ahead of that particular election.",
+        "The Red Rocket Wash recommends getting ahead of that particular election. That sounds like a reasonable place to start."
+      ],
+      "landing": [
+        "The Red Rocket Wash. Wash away the road, not the stories.",
+        "The Red Rocket Wash. Wash away the road, not the stories. Now, back to {station}."
+      ],
+      "sponsor": "The Red Rocket Wash",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-the-red-rocket-wash-plague-1",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "This next message comes from The Red Rocket Wash. Your coat has traveled farther than most pre-war cars.",
+        "Our sponsor is The Red Rocket Wash. Your coat has traveled farther than most pre-war cars."
+      ],
+      "thought": [
+        "The Red Rocket Wash has brushes, buckets, and a strict no-radscorpion policy. I checked the fine print. You should too.",
+        "The Red Rocket Wash has brushes, buckets, and a strict no-radscorpion policy. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Red Rocket Wash. A little less wasteland on your sleeves. You are tuned to {station}.",
+        "The Red Rocket Wash. A little less wasteland on your sleeves. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Red Rocket Wash",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-the-red-rocket-wash-plague-2",
+      "category": "Ad / promo",
+      "mood": "Ominous",
+      "setup": [
+        "This next message comes from The Red Rocket Wash. Some stains are memories. Others are radioactive mud.",
+        "Our sponsor is The Red Rocket Wash. Some stains are memories. Others are radioactive mud."
+      ],
+      "thought": [
+        "The Red Rocket Wash is willing to take a look at the second kind. I checked the fine print. You should too.",
+        "The Red Rocket Wash is willing to take a look at the second kind. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Red Rocket Wash. Results vary. Smell improves. You are tuned to {station}.",
+        "The Red Rocket Wash. Results vary. Smell improves. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Red Rocket Wash",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-the-red-rocket-wash-plague-3",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "This next message comes from The Red Rocket Wash. If the dust on your boots could vote, it would form a settlement.",
+        "Our sponsor is The Red Rocket Wash. If the dust on your boots could vote, it would form a settlement."
+      ],
+      "thought": [
+        "The Red Rocket Wash recommends getting ahead of that particular election. I checked the fine print. You should too.",
+        "The Red Rocket Wash recommends getting ahead of that particular election. I am not saying the timing is suspicious. I am saying I noticed it."
+      ],
+      "landing": [
+        "The Red Rocket Wash. Wash away the road, not the stories. You are tuned to {station}.",
+        "The Red Rocket Wash. Wash away the road, not the stories. Keep the radio on and the curtains closed."
+      ],
+      "sponsor": "The Red Rocket Wash",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-legacy-plague-radio-blues",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "That is not interference you are hearing.",
+        "The late-night sponsor desk says this. That is not interference you are hearing."
+      ],
+      "thought": [
+        "The guitars are heavy enough to shake the surveillance van outside your window.",
+        "The guitars are heavy enough to shake the surveillance van outside your window. Take it for what it is."
+      ],
+      "landing": [
+        "Plague Radio. Metal with more questions than answers. This is {station}.",
+        "Plague Radio. Metal with more questions than answers. Now back to {station}."
+      ],
+      "sponsor": "Plague Radio",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-legacy-plague-radio-plague",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "That is not interference you are hearing.",
+        "Unscheduled announcement. That is not interference you are hearing."
+      ],
+      "thought": [
+        "The guitars are heavy enough to shake the surveillance van outside your window.",
+        "The guitars are heavy enough to shake the surveillance van outside your window. Draw your own conclusions."
+      ],
+      "landing": [
+        "Plague Radio. Metal with more questions than answers. This is {station}.",
+        "Plague Radio. Metal with more questions than answers. Now back to {station}."
+      ],
+      "sponsor": "Plague Radio",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-legacy-goodneighbor-blues-blues",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "After all that screaming, maybe the silence feels louder.",
+        "The late-night sponsor desk says this. After all that screaming, maybe the silence feels louder."
+      ],
+      "thought": [
+        "Goodneighbor Blues has a few songs for people who have seen too much.",
+        "Goodneighbor Blues has a few songs for people who have seen too much. Take it for what it is."
+      ],
+      "landing": [
+        "Goodneighbor Blues, 95.77. The other side of the dial still understands. This is {station}.",
+        "Goodneighbor Blues, 95.77. The other side of the dial still understands. Now back to {station}."
+      ],
+      "sponsor": "Goodneighbor Blues",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-legacy-goodneighbor-blues-plague",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "After all that screaming, maybe the silence feels louder.",
+        "Unscheduled announcement. After all that screaming, maybe the silence feels louder."
+      ],
+      "thought": [
+        "Goodneighbor Blues has a few songs for people who have seen too much.",
+        "Goodneighbor Blues has a few songs for people who have seen too much. Draw your own conclusions."
+      ],
+      "landing": [
+        "Goodneighbor Blues, 95.77. The other side of the dial still understands. This is {station}.",
+        "Goodneighbor Blues, 95.77. The other side of the dial still understands. Now back to {station}."
+      ],
+      "sponsor": "Goodneighbor Blues",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-legacy-the-third-rail-blues",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "An informant claims to have spotted a suspicious figure at the Third Rail.",
+        "The late-night sponsor desk says this. An informant claims to have spotted a suspicious figure at the Third Rail."
+      ],
+      "thought": [
+        "The suspicious figure was ordering a drink. Still, interesting choice of stool.",
+        "The suspicious figure was ordering a drink. Still, interesting choice of stool. Take it for what it is."
+      ],
+      "landing": [
+        "The Third Rail. A bar, not an intelligence agency. As far as I know. This is {station}.",
+        "The Third Rail. A bar, not an intelligence agency. As far as I know. Now back to {station}."
+      ],
+      "sponsor": "The Third Rail",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-legacy-the-third-rail-plague",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "An informant claims to have spotted a suspicious figure at the Third Rail.",
+        "Unscheduled announcement. An informant claims to have spotted a suspicious figure at the Third Rail."
+      ],
+      "thought": [
+        "The suspicious figure was ordering a drink. Still, interesting choice of stool.",
+        "The suspicious figure was ordering a drink. Still, interesting choice of stool. Draw your own conclusions."
+      ],
+      "landing": [
+        "The Third Rail. A bar, not an intelligence agency. As far as I know. This is {station}.",
+        "The Third Rail. A bar, not an intelligence agency. As far as I know. Now back to {station}."
+      ],
+      "sponsor": "The Third Rail",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-legacy-memory-den-blues",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "Someone wants to sell you yesterday.",
+        "The late-night sponsor desk says this. Someone wants to sell you yesterday."
+      ],
+      "thought": [
+        "The Memory Den offers a chance to revisit it, but I would keep both eyes open.",
+        "The Memory Den offers a chance to revisit it, but I would keep both eyes open. Take it for what it is."
+      ],
+      "landing": [
+        "The Memory Den. Remember whose memories you are buying. This is {station}.",
+        "The Memory Den. Remember whose memories you are buying. Now back to {station}."
+      ],
+      "sponsor": "Memory Den",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-legacy-memory-den-plague",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "Someone wants to sell you yesterday.",
+        "Unscheduled announcement. Someone wants to sell you yesterday."
+      ],
+      "thought": [
+        "The Memory Den offers a chance to revisit it, but I would keep both eyes open.",
+        "The Memory Den offers a chance to revisit it, but I would keep both eyes open. Draw your own conclusions."
+      ],
+      "landing": [
+        "The Memory Den. Remember whose memories you are buying. This is {station}.",
+        "The Memory Den. Remember whose memories you are buying. Now back to {station}."
+      ],
+      "sponsor": "Memory Den",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-legacy-daisy-s-discounts-blues",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "People tell me Daisy knows everything that happens in Goodneighbor.",
+        "The late-night sponsor desk says this. People tell me Daisy knows everything that happens in Goodneighbor."
+      ],
+      "thought": [
+        "I am sure it is only because she keeps an excellent shop. Probably.",
+        "I am sure it is only because she keeps an excellent shop. Probably. Take it for what it is."
+      ],
+      "landing": [
+        "Daisy’s Discounts. Supplies and a very observant proprietor. This is {station}.",
+        "Daisy’s Discounts. Supplies and a very observant proprietor. Now back to {station}."
+      ],
+      "sponsor": "Daisy’s Discounts",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-legacy-daisy-s-discounts-plague",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "People tell me Daisy knows everything that happens in Goodneighbor.",
+        "Unscheduled announcement. People tell me Daisy knows everything that happens in Goodneighbor."
+      ],
+      "thought": [
+        "I am sure it is only because she keeps an excellent shop. Probably.",
+        "I am sure it is only because she keeps an excellent shop. Probably. Draw your own conclusions."
+      ],
+      "landing": [
+        "Daisy’s Discounts. Supplies and a very observant proprietor. This is {station}.",
+        "Daisy’s Discounts. Supplies and a very observant proprietor. Now back to {station}."
+      ],
+      "sponsor": "Daisy’s Discounts",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-legacy-kl-e-0-s-guns-blues",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "KL-E-0 says her inventory speaks for itself.",
+        "The late-night sponsor desk says this. KL-E-0 says her inventory speaks for itself."
+      ],
+      "thought": [
+        "Interesting. I did not know merchandise could testify.",
+        "Interesting. I did not know merchandise could testify. Take it for what it is."
+      ],
+      "landing": [
+        "KL-E-0’s Guns. Ask about the merchandise. I have questions about everything else. This is {station}.",
+        "KL-E-0’s Guns. Ask about the merchandise. I have questions about everything else. Now back to {station}."
+      ],
+      "sponsor": "KL-E-0’s Guns",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-legacy-kl-e-0-s-guns-plague",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "KL-E-0 says her inventory speaks for itself.",
+        "Unscheduled announcement. KL-E-0 says her inventory speaks for itself."
+      ],
+      "thought": [
+        "Interesting. I did not know merchandise could testify.",
+        "Interesting. I did not know merchandise could testify. Draw your own conclusions."
+      ],
+      "landing": [
+        "KL-E-0’s Guns. Ask about the merchandise. I have questions about everything else. This is {station}.",
+        "KL-E-0’s Guns. Ask about the merchandise. I have questions about everything else. Now back to {station}."
+      ],
+      "sponsor": "KL-E-0’s Guns",
+      "profile": "plague"
+    },
+    {
+      "id": "ad-v05-legacy-hotel-rexford-blues",
+      "category": "Ad / promo",
+      "mood": "Wry",
+      "setup": [
+        "The Hotel Rexford has rooms where you can shut the door.",
+        "The late-night sponsor desk says this. The Hotel Rexford has rooms where you can shut the door."
+      ],
+      "thought": [
+        "Whether that keeps the Commonwealth out is another question entirely.",
+        "Whether that keeps the Commonwealth out is another question entirely. Take it for what it is."
+      ],
+      "landing": [
+        "Hotel Rexford. Sleep with one eye closed, if you can manage it. This is {station}.",
+        "Hotel Rexford. Sleep with one eye closed, if you can manage it. Now back to {station}."
+      ],
+      "sponsor": "Hotel Rexford",
+      "profile": "blues"
+    },
+    {
+      "id": "ad-v05-legacy-hotel-rexford-plague",
+      "category": "Ad / promo",
+      "mood": "Suspicious",
+      "setup": [
+        "The Hotel Rexford has rooms where you can shut the door.",
+        "Unscheduled announcement. The Hotel Rexford has rooms where you can shut the door."
+      ],
+      "thought": [
+        "Whether that keeps the Commonwealth out is another question entirely.",
+        "Whether that keeps the Commonwealth out is another question entirely. Draw your own conclusions."
+      ],
+      "landing": [
+        "Hotel Rexford. Sleep with one eye closed, if you can manage it. This is {station}.",
+        "Hotel Rexford. Sleep with one eye closed, if you can manage it. Now back to {station}."
+      ],
+      "sponsor": "Hotel Rexford",
+      "profile": "plague"
+    }
+  ]
+}

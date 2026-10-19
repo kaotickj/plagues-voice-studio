@@ -14,6 +14,11 @@ datas = [
     (str(project / 'optional_engine_runner.py'), '.'),
     (str(project / 'OPTIONAL_ENGINES.md'), '.'),
 ]
+# Ship only the generic Writer plugin, never the branded DJ standalone or its builds.
+for folder in ('promotional-writer',):
+    for path in (project / 'plugins' / folder).rglob('*'):
+        if path.is_file() and path.suffix in ('.py', '.json', '.md', '.svg') and path.name != 'build_plugin.py' and '__pycache__' not in path.parts:
+            datas.append((str(path), str(Path('plugins') / folder / path.relative_to(project / 'plugins' / folder).parent)))
 # Slim installer intentionally ships no Chatterbox weights, even if models/
 # already exists on the build machine. Model Manager handles on-demand installs.
 if os.environ.get('PVS_SLIM_BUILD') != '1':
@@ -51,12 +56,14 @@ for package in metadata_distributions:
     datas += copy_metadata(package)
 
 hidden += collect_submodules('chatterbox')
+hidden += ['writer_core', 'writer_core.downloads', 'writer_core.runtime',
+           'writer_core.settings', 'writer_core.setup_dialog', 'PyQt6.QtSvg']
 hidden += ['PyQt6.QtMultimedia', 'PyQt6.QtMultimediaWidgets', 'soundfile', 'imageio_ffmpeg',
            'librosa', 'transformers', 'diffusers', 'torch', 'torchaudio', 'safetensors']
 
 analysis = Analysis(
     [str(project / 'launcher.py')],
-    pathex=[str(project / 'src')],
+    pathex=[str(project / 'src'), str(project / 'plugins')],
     binaries=binaries,
     datas=datas,
     hiddenimports=hidden,

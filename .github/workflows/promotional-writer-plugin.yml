@@ -1,0 +1,53 @@
+name: Promotional Writer plugin
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, develop, 'release/**']
+    paths:
+      - 'plugins/promotional-writer/**'
+      - 'plugins/writer_core/**'
+      - 'src/chatterbox_studio/plugin_manager.py'
+      - 'src/chatterbox_studio/app.py'
+      - 'src/chatterbox_studio/engine_lab.py'
+      - 'src/chatterbox_studio/model_manager.py'
+      - 'tests/test_writer_plugin.py'
+      - '.github/workflows/promotional-writer-plugin.yml'
+  pull_request:
+    paths:
+      - 'plugins/promotional-writer/**'
+      - 'plugins/writer_core/**'
+      - 'src/chatterbox_studio/plugin_manager.py'
+      - 'src/chatterbox_studio/app.py'
+      - 'src/chatterbox_studio/engine_lab.py'
+      - 'src/chatterbox_studio/model_manager.py'
+      - 'tests/test_writer_plugin.py'
+      - '.github/workflows/promotional-writer-plugin.yml'
+permissions:
+  contents: read
+jobs:
+  plugin:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install lightweight GUI test dependencies
+        run: python -m pip install "PyQt6>=6.7,<7" "numpy>=1.26,<2" "pytest>=8,<10"
+      - name: Test plugin, runtime, prompts and handoff
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest tests/test_writer_plugin.py -q
+      - name: Exercise the actual host and plugin menu
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -c "import sys; sys.path.insert(0,'src'); from PyQt6.QtWidgets import QApplication; app=QApplication([]); from chatterbox_studio.ui_smoke_test import run; sys.exit(run())"
+      - name: Package generic plugin and shared runtime
+        run: python plugins/promotional-writer/build_plugin.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Promotional-Writer-Plugin
+          path: plugins/promotional-writer/artifacts/*
+          if-no-files-found: error

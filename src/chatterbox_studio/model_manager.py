@@ -167,6 +167,10 @@ class ModelManager(QWidget):
             (selected.family == 'qwen3' and bool(qwen_python(self.host.storage)))))
 
     def _start(self, operation: str):
+        plugins = getattr(self.host, 'plugins', None)
+        if plugins is not None and plugins.is_busy:
+            QMessageBox.information(self, 'Writer running', 'Finish or cancel the writer before starting model operations.')
+            return
         if self.is_busy:
             return
         key = self.model.currentData()

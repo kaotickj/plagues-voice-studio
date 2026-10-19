@@ -385,6 +385,10 @@ class EngineLab(QWidget):
         return clean_request(result)
 
     def _start(self, jobs=None, probe=None):
+        plugins = getattr(self.host, 'plugins', None)
+        if plugins is not None and plugins.is_busy:
+            QMessageBox.information(self, 'Writer running', 'Finish or cancel the writer before starting a voice-engine operation.')
+            return
         if self.thread is not None:
             QMessageBox.information(self, 'Engine already running', 'Finish or cancel the current generation first.')
             return

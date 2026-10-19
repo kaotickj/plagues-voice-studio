@@ -1,4 +1,20 @@
-# Experimental 0.3.0-alpha1: build and test validation
+# Windows writer-plugin portable rebuild — October 18, 2026
+
+The complete CPU slim portable host was rebuilt in a separate
+`dist/WriterPluginPreview/PlaguesVoiceStudio030Experimental/` directory. The
+actual frozen EXE passes runtime and GUI self-tests, including the new Plugins
+menu and generic Promotional Writer close/reopen checks. The branded DJ
+standalone and speech/writer model weights are excluded. No installer was made.
+
+36 targeted speech, narration-markup and plugin tests pass in the complete
+build environment. The broader suite retains 15 confirmed baseline failures;
+one additional Windows temporary-log cleanup failure passed on isolated rerun.
+See `plugins/promotional-writer/BUILD_VALIDATION.md` for details. Portable ZIP,
+checksums and frozen reports are under `artifacts/writer-host-build/`.
+
+Nothing committed or pushed; the portable build awaits user testing.
+
+# Earlier experimental 0.3.0-alpha1 validation
 
 Source environment: Linux authoring container, October 16, 2026.
 

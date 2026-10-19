@@ -13,6 +13,13 @@ from PyQt6.QtWidgets import (
 # (Title, tags used for filtering, human-maintained documentation).
 # Text is not externally loaded and does not execute scripts.
 TOPICS: tuple[tuple[str, str, str], ...] = (
+    ('Promotional Writer plugin', 'plugins writer copywriting advertising ad copy promo tagline custom prompt gemma', '''
+<h2>Promotional Writer</h2>
+<p>Open <b>Plugins → Promotional Writer</b> for generic ad copy, promotional spots, announcements, product descriptions, social posts, taglines or custom writing. This panel has no DJ identities or fictional-world defaults.</p>
+<p>Supply the product, audience, verified facts, tone and call to action. Use custom direction for your own prompt. Model setup selects a local text-writing GGUF and llama.cpp runtime, separately from speech models. Existing writer model paths can be reused without duplicating weights.</p>
+<p>Generated copy is a draft: review facts and offer terms. Copy/export support editing. Mark the draft reviewed to send it to Narration Studio; replacing existing text requires confirmation. Handoff never starts speech automatically. Editing clears review.</p>
+<p>Run one local model job at a time. Cancel stops the writer's own subprocess; wait for it before closing. Plugin code lives under the app's plugins folder. Only install trusted plugins compatible with this host API.</p>
+'''),
     ('Getting started', 'quick start narrator beginner generate', '''
 <h2>Getting started</h2>
 <p>Plague's Voice Studio is a local voice-production workstation with supported Chatterbox, Qwen3-TTS and IndexTTS 2.5 speech generation. Write scripts, manage voice references, and review recordings without an application account.</p>

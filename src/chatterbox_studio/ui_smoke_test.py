@@ -35,6 +35,26 @@ def run(report_path: Path | None = None) -> int:
                 if window.windowIcon().isNull():
                     raise RuntimeError('Application icon was not packaged.')
                 window.show()
+                # Load the generic plugin through its actual host menu, without a model job.
+                writer_action = next((action for action in window.plugins.menu.actions()
+                                      if action.data() == 'promotional-writer'), None)
+                if writer_action is None:
+                    raise RuntimeError('Promotional Writer plugin was not packaged/discovered.')
+                writer_action.trigger()
+                writer_dialog = window.plugins.dialogs.get('promotional-writer')
+                if writer_dialog is None or not writer_dialog.isVisible() or writer_dialog.panel.is_busy:
+                    raise RuntimeError('Writer plugin did not open idle from the Plugins menu.')
+                if writer_dialog.panel.category.count() != 7:
+                    raise RuntimeError('Generic copywriting recipes are missing.')
+                writer_dialog.close()
+                if writer_dialog.isVisible():
+                    raise RuntimeError('Writer plugin did not close.')
+                writer_action.trigger()
+                if window.plugins.dialogs['promotional-writer'] is not writer_dialog:
+                    raise RuntimeError('Writer plugin opened duplicate instances.')
+                writer_dialog.close()
+                if writer_dialog.isVisible():
+                    raise RuntimeError('Writer plugin did not close after reopening.')
                 # Regression: exercise the actual About action twice, including
                 # closing the dialog between attempts, in the frozen EXE.
                 about_button = window.findChild(QPushButton, 'about_button')

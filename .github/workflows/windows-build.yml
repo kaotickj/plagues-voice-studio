@@ -13,6 +13,8 @@ on:
     # Code changes on main/develop/release branches automatically build; tags build release packages.
     paths:
       - 'src/**'
+      - 'plugins/promotional-writer/**'
+      - 'plugins/writer_core/**'
       - 'scripts/**'
       - 'models/**'
       - 'assets/plagues-voice-studio-*'

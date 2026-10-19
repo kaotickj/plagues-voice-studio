@@ -29,3 +29,16 @@ The example installer copies this notice; it is not a complete legal compliance 
 - **Qwen3-TTS**, developed by Qwen/Alibaba, https://github.com/QwenLM/Qwen3-TTS . Separate source/model terms apply; not included in the host package. Optional explicit installation by the user.
 - **IndexTTS 2.5**, developed by IndexTTS upstream, https://github.com/index-tts/index-tts . Code/models are released under the Bilibili Model Use License Agreement; read the official LICENSE and DISCLAIMER. Not bundled. An optional setup script requires the user's license review acknowledgement.
 - The optional-engine subprocess runners are original integration code; they do not confer any licensing or redistribution rights to the upstream packages, models or generated output.
+
+### Promotional Writer plugin
+
+- Local writing inference uses a separately downloaded **llama.cpp** runtime:
+  https://github.com/ggml-org/llama.cpp . Runtime and model files are not bundled
+  with the source plugin. The setup UI exposes the upstream project/model links.
+- Optional text models are community GGUF releases of **Gemma The Writer Mighty
+  Sword 9B** (https://huggingface.co/DavidAU/Gemma-The-Writer-Mighty-Sword-9B-GGUF)
+  and **Qwen3 4B Instruct**
+  (https://huggingface.co/lmstudio-community/Qwen3-4B-Instruct-2507-GGUF).
+  Review the respective upstream model terms; speech model downloads are separate.
+- Plugin integration and copywriting recipes: Kaotick Jay / Plagued Mods.
+  The themed DJ Writer standalone is not part of the generic host plugin bundle.

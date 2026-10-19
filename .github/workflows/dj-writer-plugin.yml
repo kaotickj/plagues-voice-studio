@@ -1,0 +1,43 @@
+name: DJ Writer plugin Windows package
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, develop, 'release/**']
+    paths:
+      - 'plugins/dj-writer/**'
+      - 'plugins/writer_core/**'
+      - '.github/workflows/dj-writer-plugin.yml'
+  pull_request:
+    paths:
+      - 'plugins/dj-writer/**'
+      - 'plugins/writer_core/**'
+      - '.github/workflows/dj-writer-plugin.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dj-writer-windows-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Test and build DJ Writer with branded icon
+        shell: pwsh
+        run: ./plugins/dj-writer/build_windows.ps1
+      - name: Upload portable plugin and checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: DJ-Writer-Plugin-Windows
+          path: plugins/dj-writer/artifacts/*
+          if-no-files-found: error
+          retention-days: 30
