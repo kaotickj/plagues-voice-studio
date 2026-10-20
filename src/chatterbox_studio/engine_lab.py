@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
 )
 
 from .optional_engines import (
-    ENGINES, EngineRegistry, CharacterStore, EngineError, EngineCancelled,
+    ENGINES, KOKORO_VOICES, EngineRegistry, CharacterStore, EngineError, EngineCancelled,
     clean_request, new_output_path, execute_generation, execute_probe,
 )
 
@@ -26,7 +26,7 @@ class OptionalEngineWorker(QObject):
     finished = pyqtSignal()
 
     def __init__(self, jobs: list[tuple[dict, str]] | None = None,
-                 probe: tuple[str, str, str] | None = None,
+                 probe: tuple[str, str, str, str] | None = None,
                  diagnostic_dir: Path | None = None):
         super().__init__()
         self.jobs = jobs or []
@@ -42,10 +42,13 @@ class OptionalEngineWorker(QObject):
         from time import monotonic
         try:
             if self.probe:
-                engine, exe, repo = self.probe
+                engine, exe, repo, model_dir = self.probe
                 result = execute_probe(engine, exe, repo, cancelled=self.cancel_event,
-                                       log=self.message.emit, diagnostic_dir=self.diagnostic_dir)
-                self.message.emit(f'{ENGINES[engine]["label"]} ready. PyTorch {result["torch"]}, CUDA: {result["cuda_available"]}')
+                                       log=self.message.emit, diagnostic_dir=self.diagnostic_dir,
+                                       model_dir=model_dir)
+                detail = (result['runtime'] + '; available providers: ' + ', '.join(result['providers']) if engine == 'kokoro' else
+                          f'PyTorch {result["torch"]}, CUDA: {result["cuda_available"]}')
+                self.message.emit(f'{ENGINES[engine]["label"]} ready. {detail}')
             for request, exe in self.jobs:
                 if self.cancel_event.is_set():
                     break
@@ -62,7 +65,7 @@ class OptionalEngineWorker(QObject):
 
 
 class EngineLab(QWidget):
-    """Qwen3-TTS and IndexTTS runtimes, profiles, and comparison."""
+    """Isolated speech runtimes, preset/cloned voices, profiles and comparison."""
     def __init__(self, host):
         super().__init__(host)
         self.host = host
@@ -87,7 +90,7 @@ class EngineLab(QWidget):
         headline = QLabel('VOICE ENGINES')
         headline.setObjectName('sectionTitle')
         outer.addWidget(headline)
-        note = QLabel('Chatterbox, Qwen3-TTS and IndexTTS 2.5 are supported speech engines. Qwen3 and IndexTTS use independent Python runtimes and separately downloaded model weights. Run memory-intensive AI jobs one at a time if system memory is limited.')
+        note = QLabel('Chatterbox, Qwen3-TTS and IndexTTS 2.5 are supported speech engines. Kokoro adds six ready-made voices for narration and ad copy. These engines use independent Python runtimes and shared model storage. Run memory-intensive AI jobs one at a time if system memory is limited.')
         note.setWordWrap(True)
         outer.addWidget(note)
         scroll = QScrollArea()
@@ -106,10 +109,16 @@ class EngineLab(QWidget):
         self.index_py.setPlaceholderText('...\\index-tts\\.venv\\Scripts\\python.exe')
         self.index_repo = QLineEdit(self.config['index25']['repo'])
         self.index_repo.setPlaceholderText('Directory containing indextts and checkpoints')
+        self.kokoro_py = QLineEdit(self.config['kokoro']['python'])
+        self.kokoro_py.setPlaceholderText('PlaguedAI\\runtimes\\python\\kokoro-directml\\Scripts\\python.exe')
+        self.kokoro_models = QLineEdit(self.config['kokoro']['model_dir'])
+        self.kokoro_models.setToolTip('Folder containing kokoro-v1.0.int8.onnx and voices-v1.0.bin; shared by all tools.')
         for title, field, directory in [
             ('Qwen3 Python', self.qwen_py, False),
             ('IndexTTS Python', self.index_py, False),
             ('IndexTTS repository', self.index_repo, True),
+            ('Kokoro Python', self.kokoro_py, False),
+            ('Kokoro model folder', self.kokoro_models, True),
         ]:
             r = QHBoxLayout(); r.addWidget(field, 1)
             b = QPushButton('Browse...')
@@ -132,7 +141,7 @@ class EngineLab(QWidget):
         layout.addWidget(runtimes)
 
         settings = QGroupBox('2. Character and generation settings')
-        form = QFormLayout(settings)
+        form = self.settings_form = QFormLayout(settings)
         self.character = QComboBox()
         self.character.setEditable(True)
         self.character.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
@@ -157,6 +166,15 @@ class EngineLab(QWidget):
         form.addRow('Compute', self.device)
         self.voice = QComboBox()
         form.addRow('Reference voice', self.voice)
+        self.preset_voice = QComboBox()
+        self.preset_voice.setObjectName('kokoro_preset_voice')
+        for identifier, (name, accent) in KOKORO_VOICES.items():
+            self.preset_voice.addItem(f'{name} — {accent}', identifier)
+        self.preset_voice.currentIndexChanged.connect(self._kokoro_voice_changed)
+        form.addRow('Kokoro voice', self.preset_voice)
+        self.preset_note = QLabel('Kokoro uses ready-made voices and cannot clone reference recordings. Use Chatterbox, Qwen3 or IndexTTS for your saved voices.')
+        self.preset_note.setWordWrap(True)
+        form.addRow(self.preset_note)
         self.ref_text = QPlainTextEdit()
         self.ref_text.setFixedHeight(75)
         self.ref_text.setPlaceholderText('Exact words spoken in the reference audio; optional for Qwen voice cloning, helps speaker fidelity.')
@@ -175,7 +193,7 @@ class EngineLab(QWidget):
         script = QGroupBox('3. Script and generation')
         slayout = QVBoxLayout(script)
         self.text = QPlainTextEdit()
-        self.text.setPlaceholderText('Enter narration for Qwen3-TTS or IndexTTS 2.5. Compare Engines sends the same passage to each engine in sequence.')
+        self.text.setPlaceholderText('Enter the words to speak. Kokoro uses your selected preset voice; Qwen3 and IndexTTS clone a reference voice.')
         self.text.setMinimumHeight(110)
         self.text.setMaximumHeight(195)
         slayout.addWidget(self.text)
@@ -187,7 +205,7 @@ class EngineLab(QWidget):
         self.generate.setObjectName('primary')
         self.generate.clicked.connect(self.generate_selected)
         actions.addWidget(self.generate)
-        self.compare = QPushButton('Compare Engines')
+        self.compare = QPushButton('Compare cloning engines')
         self.compare.setToolTip('Compare Qwen3-TTS and IndexTTS 2.5 using their separately configured local runtimes. Each generation runs sequentially.')
         self.compare.clicked.connect(self.compare_engines)
         actions.addWidget(self.compare)
@@ -221,7 +239,7 @@ class EngineLab(QWidget):
             buttons.addWidget(button)
         result_layout.addLayout(buttons)
         layout.addWidget(results)
-        self.status = QLabel('Configure the Python runtime for Qwen3-TTS or IndexTTS 2.5, select Test selected engine, then generate speech.')
+        self.status = QLabel('Choose an engine, verify its runtime with Test selected engine, then generate speech. Kokoro setup: scripts/setup_kokoro_windows.ps1.')
         self.status.setWordWrap(True)
         layout.addWidget(self.status)
         diagnostics = QGroupBox('5. Live engine diagnostics')
@@ -243,7 +261,7 @@ class EngineLab(QWidget):
 
     def _browse(self, field: QLineEdit, directory: bool):
         if directory:
-            path = QFileDialog.getExistingDirectory(self, 'Select IndexTTS repository directory')
+            path = QFileDialog.getExistingDirectory(self, 'Select engine folder')
         else:
             path, _ = QFileDialog.getOpenFileName(self, 'Select isolated Python interpreter', '', 'Executables (*.exe);;All files (*)')
         if path: field.setText(path)
@@ -252,6 +270,7 @@ class EngineLab(QWidget):
         self.config = {
             'qwen3': {'python': self.qwen_py.text().strip(), 'repo': ''},
             'index25': {'python': self.index_py.text().strip(), 'repo': self.index_repo.text().strip()},
+            'kokoro': {'python': self.kokoro_py.text().strip(), 'model_dir': self.kokoro_models.text().strip()},
         }
         try:
             self.registry.save(self.config)
@@ -271,13 +290,44 @@ class EngineLab(QWidget):
         finally:
             self.model.blockSignals(False)
             self.language.blockSignals(False)
+        is_kokoro = eng == 'kokoro'
+        for field, visible in ((self.voice, not is_kokoro), (self.ref_text, not is_kokoro),
+                               (self.preset_voice, is_kokoro), (self.emotion, eng == 'index25'),
+                               (self.speed, eng in ('index25', 'kokoro'))):
+            field.setVisible(visible)
+            self.settings_form.labelForField(field).setVisible(visible)
+        self.preset_note.setVisible(is_kokoro)
         self.emotion.setEnabled(eng == 'index25')
-        self.speed.setEnabled(eng == 'index25')
+        self.speed.setEnabled(eng in ('index25', 'kokoro'))
+        self.settings_form.labelForField(self.speed).setText('Speaking speed' if is_kokoro else 'IndexTTS duration factor')
+        self.speed.setToolTip('Kokoro speaking speed: >1.0 speaks faster.' if is_kokoro else
+                              'IndexTTS duration factor: >1.0 slows the speech.')
         self.ref_text.setEnabled(eng == 'qwen3')
+        if is_kokoro:
+            if getattr(self, '_last_engine', None) != 'kokoro':
+                self._clone_device = self.device.currentData()
+            self.device.clear()
+            for label, value in [('Auto (prefer DirectML GPU)', 'auto'), ('DirectML GPU (Radeon / Intel / NVIDIA)', 'directml'), ('CPU', 'cpu')]:
+                self.device.addItem(label, value)
+        elif getattr(self, '_last_engine', None) == 'kokoro':
+            self.device.clear()
+            for label, value in [('CPU (compatible default)', 'cpu'), ('Auto', 'auto'), ('NVIDIA CUDA', 'cuda')]:
+                self.device.addItem(label, value)
+            self.device.setCurrentIndex(self.device.findData(getattr(self, '_clone_device', 'cpu')))
+        self.device.setEnabled(True)
+        self.language.setEnabled(not is_kokoro)
+        self.compare.setEnabled(not is_kokoro and self.thread is None)
+        self._last_engine = eng
+        self.speed.setValue(1.0)
         name = self.character.currentText().strip() if hasattr(self, 'character') else ''
         profile = self.profiles.read().get(name, {})
         chosen = profile.get('engines', {}).get(eng, {})
         self._apply_engine_settings(chosen)
+
+    def _kokoro_voice_changed(self, *_):
+        if self.engine.currentData() == 'kokoro':
+            accent = KOKORO_VOICES[self.preset_voice.currentData()][1]
+            self.language.setCurrentIndex(self.language.findData(accent))
 
     def _apply_engine_settings(self, chosen: dict):
         for combo, value in [
@@ -285,11 +335,14 @@ class EngineLab(QWidget):
             (self.language, chosen.get('language')),
             (self.device, chosen.get('device')),
             (self.emotion, chosen.get('emotion')),
+            (self.preset_voice, chosen.get('preset_voice')),
         ]:
             index = combo.findData(value)
             if index >= 0: combo.setCurrentIndex(index)
         if 'speed' in chosen:
             self.speed.setValue(float(chosen['speed']))
+        if self.engine.currentData() == 'kokoro':
+            self._kokoro_voice_changed()
 
     def refresh_voices(self):
         selected = self.voice.currentData()
@@ -333,6 +386,7 @@ class EngineLab(QWidget):
                 'model': self.model.currentData(), 'language': self.language.currentData(),
                 'device': self.device.currentData(), 'emotion': self.emotion.currentData(),
                 'speed': self.speed.value(),
+                'preset_voice': self.preset_voice.currentData() if self.engine.currentData() == 'kokoro' else '',
             }
             profile = {'preferred_engine': self.engine.currentData(),
                        'voice_id': self.voice.currentData(),
@@ -369,8 +423,13 @@ class EngineLab(QWidget):
             device = saved.get('device', self.device.currentData())
             emotion = saved.get('emotion', 'neutral')
             speed = saved.get('speed', 1.0)
-        voice = self.host.voices.resolve(self.voice.currentData() or '')
-        name = character or self.voice.currentText() or 'speaker'
+        preset = self.preset_voice.currentData() if engine == self.engine.currentData() else saved.get('preset_voice', 'am_michael')
+        if engine == 'kokoro':
+            voice = ''
+            lang = KOKORO_VOICES[preset][1]
+        else:
+            voice = self.host.voices.resolve(self.voice.currentData() or '')
+        name = character or (KOKORO_VOICES[preset][0] if engine == 'kokoro' else self.voice.currentText()) or 'speaker'
         from .pvs_library import new_export_directory
         root = new_export_directory(self.host.storage)
         output = new_output_path(root, f'{name}_{engine}')
@@ -381,6 +440,8 @@ class EngineLab(QWidget):
             'emotion': emotion, 'speed': speed,
             'repo': self.index_repo.text().strip() if engine == 'index25' else '',
             'output_path': str(output),
+            'preset_voice': preset if engine == 'kokoro' else '',
+            'model_dir': self.kokoro_models.text().strip() if engine == 'kokoro' else '',
         }
         return clean_request(result)
 
@@ -418,7 +479,7 @@ class EngineLab(QWidget):
         self.save_runtimes()
         engine = self.engine.currentData()
         entry = self.config[engine]
-        self._start(probe=(engine, entry['python'], entry['repo']))
+        self._start(probe=(engine, entry['python'], entry.get('repo', ''), entry.get('model_dir', '')))
 
     def generate_selected(self):
         self.save_runtimes()
@@ -442,7 +503,7 @@ class EngineLab(QWidget):
             if chosen not in common:
                 raise EngineError('A/B comparison supports English, Spanish, Japanese or Chinese. Choose a shared language first.')
             jobs = []
-            for engine in ENGINES:
+            for engine in ('qwen3', 'index25'):
                 req = self._make_request(engine)
                 req['language'] = chosen if engine == 'qwen3' else common[chosen]
                 jobs.append((req, self.config[engine]['python']))
@@ -477,7 +538,14 @@ class EngineLab(QWidget):
         from json import loads
         sidecar = Path(output).with_suffix('.json')
         model = loads(sidecar.read_text(encoding='utf-8')).get('model', '') if sidecar.is_file() else ''
-        for col, val in enumerate((ENGINES[engine]['label'], model.rsplit('/', 1)[-1], f'{elapsed:.1f}s', str(output))):
+        metadata = loads(sidecar.read_text(encoding='utf-8')) if sidecar.is_file() else {}
+        model_label = model.rsplit('/', 1)[-1]
+        if engine == 'kokoro':
+            model_label += ' / ' + KOKORO_VOICES[metadata['preset_voice']][0]
+            backend = metadata.get('runtime', {}).get('backend')
+            if backend:
+                model_label += ' / ' + ('DirectML' if backend == 'directml' else 'CPU')
+        for col, val in enumerate((ENGINES[engine]['label'], model_label, f'{elapsed:.1f}s', str(output))):
             item = QTableWidgetItem(val)
             if col == 3: item.setData(Qt.ItemDataRole.UserRole, str(output))
             self.table.setItem(row, col, item)
@@ -494,7 +562,7 @@ class EngineLab(QWidget):
         self.elapsed_timer.stop()
         self.thread = None
         self.worker = None
-        self.generate.setEnabled(True); self.compare.setEnabled(True); self.test.setEnabled(True)
+        self.generate.setEnabled(True); self.compare.setEnabled(self.engine.currentData() != 'kokoro'); self.test.setEnabled(True)
         self.cancel.setEnabled(False)
 
     def cancel_work(self):

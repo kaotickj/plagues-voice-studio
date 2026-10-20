@@ -1,3 +1,19 @@
+# Shared model storage and Vulkan 1.1.2 - October 19, 2026
+
+Writing and interviewing reuse the shared PlaguedAI weights/runtime while keeping
+separate model preferences. Downloads use cross-process locks. Windows Vulkan
+jobs exclude the incompatible Mirillis capture layer in the child environment;
+the parent environment and recording configuration are preserved. Real Gemma 9B
+and Qwen 4B CPU/GPU trials, unedited text and timings are documented in
+../../VULKAN_VALIDATION.md. User settings were backed up before enabling Vulkan.
+
+Host regression suite: 258 passed, 1 skipped, 1 deselected (existing restricted
+native cancellation test). The complete rebuilt portable host passes frozen
+runtime and GUI/plugin checks. Packaged writer/shared-storage Python modules
+match source, and host/plugin ZIP CRC checks pass. Plugin artifact:
+artifacts/Promotional-Writer-Plugin-1.1.2.zip. This is a local test build; these
+changes have not been committed, pushed or released.
+
 # CPU threading update 1.1.1 - October 19, 2026
 
 Detected local Windows topology: 6 physical cores / 12 logical processors using the Windows processor-topology API. Added separate decoding/prompt-processing budgets, optional automatic prompt thread count, explicit recommendation controls, backward-compatible settings and load/first-text timings. Existing custom settings are preserved. No speed or prose-quality improvement is claimed without a controlled benchmark.

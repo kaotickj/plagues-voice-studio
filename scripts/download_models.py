@@ -6,6 +6,10 @@ Requires: huggingface_hub. Downloading full weights can use several GB.
 from __future__ import annotations
 import argparse
 from pathlib import Path
+import sys
+from threading import Event
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'src'))
 
 MODEL_SPECS = {
     "nano": ("ResembleAI/chatterbox-nano", ["*.safetensors", "*.json", "*.txt", "*.pt", "*.model"]),
@@ -20,7 +24,7 @@ REQUIRED = {
     "nano": ["ve.safetensors", "t3_nano_v1.safetensors", "s3gen_meanflow.safetensors"],
     "turbo": ["ve.safetensors", "t3_turbo_v1.safetensors", "s3gen_meanflow.safetensors"],
     "english": ["ve.safetensors", "t3_cfg.safetensors", "s3gen.safetensors", "tokenizer.json", "conds.pt"],
-    "multilingual-v3": ["ve.pt", "s3gen.pt", "conds.pt", "t3_mtl23ls_v3.safetensors", "grapheme_mtl_merged_expanded_v1.json"],
+    "multilingual-v3": ["ve.pt", "s3gen.pt", "conds.pt", "t3_mtl23ls_v3.safetensors", "grapheme_mtl_merged_expanded_v1.json", "Cangjie5_TC.json"],
 }
 
 
@@ -39,6 +43,10 @@ def main():
         missing = [name for name in REQUIRED[model] if not (target / name).exists()]
         if missing:
             raise RuntimeError(f"Incomplete {model} download, missing: {missing}")
+        if model == 'multilingual-v3':
+            from chatterbox_studio.tokenizer_assets import install_pkuseg
+            install_pkuseg(opts.dest/'tokenizers'/'pkuseg'/'spacy_ontonotes', Event(),
+                          lambda message: print(message, flush=True))
         print(f"{model} is ready for offline packaging.", flush=True)
 
 

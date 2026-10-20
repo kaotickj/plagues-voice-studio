@@ -5,6 +5,7 @@ import argparse
 import json
 from pathlib import Path
 from download_models import REQUIRED
+from chatterbox_studio.tokenizer_assets import pkuseg_ready
 
 MARKER = 'offline-bundle.json'
 
@@ -17,6 +18,8 @@ def verify(root: Path, require_marker: bool = False, write_marker: bool = False)
             f = root / model / filename
             if not f.is_file() or f.stat().st_size == 0:
                 failures.append(f'{model}/{filename}')
+    if not pkuseg_ready(root/'tokenizers'/'pkuseg'/'spacy_ontonotes'):
+        failures.append('tokenizers/pkuseg/spacy_ontonotes (missing or incomplete tokenizer files)')
     if failures:
         raise RuntimeError('Missing or empty model files:\n' + '\n'.join(failures))
     marker = root / MARKER

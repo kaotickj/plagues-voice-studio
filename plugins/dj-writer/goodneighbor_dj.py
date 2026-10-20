@@ -31,8 +31,9 @@ from script_prompts import DEFAULT_WORDS
 from speech_director import render, export_json, clean_spoken_text, CHATTERBOX_TAGS
 
 APP_NAME = 'Goodneighbor / Plague Radio DJ Writer'
-VERSION = '0.9.2'
-DATA = Path(os.environ.get('GOODNEIGHBOR_DJ_HOME', str(Path.home() / '.goodneighbor_blues_dj')))
+VERSION = '0.9.3'
+from plagued_ai import dj_data_dir
+DATA = dj_data_dir()
 HISTORY = DATA / 'history.json'
 CAMPAIGNS = DATA / 'advertisers.json'
 ADS = ['Goodneighbor Blues', 'Plague Radio', 'The Third Rail', 'Memory Den', 'Daisy’s Discounts', 'KL-E-0’s Guns', 'Hotel Rexford', 'The Rusty Lantern', 'Mirelight Repairs', 'The Last Stop Diner', 'Commonwealth Casket Company', 'Rad-Roach Exterminators', 'Ash & Ember Salvage', 'The Midnight Courier', 'Vault-Tec Surplus Outlet', 'The Tin Can Clinic', 'The Red Rocket Wash']

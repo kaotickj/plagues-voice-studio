@@ -13,6 +13,7 @@ from .prompts import CopyRequest, RECIPES, TONES, build_messages
 from .advertisers import AdvertiserLibrary
 from .advertiser_dialog import AdvertiserDialog
 from writer_core.downloads import MODELS
+from plagued_ai import app_dir, find_writer_model
 
 
 class WriteWorker(QObject):
@@ -65,13 +66,14 @@ class PromotionalWriter(QWidget):
                 self.settings = load_settings(settings_path)
             else:
                 # Import only runtime preferences, never DJ profile/lore or drafts.
-                previous = existing_runtime_settings(Path.home() / '.goodneighbor_blues_dj' / 'ai_studio.json')
+                prior = app_dir('dj-writer')/'ai_studio.json'
+                previous = existing_runtime_settings(prior if prior.is_file() else Path.home() / '.goodneighbor_blues_dj' / 'ai_studio.json')
                 if previous:
                     self.settings = previous
         except (OSError, ValueError, TypeError) as exc:
             settings_error = f'Could not read writer setup: {exc}. Saved files were not changed.'
         if not Path(self.settings['model_path']).is_file():
-            for folder in (self.data_dir/'ai_writer'/'models',Path.home()/'.goodneighbor_blues_dj'/'ai_writer'/'models'):
+            for folder in (find_writer_model(self.data_dir, MODELS['gemma-writer']['filename']).parent, self.data_dir/'ai_writer'/'models',Path.home()/'.goodneighbor_blues_dj'/'ai_writer'/'models'):
                 candidate=folder/MODELS['gemma-writer']['filename']
                 if candidate.is_file():
                     self.settings.update(model_path=str(candidate),model_preset='gemma-writer');break
@@ -80,7 +82,7 @@ class PromotionalWriter(QWidget):
             interview_path = self.data_dir / 'interview' / 'ai_studio.json'
             if interview_path.exists():self.interview_settings = load_settings(interview_path)
             else:
-                for folder in (Path(self.settings['model_path']).parent, self.data_dir/'ai_writer'/'models', Path.home()/'.goodneighbor_blues_dj'/'ai_writer'/'models'):
+                for folder in (find_writer_model(self.data_dir, MODELS['qwen-small']['filename']).parent, Path(self.settings['model_path']).parent, self.data_dir/'ai_writer'/'models', Path.home()/'.goodneighbor_blues_dj'/'ai_writer'/'models'):
                     candidate = folder / MODELS['qwen-small']['filename']
                     if candidate.is_file():
                         self.interview_settings.update(model_path=str(candidate),model_preset='qwen-small',context_size=8192);break

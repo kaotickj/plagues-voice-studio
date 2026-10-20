@@ -30,6 +30,8 @@ on:
       - 'OPTIONAL_ENGINES.md'
       - 'THIRD_PARTY_NOTICES.md'
       - 'LICENSE'
+      - 'LICENSES/**'
+      - 'BINARY_LICENSE.md'
       - '.github/workflows/windows-build.yml'
 concurrency:
   group: pvs-windows-${{ github.ref }}
@@ -171,6 +173,15 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v5
+      - name: Select versioned release notes
+        id: notes
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          notes="RELEASE_NOTES_${version}.md"
+          test -f "$notes"
+          echo "path=$notes" >> "$GITHUB_OUTPUT"
       - name: Download tested portable build
         uses: actions/download-artifact@v4
         with:
@@ -205,6 +216,7 @@ jobs:
       - name: Publish official release only after installer tests pass
         uses: softprops/action-gh-release@v2
         with:
+          body_path: ${{ steps.notes.outputs.path }}
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, 'rc') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
           files: |

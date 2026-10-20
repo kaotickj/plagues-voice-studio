@@ -10,6 +10,8 @@ import sys
 from datetime import datetime
 from .voices import VoiceLibrary
 from .paths import legacy_v030_dir
+from .paths import canonical_data_dir
+from plagued_ai import root as shared_ai_root
 
 
 def legacy_data_dir() -> Path:
@@ -56,7 +58,17 @@ class CompatibleVoiceLibrary:
     imports go only to v0.3 storage. Removal of old voices is prohibited.
     """
     def __init__(self, storage: Path):
-        self.current = VoiceLibrary(storage)
+        if Path(storage) == canonical_data_dir() and not (shared_ai_root()/'voices.json').exists():
+            from plagued_ai.voices import sources
+            if not any((folder/'voices.json').is_file() for folder, prefix in sources()):
+                shared_ai_root().mkdir(parents=True,exist_ok=True)
+                try:
+                    with (shared_ai_root()/'voices.json').open('x',encoding='utf-8') as index:
+                        index.write('[]')
+                except FileExistsError:
+                    pass
+        self.shared = Path(storage) == canonical_data_dir() and (shared_ai_root()/'voices.json').is_file()
+        self.current = VoiceLibrary(shared_ai_root() if self.shared else storage)
         # Read metadata and reference paths without touching legacy storage.
         old = legacy_data_dir()
         self.legacy = VoiceLibrary(old, read_only=True) if old.is_dir() else None
@@ -65,6 +77,8 @@ class CompatibleVoiceLibrary:
 
     def list_voices(self) -> list[dict]:
         current = self.current.list_voices()
+        if self.shared:
+            return current
         previous = [dict(item, id='legacy:' + item['id'], name=item['name'] + ' (v0.1.x)')
                     for item in (self.legacy.list_voices() if self.legacy else [])]
         stable_items = [dict(item, id='stable:' + item['id'], name=item['name'] + ' (stable v0.2.x)')
@@ -72,6 +86,8 @@ class CompatibleVoiceLibrary:
         return current + stable_items + previous
 
     def resolve(self, voice_id: str) -> str:
+        if self.shared:
+            return self.current.resolve(voice_id)
         if voice_id.startswith('legacy:'):
             return self.legacy.resolve(voice_id[7:]) if self.legacy else ""
         if voice_id.startswith('stable:'):
@@ -82,6 +98,8 @@ class CompatibleVoiceLibrary:
         return self.current.import_voice(name, source)
 
     def remove_voice(self, voice_id: str) -> bool:
+        if self.shared:
+            return self.current.remove_voice(voice_id)
         if voice_id.startswith(('legacy:', 'stable:')):
             raise ValueError('This voice belongs to an earlier release and is read-only. Import a copy to edit.')
         return self.current.remove_voice(voice_id)

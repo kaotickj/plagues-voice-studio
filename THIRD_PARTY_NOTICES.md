@@ -2,10 +2,20 @@
 
 Plague's Voice Studio was created by Kaotick Jay. It is an independent graphical frontend, not an official Resemble AI product.
 
+Windows GUI binary distribution terms and source directions are in
+BINARY_LICENSE.md; the complete GPL v3 text is included in LICENSES/GPL-3.0.txt.
+The original application source license remains MIT.
+
 - **Chatterbox** by Resemble AI: MIT-licensed source, audio watermarking retained.
   https://github.com/resemble-ai/chatterbox
 - **Model weights**: distributed separately by Resemble AI via Hugging Face.
   Review license/model cards and usage conditions before redistributing bundles.
+- **spacy-pkuseg**, by ExplosionAI and the pkuseg authors: MIT source,
+  https://github.com/explosion/spacy-pkuseg . Chatterbox Multilingual's Chinese
+  segmenter model is installed separately from the upstream v0.0.26 release;
+  its Cangjie mapping comes from the ResembleAI/chatterbox model repository.
+  The standard slim package excludes these model/data assets. Full-offline
+  redistribution requires reviewing their upstream model/data terms.
 - **PyTorch**: BSD-style license, https://pytorch.org/
 - **PyQt6**: GPL v3 or commercial licensing, https://www.riverbankcomputing.com/software/pyqt/
   IMPORTANT: This project is distributed as GPL-compatible source when using GPL PyQt6;
@@ -29,6 +39,18 @@ The example installer copies this notice; it is not a complete legal compliance 
 - **Qwen3-TTS**, developed by Qwen/Alibaba, https://github.com/QwenLM/Qwen3-TTS . Separate source/model terms apply; not included in the host package. Optional explicit installation by the user.
 - **IndexTTS 2.5**, developed by IndexTTS upstream, https://github.com/index-tts/index-tts . Code/models are released under the Bilibili Model Use License Agreement; read the official LICENSE and DISCLAIMER. Not bundled. An optional setup script requires the user's license review acknowledgement.
 - The optional-engine subprocess runners are original integration code; they do not confer any licensing or redistribution rights to the upstream packages, models or generated output.
+
+### Optional Kokoro speech engine
+
+- **Kokoro-82M**, by hexgrad and contributors: Apache License 2.0 weights,
+  https://huggingface.co/hexgrad/Kokoro-82M . Model and prepared voice embeddings
+  are installed separately, outside the application bundle.
+- **kokoro-onnx**, by thewh1teagle and contributors: MIT,
+  https://github.com/thewh1teagle/kokoro-onnx . Optional isolated runtime.
+- **ONNX Runtime**: MIT, https://github.com/microsoft/onnxruntime .
+- **eSpeak NG**: GPL v3 or later, https://github.com/espeak-ng/espeak-ng .
+  Phonemization in the separate Kokoro runtime uses phonemizer and
+  espeakng-loader; these packages are not bundled with Voice Studio.
 
 ### Promotional Writer plugin
 

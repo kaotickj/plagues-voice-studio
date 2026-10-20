@@ -1,3 +1,17 @@
+# DJ Writer 0.9.3 shared storage and Vulkan - October 19, 2026
+
+The rebuilt standalone uses the shared PlaguedAI model/runtime store and preserves
+legacy character libraries without copying large weights. Windows Vulkan jobs
+exclude the incompatible Mirillis capture layer in their child environment.
+Actual Gemma and Qwen GPU generation succeeds; see ../../VULKAN_VALIDATION.md.
+
+All 148 DJ regression tests pass. Frozen startup/icon smoke, source-to-PYZ
+comparison, portable CRC and Inno Setup compilation pass. New local outputs:
+artifacts/DJ-Writer-Setup-0.9.3.exe and
+artifacts/DJ-Writer-0.9.3-Windows-Portable.zip, with SHA256SUMS.txt.
+Installer install/upgrade/uninstall acceptance has not been run for this version.
+Models are excluded. New changes remain local and uncommitted.
+
 # DJ Writer 0.9.2 installer and portable - October 19, 2026
 
 The Windows packaging workflow now builds a per-user Inno Setup installer and

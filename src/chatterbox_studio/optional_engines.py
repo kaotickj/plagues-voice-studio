@@ -1,6 +1,6 @@
 """Isolated optional-engine protocol, with no optional ML imports in the host.
 
-Qwen3-TTS and IndexTTS execute under independently chosen Python interpreters.
+Qwen3-TTS, IndexTTS and Kokoro execute under independently chosen Python interpreters.
 Neither environment may alter the Chatterbox dependency set. Requests cross the
 process boundary through JSON files, with no network listener or shell command.
 """
@@ -30,7 +30,32 @@ ENGINES = {
         'languages': ('EN', 'ES', 'JA', 'ZH', 'AR'),
         'link': 'https://github.com/index-tts/index-tts',
     },
+    'kokoro': {
+        'label': 'Kokoro',
+        'models': ('Kokoro-82M/v1.0-INT8',),
+        'languages': ('English (US)', 'English (UK)'),
+        'link': 'https://github.com/thewh1teagle/kokoro-onnx',
+    },
 }
+
+# The six familiar station voices; IDs are the upstream voice-pack names.
+KOKORO_VOICES = {
+    'am_michael': ('Michael', 'English (US)'),
+    'am_fenrir': ('Fenrir', 'English (US)'),
+    'bm_george': ('George', 'English (UK)'),
+    'af_heart': ('Heart', 'English (US)'),
+    'af_bella': ('Bella', 'English (US)'),
+    'bf_emma': ('Emma', 'English (UK)'),
+}
+
+
+def kokoro_model_files(directory: str) -> tuple[Path, Path]:
+    folder = Path(directory).expanduser()
+    model, voices = folder / 'kokoro-v1.0.int8.onnx', folder / 'voices-v1.0.bin'
+    if not model.is_file() or not voices.is_file():
+        raise EngineError('Kokoro needs kokoro-v1.0.int8.onnx and voices-v1.0.bin in its model folder. '
+                          'Run scripts/setup_kokoro_windows.ps1 -DownloadModels or choose an existing folder.')
+    return model, voices
 
 
 class EngineError(RuntimeError):
@@ -66,7 +91,7 @@ def is_interpreter(path: str) -> bool:
     return p.is_file() and p.name.lower().startswith(('python', 'pypy')) and p.suffix.lower() in ('.exe', '')
 
 
-def check_configuration(engine: str, python_exe: str, repo: str = '') -> None:
+def check_configuration(engine: str, python_exe: str, repo: str = '', model_dir: str = '') -> None:
     if engine not in ENGINES:
         raise EngineError('Unknown optional engine')
     if not python_exe or not is_interpreter(python_exe):
@@ -77,6 +102,8 @@ def check_configuration(engine: str, python_exe: str, repo: str = '') -> None:
             raise EngineError('IndexTTS requires the checked-out index-tts repository directory.')
         if not (root / 'checkpoints' / 'config.yaml').is_file():
             raise EngineError('IndexTTS checkpoint config missing: <repository>/checkpoints/config.yaml')
+    if engine == 'kokoro':
+        kokoro_model_files(model_dir)
     if not runtime_script_path().is_file():
         raise EngineError('Optional engine runner missing from the application package.')
 
@@ -95,10 +122,19 @@ def clean_request(request: dict) -> dict:
     if language not in ENGINES[engine]['languages']:
         raise EngineError('Unsupported language for selected engine')
     ref_path = Path(str(request.get('voice_path', ''))).expanduser()
-    if not ref_path.is_file():
-        raise EngineError('Choose an existing local voice reference audio file.')
-    if ref_path.suffix.lower() not in ('.wav', '.mp3', '.flac', '.ogg'):
-        raise EngineError('Voice reference must be WAV, MP3, FLAC, or OGG.')
+    preset = str(request.get('preset_voice', ''))
+    model_dir = str(request.get('model_dir', ''))
+    if engine == 'kokoro':
+        if preset not in KOKORO_VOICES:
+            raise EngineError('Select a supported Kokoro preset voice.')
+        if language != KOKORO_VOICES[preset][1]:
+            raise EngineError('Choose the English accent matching the Kokoro preset voice.')
+        kokoro_model_files(model_dir)
+    else:
+        if not ref_path.is_file():
+            raise EngineError('Choose an existing local voice reference audio file.')
+        if ref_path.suffix.lower() not in ('.wav', '.mp3', '.flac', '.ogg'):
+            raise EngineError('Voice reference must be WAV, MP3, FLAC, or OGG.')
     out_path = Path(str(request.get('output_path', ''))).expanduser()
     if out_path.suffix.lower() != '.wav' or not out_path.name or out_path.is_dir():
         raise EngineError('Optional engines currently export WAV only.')
@@ -108,15 +144,22 @@ def clean_request(request: dict) -> dict:
     if not 0.5 <= speed <= 2.0:
         raise EngineError('Speed must be from 0.5 to 2.0.')
     device = str(request.get('device', 'cpu'))
-    if device not in ('cpu', 'auto', 'cuda'):
+    if device not in ('cpu', 'auto', 'cuda', 'directml'):
         raise EngineError('Invalid processing device.')
+    if engine == 'kokoro' and device == 'cuda':
+        raise EngineError('Kokoro uses CPU, Auto or DirectML GPU. Select DirectML for Radeon.')
+    if engine != 'kokoro' and device == 'directml':
+        raise EngineError('DirectML is currently supported by Kokoro only.')
     return {
         'engine': engine, 'model': model, 'text': text, 'language': language,
-        'voice_path': str(ref_path.resolve()), 'output_path': str(out_path.absolute()),
+        'voice_path': '' if engine == 'kokoro' else str(ref_path.resolve()), 'output_path': str(out_path.absolute()),
         'ref_text': str(request.get('ref_text', ''))[:4000],
         'emotion': str(request.get('emotion', 'neutral')),
         'speed': speed, 'device': device,
         'repo': str(request.get('repo', '')),
+        'preset_voice': preset if engine == 'kokoro' else '',
+        'model_dir': str(Path(model_dir).expanduser().resolve()) if engine == 'kokoro' else '',
+        'profile': bool(request.get('profile', False)) if engine == 'kokoro' else False,
     }
 
 
@@ -136,6 +179,13 @@ class EngineRegistry:
 
     def read(self) -> dict:
         defaults = {'qwen3': {'python': '', 'repo': ''}, 'index25': {'python': '', 'repo': ''}}
+        from plagued_ai import root
+        folder = root() / 'runtimes' / 'python'
+        suffix = 'Scripts/python.exe' if sys.platform == 'win32' else 'bin/python'
+        runtimes = [folder / 'kokoro-directml' / suffix, folder / 'kokoro-onnx' / suffix]
+        python = next((p for p in runtimes if p.is_file()), runtimes[-1])
+        defaults['kokoro'] = {'python': str(python) if python.is_file() else '',
+                              'model_dir': str(root() / 'models' / 'speech' / 'kokoro')}
         if not self.path.is_file():
             return defaults
         try:
@@ -145,14 +195,15 @@ class EngineRegistry:
             for engine in defaults:
                 e = data.get(engine, {})
                 if isinstance(e, dict):
-                    defaults[engine] = {'python': str(e.get('python', '')), 'repo': str(e.get('repo', ''))}
+                    defaults[engine] = {k: str(e.get(k, value)) for k, value in defaults[engine].items()}
             return defaults
         except (OSError, ValueError) as exc:
             raise EngineError(f'Engine configuration could not be read: {exc}') from exc
 
     def save(self, data: dict) -> None:
-        clean = {k: {'python': str(data.get(k, {}).get('python', '')),
-                     'repo': str(data.get(k, {}).get('repo', ''))} for k in ENGINES}
+        defaults = self.read()
+        clean = {engine: {key: str(data.get(engine, {}).get(key, value))
+                          for key, value in defaults[engine].items()} for engine in ENGINES}
         atomic_json_write(self.path, clean)
 
 
@@ -211,6 +262,13 @@ _spawn_lock = Lock()
 def _isolated_engine_environment() -> dict[str, str]:
     """Do not leak the frozen host's package paths to independent interpreters."""
     env = os.environ.copy()
+    from plagued_ai import huggingface_home, root as shared_ai_root
+    env['HF_HOME'] = str(huggingface_home())
+    env['HF_HUB_CACHE'] = str(huggingface_home()/'hub')
+    env['HUGGINGFACE_HUB_CACHE'] = env['HF_HUB_CACHE']
+    checkpoints = shared_ai_root()/'models'/'index-tts'/'2.5'
+    if (checkpoints/'config.yaml').is_file():
+        env['PLAGUED_INDEX_CHECKPOINTS'] = str(checkpoints)
     for name in ('PYTHONHOME', 'PYTHONPATH', 'PYTHONEXECUTABLE'):
         env.pop(name, None)
     if getattr(sys, 'frozen', False):
@@ -363,12 +421,14 @@ def _stop_process(proc: subprocess.Popen) -> None:
 
 def execute_probe(engine: str, python_exe: str, repo: str = '', timeout: int = 120,
                   cancelled: Event | None = None, log=None,
-                  diagnostic_dir: Path | None = None) -> dict:
-    check_configuration(engine, python_exe, repo)
+                  diagnostic_dir: Path | None = None, model_dir: str = '') -> dict:
+    check_configuration(engine, python_exe, repo, model_dir)
     if cancelled is not None and cancelled.is_set():
         raise EngineCancelled('Cancelled')
     kwargs = {'cwd': str(Path(repo).resolve())} if engine == 'index25' else {}
     command = [python_exe, '-I', '-u', '-X', 'faulthandler', str(runtime_script_path()), '--probe', engine]
+    if engine == 'kokoro':
+        command.append(model_dir)
     with tempfile.TemporaryDirectory(prefix='pvs-probe-') as temp:
         logfile = (_diagnostic_path(engine + '-probe', diagnostic_dir)
                    if diagnostic_dir is not None else Path(temp) / 'probe.log')
@@ -407,7 +467,7 @@ def execute_generation(request: dict, python_exe: str, cancelled: Event | None =
     """Single-shot optional engine, live diagnostics and controlled cancellation."""
     request = clean_request(request)
     engine = request['engine']
-    check_configuration(engine, python_exe, request.get('repo', ''))
+    check_configuration(engine, python_exe, request.get('repo', ''), request.get('model_dir', ''))
     output = Path(request['output_path'])
     output.parent.mkdir(parents=True, exist_ok=True)
     if cancelled is not None and cancelled.is_set():
@@ -453,6 +513,8 @@ def execute_generation(request: dict, python_exe: str, cancelled: Event | None =
             'text': request['text'],
             'voice_path': request['voice_path'], 'ref_text': request['ref_text'],
             'emotion': request['emotion'], 'speed': request['speed'], 'device': request['device'],
+            'preset_voice': request['preset_voice'], 'model_dir': request['model_dir'],
+            'runtime': result.get('runtime', {}),
             'duration_seconds': round(time.monotonic() - start, 2),
             'diagnostic_log': str(logfile) if diagnostic_dir is not None else '',
         })

@@ -14,5 +14,11 @@ if __name__ == "__main__":
     if len(sys.argv) >= 2 and sys.argv[1] == "--ui-self-test":
         from chatterbox_studio.ui_smoke_test import run
         sys.exit(run(Path(sys.argv[2]) if len(sys.argv) > 2 else None))
+    if len(sys.argv) == 3 and sys.argv[1] == '--kokoro-self-test':
+        from chatterbox_studio.kokoro_check import run
+        sys.exit(run(Path(sys.argv[2])))
+    if len(sys.argv) == 4 and sys.argv[1] == '--speech-self-test':
+        from chatterbox_studio.speech_check import run
+        sys.exit(run(Path(sys.argv[2]), Path(sys.argv[3])))
     from chatterbox_studio.app import run
     sys.exit(run())

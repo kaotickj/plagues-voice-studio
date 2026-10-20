@@ -13,6 +13,7 @@ import shutil
 import sys
 from datetime import datetime, timezone
 from uuid import uuid4
+from plagued_ai import app_dir, root as shared_ai_root
 
 _APP_FOLDER = "PlaguesVoiceStudio"
 _LEGACY_APP_FOLDER = "PlaguesVoiceStudio-v030-Experimental"
@@ -32,7 +33,7 @@ def legacy_v030_dir() -> Path:
 
 def canonical_data_dir() -> Path:
     """Fixed path that does not change when the application version changes."""
-    return _local_data_root() / _APP_FOLDER
+    return app_dir('voice-studio')
 
 
 def _ignore_legacy_items(folder: str, names: list[str]) -> set[str]:
@@ -40,6 +41,9 @@ def _ignore_legacy_items(folder: str, names: list[str]) -> set[str]:
     ignored = set()
     for name in names:
         path = Path(folder) / name
+        if name in ('voices', 'voices.json') and (shared_ai_root()/'voices.json').is_file():
+            ignored.add(name)
+            continue
         if path.is_symlink() or (name in _MIGRATION_EXCLUDED and path.is_dir()):
             ignored.add(name)
     return ignored
@@ -88,8 +92,12 @@ def user_data_dir() -> Path:
         root.mkdir(parents=True, exist_ok=True)
         return root
     root = canonical_data_dir()
-    if not root.exists() and legacy_v030_dir().is_dir():
-        migrate_v030_data(legacy_v030_dir(), root)
+    previous = _local_data_root() / _APP_FOLDER
+    if not root.exists():
+        for source in (previous, legacy_v030_dir()):
+            if source.is_dir():
+                migrate_v030_data(source, root)
+                break
     root.mkdir(parents=True, exist_ok=True)
     return root
 

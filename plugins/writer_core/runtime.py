@@ -15,12 +15,13 @@ import urllib.request
 from .downloads import Cancelled, KVCacheAllocationError, KV_CACHE_MODES, MODELS, context_retry_sizes, check_cancel
 
 from .performance import thread_budgets
+from plagued_ai import resolve_writer_settings
 
 class WriterRuntime:
     """One owned server and one streamed completion. Closing/cancelling kills only it."""
     alias = "local-writer"
     def __init__(self, settings, data_dir):
-        self.settings = deepcopy(settings)
+        self.settings = resolve_writer_settings(deepcopy(settings), data_dir)
         self.data_dir = Path(data_dir)
         self.cancelled = threading.Event()
         self._lock = threading.Lock()
@@ -82,6 +83,14 @@ class WriterRuntime:
         for name in list(env):
             if name.startswith('LLAMA_ARG_') or name in ('LLAMA_API_KEY', 'LLAMA_CACHE'):
                 env.pop(name)
+        if not cpu and os.name == 'nt':
+            # Mirillis Action! registers this implicit capture layer. It caused
+            # native access violations during Vulkan model loading on RX 7600 XT.
+            # Exclude it only in this compute child, preserving user filters.
+            blocked=[v for v in env.get('VK_LOADER_LAYERS_DISABLE','').split(',') if v]
+            if 'VK_LAYER_RENDERDOC_Capture' not in blocked:
+                blocked.append('VK_LAYER_RENDERDOC_Capture')
+            env['VK_LOADER_LAYERS_DISABLE']=','.join(blocked)
         env['PATH'] = str(server.parent) + os.pathsep + env.get('PATH', '')
         if os.name != 'nt':
             env['LD_LIBRARY_PATH'] = str(server.parent) + os.pathsep + env.get('LD_LIBRARY_PATH', '')

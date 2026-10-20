@@ -6,6 +6,7 @@ on:
     paths:
       - 'plugins/promotional-writer/**'
       - 'plugins/writer_core/**'
+      - 'src/plagued_ai/**'
       - 'src/chatterbox_studio/plugin_manager.py'
       - 'src/chatterbox_studio/app.py'
       - 'src/chatterbox_studio/engine_lab.py'
@@ -16,6 +17,7 @@ on:
     paths:
       - 'plugins/promotional-writer/**'
       - 'plugins/writer_core/**'
+      - 'src/plagued_ai/**'
       - 'src/chatterbox_studio/plugin_manager.py'
       - 'src/chatterbox_studio/app.py'
       - 'src/chatterbox_studio/engine_lab.py'

@@ -1,6 +1,7 @@
 """Shared verified model/runtime installers. No product prompting."""
 from __future__ import annotations
 from copy import deepcopy
+from contextlib import contextmanager
 from pathlib import Path
 import hashlib
 import json
@@ -16,6 +17,7 @@ import time
 import urllib.error
 import urllib.request
 import zipfile
+from plagued_ai import root as shared_root, writer_assets, writer_models, writer_runtime, find_writer_model
 
 MODEL_NAME = 'Qwen3-4B-Instruct-2507-Q4_K_M.gguf'
 MODEL_REVISION = '4edb920b6f14e3b9284d4502a6485103d72cde05'
@@ -76,7 +78,40 @@ def check_cancel(cancel):
         raise Cancelled('Cancelled.')
 
 
+@contextmanager
+def asset_lock(path, cancel):
+    """Cross-process lock released by the OS even if an application crashes."""
+    path=Path(path); path.parent.mkdir(parents=True,exist_ok=True)
+    with path.open('a+b') as lock:
+        if not path.stat().st_size:
+            lock.write(b'0');lock.flush()
+        while True:
+            check_cancel(cancel);lock.seek(0)
+            try:
+                if os.name=='nt':
+                    import msvcrt
+                    msvcrt.locking(lock.fileno(),msvcrt.LK_NBLCK,1)
+                else:
+                    import fcntl
+                    fcntl.flock(lock.fileno(),fcntl.LOCK_EX|fcntl.LOCK_NB)
+                break
+            except OSError:
+                cancel.wait(.2)
+        try:
+            yield
+        finally:
+            lock.seek(0)
+            if os.name=='nt':msvcrt.locking(lock.fileno(),msvcrt.LK_UNLCK,1)
+            else:fcntl.flock(lock.fileno(),fcntl.LOCK_UN)
+
+
 def download_verified(url, destination, size, sha256, cancel, progress):
+    destination=Path(destination)
+    with asset_lock(destination.with_name(destination.name+'.lock'),cancel):
+        return _download_verified(url,destination,size,sha256,cancel,progress)
+
+
+def _download_verified(url, destination, size, sha256, cancel, progress):
     """Download with resumable partials. A final filename always has a verified hash."""
     destination = Path(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -185,12 +220,34 @@ def extract_runtime(archive, destination, cancel):
 def install_runtime(data_dir, variant, cancel, progress):
     if variant not in RUNTIMES:
         raise ValueError('No bundled installer for this operating system. Choose a llama-server executable manually.')
+    lock = writer_runtime(data_dir).parent / (f'.{RUNTIME_VERSION}-{variant}.lock')
+    with asset_lock(lock,cancel):
+        return _install_runtime(data_dir,variant,cancel,progress)
+
+
+def _install_runtime(data_dir, variant, cancel, progress):
+    if variant not in RUNTIMES:
+        raise ValueError('No bundled installer for this operating system. Choose a llama-server executable manually.')
     filename, size, digest = RUNTIMES[variant]
-    root = Path(data_dir) / 'ai_writer'
+    root = writer_assets(data_dir)
+    install = writer_runtime(data_dir) / f'{RUNTIME_VERSION}-{variant}'
+    executable = 'llama-server.exe' if variant.startswith('windows') else 'llama-server'
+    if install.is_dir():
+        matches=list(install.rglob(executable))
+        if len(matches)==1:
+            return str(matches[0])
+        raise ValueError('Existing runtime is incomplete. Move its folder aside and reinstall.')
+    if not install.exists():
+        legacy = Path.home()/'.goodneighbor_blues_dj'/'ai_writer'/'runtime'/f'{RUNTIME_VERSION}-{variant}'
+        if root == shared_root() and legacy.is_dir():
+            matches = list(legacy.rglob(executable))
+            if len(matches) == 1:
+                return str(matches[0])
+    downloads = root/'downloads'/'llama.cpp' if root == shared_root() else root/'downloads'
     archive = download_verified(
         f'https://github.com/ggml-org/llama.cpp/releases/download/{RUNTIME_VERSION}/{filename}',
-        root / 'downloads' / filename, size, digest, cancel, progress)
-    install = root / 'runtime' / f'{RUNTIME_VERSION}-{variant}'
+        downloads / filename, size, digest, cancel, progress)
+    install = writer_runtime(data_dir) / f'{RUNTIME_VERSION}-{variant}'
     executable = 'llama-server.exe' if variant.startswith('windows') else 'llama-server'
     if install.exists():
         matches = list(install.rglob(executable))
@@ -212,5 +269,5 @@ def install_runtime(data_dir, variant, cancel, progress):
 def install_model(data_dir, cancel, progress, preset='qwen-small'):
     model = MODELS[preset]
     url = f'https://huggingface.co/{model["repo"]}/resolve/{model["revision"]}/{model["filename"]}'
-    return str(download_verified(url, Path(data_dir) / 'ai_writer' / 'models' / model['filename'],
+    return str(download_verified(url, find_writer_model(data_dir, model['filename']),
                                  model['size'], model['sha256'], cancel, progress))

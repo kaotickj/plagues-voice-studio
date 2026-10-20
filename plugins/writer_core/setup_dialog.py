@@ -9,6 +9,7 @@ from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout,
     QHBoxLayout, QLabel, QLineEdit, QMessageBox, QProgressBar, QPushButton, QSpinBox, QVBoxLayout, QWidget)
 from .downloads import Cancelled, MODELS, install_runtime, install_model
+from plagued_ai import root as shared_root, find_writer_model
 from .performance import cpu_topology, recommended_threads
 from .settings import save_settings
 
@@ -66,6 +67,8 @@ class SetupDialog(QDialog):
             'Voice Studio’s Qwen3-TTS speech weights cannot write scripts. '
             'After setup, writing runs locally without internet.')
         introduction.setWordWrap(True); layout.addWidget(introduction)
+        location = QLabel('Shared AI library: '+str(shared_root()))
+        location.setWordWrap(True); location.setObjectName('mutedText'); layout.addWidget(location)
         form = QFormLayout()
         self.preset = QComboBox()
         for key, model in MODELS.items():
@@ -158,7 +161,7 @@ class SetupDialog(QDialog):
         model = MODELS.get(self.preset.currentData())
         if model:
             self.context.setValue(model['context'])
-            candidate = self.data_dir / 'ai_writer' / 'models' / model['filename']
+            candidate = find_writer_model(self.data_dir, model['filename'])
             self.model.setText(str(candidate) if candidate.is_file() else '')
         self.update_controls()
 

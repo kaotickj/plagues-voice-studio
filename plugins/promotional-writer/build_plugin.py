@@ -18,6 +18,8 @@ def build(destination=None):
                 if source.is_file() and source.suffix in ('.py', '.json', '.md', '.svg', '.ps1') and source.name not in ('build_plugin.py', 'run_source.ps1'):
                     bundle.write(source, source.relative_to(root).as_posix())
         bundle.write(root/'LICENSE', 'plugins/promotional-writer/LICENSE')
+        for source in sorted((root/'src'/'plagued_ai').glob('*.py')):
+            bundle.write(source, 'plugins/plagued_ai/'+source.name)
     with zipfile.ZipFile(archive) as bundle:
         if bundle.testzip() is not None:
             raise RuntimeError('Plugin archive integrity check failed.')

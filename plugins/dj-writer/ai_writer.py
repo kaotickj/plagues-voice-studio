@@ -39,6 +39,7 @@ from writer_core.downloads import (MODEL_NAME, MODEL_REVISION, MODEL_URL, MODEL_
     context_retry_sizes, check_cancel, download_verified, extract_runtime, install_runtime, install_model)
 from writer_core.runtime import WriterRuntime
 from writer_core.performance import recommended_threads
+from plagued_ai import resolve_writer_settings
 
 from lore_library import LoreLibrary
 from character_library import CharacterLibrary
@@ -100,7 +101,7 @@ def load_settings(path):
         return default_settings()
     result = json.loads(path.read_text(encoding='utf-8'))
     validate_settings(result)
-    return result
+    return resolve_writer_settings(result, path.parent)
 
 
 def save_settings(path, data):

@@ -1,6 +1,6 @@
 # Plague's Voice Studio release readiness
 
-Updated October 19, 2026. Target: **v1.0.0rc1**, a release candidate.
+Updated October 20, 2026. Target: **v1.0.0rc1**, a release candidate.
 
 ## Completed source work
 
@@ -12,6 +12,9 @@ Updated October 19, 2026. Target: **v1.0.0rc1**, a release candidate.
 - [x] Source, package, installer and Windows resources agree on 1.0.0rc1; tag checks reject mismatches.
 - [x] CI now requires regression tests, frozen runtime/UI checks, isolated installer acceptance and installed-app startup before tag publication.
 - [x] Release candidate notes describe limitations.
+- [x] Shared PlaguedAI model/voice storage, writer Vulkan integration and Kokoro DirectML adapter implemented and locally rebuilt.
+- [x] Python Qwen/Index Windows checkpoint reads and offline Qwen processors repaired; Multilingual tokenizer setup/repair is explicit and verified.
+- [x] Windows GUI binary license text, component notices and source directions included; original source MIT license retained.
 
 ## Prior user verification
 
@@ -24,17 +27,26 @@ These results precede the new candidate and do not replace candidate acceptance.
 
 ## Candidate acceptance gates
 
-- [x] Frozen runtime and GUI checks pass on the installed 1.0.0rc1 payload, including repeated startup.
-- [x] Isolated installer acceptance passes using the previous 0.3 payload: upgrade, reinstall, repeated startup, uninstall and preservation of all nine seeded user/plugin files.
-- [ ] Verify GitHub Actions on the release-preparation commit and inspect uploaded assets/checksums.
-- [ ] Test installed candidate generation with Chatterbox, Qwen3 0.6B and IndexTTS 2.5, including reference voices and saved transcripts.
-- [ ] Verify actual Qwen3 1.7B inference; cache success alone is insufficient.
-- [ ] Verify migration against a backup of real legacy data; synthetic fixtures do not establish this independently.
-- [ ] Verify intended Bethesda audio/lip-sync workflow in game.
-- [ ] Review redistribution obligations and notices for the app, PyQt6, dependencies and separately distributed models. Sign installer if infrastructure supports it.
+- [x] Latest rebuilt portable runtime and GUI/plugin startup pass; host source suite: 287 passed, 1 skipped, including native cancellation.
+- [x] Both Python Qwen sizes, IndexTTS 2.5 and Multilingual v3 generated real offline CPU speech from the repaired source with matching script sidecars.
+- [x] Real-profile metadata/audio-copy migration passes, all 11 shared voices resolve, repeated startup preserves edits and all 17 original files remain unchanged. No model weights or registry keys copied/modified.
+- [x] DJ Writer 0.9.3 installer acceptance passes: verified 0.9.2 payload upgrade, reinstall, repeated startup, uninstall and preservation of five seeded library/settings files.
+- [ ] Complete final rebuilt-host real inference checks (including packaged Multilingual dependencies), with reference voices and saved transcripts.
+- [ ] Repeat isolated host installer upgrade/reinstall/startup/uninstall acceptance on the latest payload. Earlier RC acceptance passed but predates these changes.
+- [ ] Verify fresh GitHub Actions for the final release-preparation commit and inspect uploaded assets/checksums. The last pushed feb9aa8 revision passed all four workflows.
+- [ ] Publish the matching prerelease tag only after the final package and CI gates pass.
+
+## Acceptance retained for general availability
+
+- [ ] Verify intended Bethesda audio/lip-sync workflow in game; automated checks use simulated external tool output.
+- [ ] Complete graphical IndexTTS onboarding and a fresh full optional-runtime installation check.
+- [ ] Review separately distributed model/full-offline redistribution terms before offering those bundles. Installer signing remains unavailable unless signing infrastructure is supplied.
 
 ## Distribution scope
 
 The standard Windows CPU package excludes model weights and provides model-on-demand setup. IndexTTS uses the documented advanced setup path; complete graphical onboarding remains a general-availability requirement. The full offline edition is separate.
+
+Kokoro presets and writer Vulkan support are in this RC. Experimental native
+Vulkan Qwen/Index and ACE-Step tests are outside its supported Studio engine UI.
 
 Only mark measured tests complete. Use the RC for prerelease feedback; do not label v1.0.0 generally available while blocking acceptance or distribution questions remain unresolved.

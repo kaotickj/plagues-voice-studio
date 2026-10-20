@@ -7,11 +7,19 @@ on:
     paths:
       - 'plugins/dj-writer/**'
       - 'plugins/writer_core/**'
+      - 'src/plagued_ai/**'
+      - 'BINARY_LICENSE.md'
+      - 'THIRD_PARTY_NOTICES.md'
+      - 'LICENSES/**'
       - '.github/workflows/dj-writer-plugin.yml'
   pull_request:
     paths:
       - 'plugins/dj-writer/**'
       - 'plugins/writer_core/**'
+      - 'src/plagued_ai/**'
+      - 'BINARY_LICENSE.md'
+      - 'THIRD_PARTY_NOTICES.md'
+      - 'LICENSES/**'
       - '.github/workflows/dj-writer-plugin.yml'
 
 permissions:
@@ -37,6 +45,9 @@ jobs:
       - name: Test and build standalone DJ Writer, installer and portable
         shell: pwsh
         run: ./plugins/dj-writer/build_windows.ps1
+      - name: Verify isolated installer, repeated startup and retained libraries
+        shell: pwsh
+        run: ./plugins/dj-writer/test_installer.ps1
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:

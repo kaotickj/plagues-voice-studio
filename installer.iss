@@ -51,7 +51,7 @@ SetupIconFile=assets\plagues-voice-studio.ico
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
-LicenseFile=LICENSE
+LicenseFile=LICENSES\GPL-3.0.txt
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs

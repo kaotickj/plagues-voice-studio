@@ -118,6 +118,31 @@ TOPICS: tuple[tuple[str, str, str], ...] = (
 <p>Chatterbox TTS is developed by <b>Resemble AI</b> and Qwen3-TTS by the Qwen team. IndexTTS 2.5 is developed by the IndexTTS team. Each upstream library, model and game conversion utility retains its individual terms. See <code>THIRD_PARTY_NOTICES.md</code> in the project.</p>
 <p><a href="https://github.com/resemble-ai/chatterbox">Resemble AI's Chatterbox source</a></p>
 '''),
+    ('Kokoro preset voices', 'kokoro onnx michael fenrir george heart bella emma speed shared models reference cloning', '''
+<h2>Kokoro preset voices</h2>
+<p>Open <b>Voice Engines</b>, choose <b>Kokoro</b>, then select Michael, Fenrir,
+George, Heart, Bella or Emma. US/UK pronunciation follows the selected voice.
+Kokoro uses prepared voice embeddings and cannot clone a voice from a reference
+recording. Use Chatterbox, Qwen3 or IndexTTS for your saved reference voices.</p>
+<p>Run <code>scripts/setup_kokoro_windows.ps1</code> once to install the separate
+DirectML runtime (use <code>-Backend CPU</code> for CPU-only setup). Existing weights are reused from
+<code>%LOCALAPPDATA%\\PlaguedAI\\models\\speech\\kokoro</code>.
+For a fresh machine, add <code>-DownloadModels</code> to explicitly retrieve the
+pinned model and voice pack with SHA-256 verification. No weights are bundled.</p>
+<p>The runtime and model folder are detected automatically. Select
+<b>Test selected engine</b> to check imports and files. Enter plain speech text,
+set <b>Speaking speed</b> (1.0 normal, higher faster), and choose
+<b>Generate with selected engine</b>. Profiles retain the selected preset and
+speed. WAV recordings and their text/voice metadata appear in Export Library
+and can be sent to Bethesda Export. Cancel stops the isolated engine process.</p>
+<p><b>Auto</b> prefers DirectML GPU when available. You can also choose
+<b>DirectML GPU</b> explicitly or <b>CPU</b>. DirectML uses a cached compatible
+graph while preserving the original model weights. It uses DirectX 12 on Windows;
+the writing models' Vulkan runtime is separate. Chatterbox narration markup is not
+processed by Kokoro; use plain spoken text. The cloning comparison remains for
+Qwen3 and IndexTTS because Kokoro cannot use their reference voice.</p>
+<p><a href="https://github.com/thewh1teagle/kokoro-onnx">Kokoro runtime documentation</a></p>
+'''),
     ('Qwen3-TTS and IndexTTS', 'qwen cloning indextts supported voice engines compare character profiles independent python', '''
 <h2>Qwen3-TTS and IndexTTS 2.5</h2>
 <p><b>Qwen3-TTS and IndexTTS 2.5 are supported speech engines.</b> Local speech generation and WAV export with both have been verified on the creator's Windows system, alongside Chatterbox. This records successful real-world use, not a blanket guarantee for every CPU/GPU, model size or upstream version.</p>

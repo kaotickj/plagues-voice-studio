@@ -1,11 +1,17 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 
+from PyInstaller.utils.hooks import copy_metadata
+license_data = [('../../BINARY_LICENSE.md', '.'), ('../../THIRD_PARTY_NOTICES.md', '.'),
+                ('../../LICENSES/GPL-3.0.txt', 'LICENSES')]
+for distribution in ('PyQt6', 'PyQt6-Qt6', 'PyQt6-sip'):
+    license_data += copy_metadata(distribution)
+
 a = Analysis(
     ['goodneighbor_dj.py'],
-    pathex=['..'],
+    pathex=['..', '../../src'],
     binaries=[],
-    datas=[('LORE_LIBRARY_LICENSE.md', '.'), ('lore_curation_report.json', '.'), ('lore_starter.json', '.'), ('dialogue.json', '.'), ('stories.json', '.'), ('assets/dj-writer.ico', 'assets'), ('assets/dj-writer.png', 'assets'), ('assets/dropdown.svg', 'assets')],
+    datas=license_data+[('LORE_LIBRARY_LICENSE.md', '.'), ('lore_curation_report.json', '.'), ('lore_starter.json', '.'), ('dialogue.json', '.'), ('stories.json', '.'), ('assets/dj-writer.ico', 'assets'), ('assets/dj-writer.png', 'assets'), ('assets/dropdown.svg', 'assets')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

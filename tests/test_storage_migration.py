@@ -14,7 +14,10 @@ def _windows_paths(monkeypatch, tmp_path):
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
     monkeypatch.delenv("PLAGUES_VOICE_STUDIO_HOME", raising=False)
     monkeypatch.delenv("PLAGUES_VOICE_STUDIO_030_HOME", raising=False)
-    return tmp_path / "PlaguesVoiceStudio-v030-Experimental", tmp_path / "PlaguesVoiceStudio"
+    monkeypatch.delenv('PLAGUED_AI_HOME', raising=False)
+    current = tmp_path/'PlaguedAI/apps/voice-studio'
+    current.parent.mkdir(parents=True, exist_ok=True)
+    return tmp_path / "PlaguesVoiceStudio-v030-Experimental", current
 
 
 def test_appdata_migration_preserves_profiles_and_voice_references(monkeypatch, tmp_path):

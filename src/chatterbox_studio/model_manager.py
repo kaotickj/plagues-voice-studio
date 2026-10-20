@@ -153,7 +153,8 @@ class ModelManager(QWidget):
         selected = MODELS[key]
         if selected.family == 'chatterbox':
             state = self._states.get(key, 'Download available')
-            folder = self.host.storage / 'models' / key
+            from .model_downloads import user_model_directory
+            folder = user_model_directory(self.host.storage, key)
             self.destination.setText(f'Per-user model directory: {folder}')
             self.check.setEnabled(False)
         else:

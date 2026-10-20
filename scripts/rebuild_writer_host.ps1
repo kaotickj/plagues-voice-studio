@@ -2,7 +2,7 @@
 param([string]$PythonExecutable = '', [string]$OutputDirectory = 'dist\WriterPluginPreview',
       [string]$ReportDirectory = 'artifacts\writer-host-build',
       [string]$ArchiveName = 'PlaguesVoiceStudio-WriterPlugin-Portable.zip',
-      [string]$WorkDirectory = 'build\writer-plugin-host')
+      [string]$WorkDirectory = 'build\writer-plugin-host', [switch]$Incremental)
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 if (-not $PythonExecutable) { $PythonExecutable = Join-Path $repo '.venv-build\Scripts\python.exe' }
@@ -27,7 +27,12 @@ try {
     # Prevent unrelated developer-tool DLLs from entering the frozen package.
     $env:PATH = (Split-Path -Parent $PythonExecutable) + ';' + (Join-Path $env:SystemRoot 'System32') + ';' + $env:SystemRoot
     $env:PVS_SLIM_BUILD = '1'; $env:QT_QPA_PLATFORM = 'offscreen'
-    & $PythonExecutable -m PyInstaller --clean --noconfirm --distpath $output --workpath $work ChatterboxStudio.spec
+    # Refresh project bytecode before analysis after fast local source edits.
+    & $PythonExecutable -m compileall -q -f src\chatterbox_studio src\plagued_ai plugins\writer_core
+    if ($LASTEXITCODE -ne 0) { throw 'Project bytecode validation failed.' }
+    $bundleArguments = @('--noconfirm', '--distpath', $output, '--workpath', $work)
+    if (-not $Incremental) { $bundleArguments += '--clean' }
+    & $PythonExecutable -m PyInstaller @bundleArguments ChatterboxStudio.spec
     if ($LASTEXITCODE -ne 0) { throw 'Voice Studio PyInstaller build failed.' }
     $folder = Join-Path $output 'PlaguesVoiceStudio030Experimental'
     $exe = Join-Path $folder 'PlaguesVoiceStudio030Experimental.exe'

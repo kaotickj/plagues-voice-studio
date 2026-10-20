@@ -42,6 +42,13 @@ def unique_output_path(path: Path) -> Path:
 
 def load_model(model_id: str, device: str):
     """Load included offline weights when present, otherwise Hugging Face cache/download."""
+    from plagued_ai import huggingface_home
+    cache = huggingface_home()/'hub'
+    os.environ['HF_HOME'] = str(huggingface_home())
+    os.environ['HF_HUB_CACHE'] = str(cache)
+    import huggingface_hub.constants
+    huggingface_hub.constants.HF_HUB_CACHE = str(cache)
+    huggingface_hub.constants.HUGGINGFACE_HUB_CACHE = str(cache)
     # Prefer validated per-user downloads; frozen app files remain read-only.
     spec = MODELS[model_id]
     user_path = installed_model_directory(user_data_dir(), spec)
@@ -61,9 +68,11 @@ def load_model(model_id: str, device: str):
         return ChatterboxTTS.from_pretrained(device=device)
     if model_id == "multilingual-v3":
         from chatterbox.mtl_tts import ChatterboxMultilingualTTS
-        if path is not None:
-            return ChatterboxMultilingualTTS.from_local(path, device=device, t3_model="v3")
-        return ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model="v3")
+        from .tokenizer_assets import local_multilingual_tokenizer
+        with local_multilingual_tokenizer(user_data_dir()):
+            if path is not None:
+                return ChatterboxMultilingualTTS.from_local(path, device=device, t3_model="v3")
+            return ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model="v3")
     raise ValueError(f"Unknown model: {model_id}")
 
 

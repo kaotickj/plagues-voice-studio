@@ -9,7 +9,7 @@ Sending reviewed text uses Studio's normal replacement confirmation and never
 starts generation. Copy and export also preserve the original.
 
 Runs offline without a model. Dictionaries are isolated at
-`%LOCALAPPDATA%/PlaguesVoiceStudio/plugins/script-prep/dictionaries.json`.
+`%LOCALAPPDATA%/PlaguedAI/apps/voice-studio/plugins/script-prep/dictionaries.json`.
 General, Fallout broadcasts and Advertisers start empty: pronunciation hints
 are user supplied, not asserted phonetic canon. Each advertiser or DJ can have
 a separate profile. Whole words and phrases match case-insensitively, longest

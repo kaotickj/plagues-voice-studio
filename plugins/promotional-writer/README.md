@@ -47,7 +47,7 @@ continuity, settings or output is imported or modified. The selected local model
 is shown in the panel. This does not trigger generation or network access.
 
 Plugin settings and logs live in the stable Voice Studio user-data directory:
-`plugins/promotional-writer/` (normally under `%LOCALAPPDATA%/PlaguesVoiceStudio`).
+`plugins/promotional-writer/` (normally under `%LOCALAPPDATA%/PlaguedAI/apps/voice-studio`).
 The plugin's own setup is independent after saving. Changing the model path does
 not remove downloaded files. Competing main narration/writer jobs are blocked;
 close other independent AI programs when memory is limited.

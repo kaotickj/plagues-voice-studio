@@ -11,8 +11,11 @@ datas = [
     (str(project / 'assets' / 'plagues-voice-studio-logo.png'), 'assets'),
     (str(project / 'THIRD_PARTY_NOTICES.md'), '.'),
     (str(project / 'LICENSE'), '.'),
+    (str(project / 'BINARY_LICENSE.md'), '.'),
+    (str(project / 'LICENSES' / 'GPL-3.0.txt'), 'LICENSES'),
     (str(project / 'optional_engine_runner.py'), '.'),
     (str(project / 'OPTIONAL_ENGINES.md'), '.'),
+    (str(project / 'scripts' / 'setup_kokoro_windows.ps1'), 'scripts'),
 ]
 # Ship generic plugins, never the branded DJ standalone or its builds.
 for folder in ('promotional-writer', 'script-prep'):
@@ -26,7 +29,7 @@ if os.environ.get('PVS_SLIM_BUILD') != '1':
         if path.is_file() and '.cache' not in path.parts and path.name != '.gitkeep':
             datas.append((str(path), str(Path('models') / path.relative_to(models).parent)))
 
-for package in ('chatterbox', 'imageio_ffmpeg', 's3tokenizer', 'perth'):
+for package in ('chatterbox', 'imageio_ffmpeg', 's3tokenizer', 'perth', 'spacy_pkuseg', 'srsly'):
     pkg_datas, pkg_bins, pkg_hidden = collect_all(package, include_py_files=False)
     datas += pkg_datas
     if package == 'chatterbox':
@@ -51,6 +54,7 @@ metadata_distributions = (
     'diffusers', 'librosa', 'soundfile', 'imageio-ffmpeg',
     's3tokenizer', 'Pillow', 'charset-normalizer', 'idna',
     'urllib3', 'certifi', 'PyQt6', 'PyQt6-Qt6',
+    'spacy_pkuseg', 'srsly',
 )
 for package in metadata_distributions:
     datas += copy_metadata(package)
@@ -58,6 +62,7 @@ for package in metadata_distributions:
 hidden += collect_submodules('chatterbox')
 hidden += ['writer_core', 'writer_core.downloads', 'writer_core.runtime',
            'writer_core.settings', 'writer_core.setup_dialog', 'PyQt6.QtSvg']
+hidden += ['plagued_ai']
 hidden += ['PyQt6.QtMultimedia', 'PyQt6.QtMultimediaWidgets', 'soundfile', 'imageio_ffmpeg',
            'librosa', 'transformers', 'diffusers', 'torch', 'torchaudio', 'safetensors']
 

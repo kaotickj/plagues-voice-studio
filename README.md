@@ -20,12 +20,23 @@ DJ standalone is not bundled. See [plugin setup and source testing](plugins/prom
 
 **Speech-engine status:** **Chatterbox, Qwen3-TTS and IndexTTS 2.5 are supported.** The creator has confirmed real speech generation with all three on the Windows setup used for development. Qwen3-TTS Base 0.6B and IndexTTS 2.5 have produced working audio. This describes verified use on that machine; it does not guarantee compatibility with every GPU, every model size or future upstream release.
 
+**Kokoro preset speech:** Voice Engines also offers Michael, Fenrir, George,
+Heart, Bella and Emma with speaking-speed controls and local ONNX inference.
+Windows DirectML GPU acceleration is available for Radeon, Intel and NVIDIA;
+CPU remains selectable. Auto prefers DirectML when its runtime is installed.
+Kokoro cannot clone reference recordings; saved reference voices continue to use
+Chatterbox, Qwen3 or IndexTTS. Run `scripts/setup_kokoro_windows.ps1` once; existing
+shared weights are reused. Add `-DownloadModels` on a fresh machine to explicitly
+download the checksum-verified model/voice pack. See [Kokoro setup](OPTIONAL_ENGINES.md#kokoro-preset-voices).
+
 This is a **separately installed v0.3.0 build** based on the v0.2.4 stable source. Do not overwrite or uninstall v0.2.4. The preserved stable archive has SHA-256 `23464fb7c541e000d03f2c47f14e18629fe70d97f1b9b4d4ebadf556776d5928`.
 
 ### What you can do
 
 - Generate Chatterbox speech with Nano, Turbo, Original English, or Multilingual V3, including model-appropriate controls, narration markup, batch jobs, and WAV/MP3 output.
 - Generate multilingual reference-voice speech with Qwen3-TTS Base models in a separate Python environment, with WAV output, diagnostic logs, cancellation, and reusable character profiles.
+- Generate preset-voice speech with Kokoro, including US/UK pronunciation,
+  speaking speed, character presets and WAV/script metadata.
 - Browse and audition existing recordings, preview/copy the exact saved input script (including vocal tags) from its same-name JSON sidecar, compare Qwen and IndexTTS when both are configured, and prepare Fallout 4 / Skyrim voice assets with user-supplied conversion tools.
 
 **Memory note:** IndexTTS/Qwen3 and a local LLM writer can both demand substantial system RAM and paging capacity. On the creator's Windows machine, closing DJ Writer before rendering IndexTTS resolved an access-violation crash. Run heavy generators sequentially if resources are tight.
@@ -97,22 +108,20 @@ Read **[OPTIONAL_ENGINES.md](OPTIONAL_ENGINES.md)** before setting up extra mode
 - Bethesda project mappings, WAV/LIP/XWM/FUZ production, and optional direct game/mod installation using locally supplied conversion tools. Game plugin files are never edited.
 - Dark-green branded PyQt6 GUI, searchable Help center, About/Credits/Diagnostics, and Windows frozen runtime & Qt smoke tests.
 
-## Permanent user-data location and non-destructive migration
+## Shared AI library and user data
 
-Starting with the next release, the canonical writable user-data directory is **`%LOCALAPPDATA%\\PlaguesVoiceStudio`** on Windows (and `$XDG_DATA_HOME/PlaguesVoiceStudio` on Linux). It no longer contains a version number or an Experimental suffix. The Windows QSettings application identity is now `KaotickJay/PlaguesVoiceStudio`; missing old preferences are copied from `PlaguesVoiceStudio030Experimental` without deleting or overwriting them.
+The shared root is **`%LOCALAPPDATA%\PlaguedAI`** on Windows. Models, writing runtimes and voice references are shared across the tools, while Studio state lives in `apps/voice-studio` and DJ Writer state in `apps/dj-writer`. On Linux the root is `$XDG_DATA_HOME/PlaguedAI` (default `~/.local/share/PlaguedAI`). `PLAGUED_AI_HOME` overrides the shared root.
 
-**One-time migration:** The first launch copies v0.3 user profiles, voice references and other portable data from the previous folder into a temporary staging directory, then renames it to the permanent directory after the copy completes. The old directory is **not changed or deleted**. Independent Python environments, downloaded Chatterbox weights, logs and old exports are deliberately not copied because they can be very large or non-relocatable. Fully downloaded legacy Chatterbox weights remain available for inference and Model Manager without re-downloading; existing Qwen3/IndexTTS interpreter paths remain valid and saved as originally configured. The Export Library still lists the previous export folders.
+See [SHARED_AI_STORAGE.md](SHARED_AI_STORAGE.md) for the layout, explicit audit/migration scripts, hash-verified deduplication and compatibility links. The tools preserve voice IDs and existing model paths. Installed speech-engine Python environments stay at their original locations. Distinct speech and writing models remain separate; identical immutable files can share one physical copy.
 
-The new default recording folder is `Music/Plague's Voice Studio` if your Music directory exists. Older recordings remain available in Export Library, including the previous Music/Plague's Voice Studio Experimental folder. New optional-engine setup scripts prefer existing v0.3 environments if found; otherwise they use the permanent folder for fresh installations.
-
-**Backup recommendation:** Back up both AppData folders and any custom export folders before the first upgrade. If migration fails (for example, insufficient free disk space), the app reports an error instead of deleting legacy files. Reinstalling or upgrading the app never removes saved voice/model files.
+Studio preserves its KaotickJay/PlaguesVoiceStudio settings identity and existing export locations. Legacy portable state can be copied on first launch, excluding heavy model/runtime directories. For a fully consolidated existing installation, close the tools and run the documented migration scripts before launching the updated builds.
 
 ## Separate environments and data
 
 | | Previous stable v0.2.4 | v0.3.0 multi-engine build |
 |---|---|---|
 | Executable | `PlaguesVoiceStudio024.exe` | `PlaguesVoiceStudio030Experimental.exe` |
-| Data | `%LOCALAPPDATA%\PlaguesVoiceStudio-v021` | `%LOCALAPPDATA%\PlaguesVoiceStudio` (previous v0.3 data copied safely on first launch) |
+| Data | `%LOCALAPPDATA%\PlaguesVoiceStudio-v021` | `%LOCALAPPDATA%\PlaguedAI\apps\voice-studio` |
 | Settings | `KaotickJay/PlaguesVoiceStudio021` | `KaotickJay/PlaguesVoiceStudio` (previous values preserved) |
 | Windows installation | Stable app folder | `Plague's Voice Studio 0.3` (existing installation directory retained) |
 | Voices | Writable stable v0.2.x | New imports writable; stable v0.2.x and v0.1.x read-only |
@@ -205,4 +214,4 @@ The links are also available under **Help → Support Project Development** in t
 
 ## Licensing
 
-MIT applies to original project code subject to the included `LICENSE`. Chatterbox is by Resemble AI. PyQt6 and optional engines have their own licenses. In particular, IndexTTS 2.5 uses a **Bilibili Model Use License Agreement**. No optional engine weights, model code or vendor binaries are bundled. See `THIRD_PARTY_NOTICES.md` and upstream model cards before redistributing a bundle.
+MIT applies to original project code subject to the included `LICENSE`. Windows GUI binaries include GPL PyQt6 and are distributed under GPL v3; see [BINARY_LICENSE.md](BINARY_LICENSE.md) for the full-license location and corresponding source directions. Chatterbox is by Resemble AI. Optional engines have their own terms; IndexTTS 2.5 uses a **Bilibili Model Use License Agreement**. Optional speech/writing engine weights and runtimes are not bundled in the standard slim package. See `THIRD_PARTY_NOTICES.md` and upstream model cards before redistributing model bundles.

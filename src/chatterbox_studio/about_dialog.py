@@ -36,8 +36,8 @@ def diagnostics_text() -> str:
         f'Platform: {platform.system()} {platform.release()}',
         f'Python: {platform.python_version()}',
         f'Frozen executable: {bool(getattr(sys, "frozen", False))}',
-        'Speech engines: Chatterbox, Qwen3-TTS and IndexTTS 2.5 supported.',
-        'Qwen3 and IndexTTS use separate Python runtimes; no external engine packages bundled.',
+        'Speech engines: Chatterbox, Qwen3-TTS, IndexTTS 2.5 and Kokoro.',
+        'Qwen3, IndexTTS and Kokoro use separate Python runtimes; no external engine packages bundled.',
         'Bundled model checks:', *state,
         'Note: cached models are not enumerated. Do not include personal voice files in bug reports.',
     ])
@@ -96,13 +96,16 @@ class AboutDialog(QDialog):
         self.overview.setOpenExternalLinks(True)
         self.overview.setHtml('''<h3>What it does</h3>
 <p>Plague's Voice Studio supports <b>Chatterbox</b>, <b>Qwen3-TTS</b>, and
-<b>IndexTTS 2.5</b> speech synthesis. Generate natural-sounding local voice recordings,
+<b>IndexTTS 2.5</b> and <b>Kokoro</b> speech synthesis. Generate local voice recordings,
 manage reusable voice references and character profiles, and audition finished audio.</p>
 <p>Chatterbox Narration Studio offers script markup, narration jobs and batch production
 with WAV/MP3 export. Choose <b>Voice Engines</b> to use Qwen3-TTS or IndexTTS 2.5
 with independently configured Python runtimes. Both offer reference-voice WAV generation,
 per-engine settings, metadata and live diagnostics. Both have produced working audio on
 the creator's Windows installation.</p>
+<p><b>Kokoro</b> offers six ready-made English voices, speaking speed controls and
+DirectML GPU or CPU inference using the shared INT8 model. It does not clone reference recordings.
+Your saved reference voices remain available in the cloning engines.</p>
 <p>Browse earlier recordings in Export Library and prepare Fallout 4 / Skyrim
 WAV, LIP, XWM and FUZ voice assets using compatible external utilities you supply.
 Game dialogue plugins are not edited.</p>
@@ -127,6 +130,11 @@ are not redistributed here.
 has been verified working on the creator's Windows machine. Install it in a
 separate Python environment and check the Bilibili Model Use License before use.
 <a href="https://github.com/index-tts/index-tts">Visit IndexTTS upstream</a>.</p>
+<p><b>Kokoro:</b> Model by hexgrad and contributors, Apache 2.0 weights.
+The optional <b>kokoro-onnx</b> runtime by thewh1teagle is MIT licensed and
+uses ONNX Runtime and eSpeak NG phonemization. Packages and weights are installed
+separately. <a href="https://github.com/thewh1teagle/kokoro-onnx">Visit kokoro-onnx</a>;
+<a href="https://huggingface.co/hexgrad/Kokoro-82M">Kokoro model card</a>.</p>
 <p><b>Qt/PyQt6:</b> Desktop user interface. PyQt6 has separate
 GPL/commercial licensing requirements.</p>
 <p><b>Bethesda export:</b> Game-specific conversion utilities and

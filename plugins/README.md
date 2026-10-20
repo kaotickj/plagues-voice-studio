@@ -1,5 +1,11 @@
 # Voice Studio plugins
 
+Shared storage is now `%LOCALAPPDATA%\PlaguedAI`: writing models live in
+`models/text`, writer runtimes in `runtimes/llama.cpp`, and each application's
+settings remain separate under `apps/`. See [shared storage](../SHARED_AI_STORAGE.md)
+for consolidation and compatibility details. Promotional Writer 1.1.2 and
+DJ Writer 0.9.3 use this shared store.
+
 Plugin source lives here. Voice Studio discovers API-1 `plugin.json` manifests
 and opens panels through its **Plugins** menu. The main Windows distribution
 ships `promotional-writer/`, `script-prep/` and the `writer_core` dependency.

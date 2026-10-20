@@ -108,7 +108,7 @@ def run(report_path: Path | None = None) -> int:
                 if model_manager.is_busy:
                     raise RuntimeError('Model Manager started a download during initialization.')
                 lab = window.engine_lab
-                if lab is None or lab.engine.count() != 2:
+                if lab is None or lab.engine.count() != 3:
                     raise RuntimeError('Voice Engines tab missing or incomplete.')
                 if lab.registry.read()['qwen3']['python']:
                     raise RuntimeError('Smoke test should have isolated optional-engine settings.')
@@ -121,7 +121,19 @@ def run(report_path: Path | None = None) -> int:
                 lab.engine.setCurrentIndex(1)
                 if lab.model.count() != 1 or lab.language.count() != 5:
                     raise RuntimeError('IndexTTS settings failed to switch.')
+                lab.engine.setCurrentIndex(lab.engine.findData('kokoro'))
+                if lab.preset_voice.count() != 6 or lab.preset_voice.isHidden() or not lab.voice.isHidden():
+                    raise RuntimeError('Kokoro preset/reference controls failed to switch.')
+                lab.preset_voice.setCurrentIndex(lab.preset_voice.findData('bf_emma'))
+                if lab.language.currentData() != 'English (UK)' or lab.device.currentData() != 'auto':
+                    raise RuntimeError('Kokoro voice accent or compute configuration is incorrect.')
+                if lab.device.findData('directml') < 0 or lab.device.findData('cuda') >= 0:
+                    raise RuntimeError('Kokoro must offer DirectML without implying CUDA support.')
+                if not lab.ref_text.isHidden() or lab.compare.isEnabled():
+                    raise RuntimeError('Kokoro must not offer reference cloning or cloned-voice comparison.')
                 lab.engine.setCurrentIndex(0)
+                if lab.voice.isHidden() or not lab.preset_voice.isHidden():
+                    raise RuntimeError('Cloning reference controls failed to return after Kokoro.')
                 lab.character.setEditText('Smoke Test Character')
                 lab.save_profile()
                 if 'Smoke Test Character' not in lab.profiles.read():

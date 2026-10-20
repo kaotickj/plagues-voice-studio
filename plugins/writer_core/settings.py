@@ -4,6 +4,7 @@ import json
 import os
 from .downloads import MODELS, KV_CACHE_MODES
 from .performance import recommended_threads
+from plagued_ai import resolve_writer_settings
 
 RUNTIME_KEYS = ('server_path', 'model_path', 'model_preset', 'backend', 'context_size',
                 'cpu_threads', 'batch_threads', 'disable_repack', 'kv_cache_mode', 'auto_memory_recovery')
@@ -41,7 +42,7 @@ def load_settings(path):
         return default_settings()
     data = json.loads(path.read_text(encoding='utf-8'))
     validate_settings(data)
-    return data
+    return resolve_writer_settings(data, path.parent)
 
 
 def save_settings(path, data):
@@ -65,4 +66,4 @@ def existing_runtime_settings(path):
     validate_settings(candidate)
     if not Path(candidate['server_path']).is_file() or not Path(candidate['model_path']).is_file():
         return None
-    return candidate
+    return resolve_writer_settings(candidate, path.parent)

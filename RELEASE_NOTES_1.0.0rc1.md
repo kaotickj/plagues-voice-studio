@@ -4,6 +4,23 @@ This is a **release candidate**, not the final stable 1.0 release.
 
 ## Changes
 
+- Shared `%LOCALAPPDATA%\PlaguedAI` model, runtime and reference-voice storage,
+  with compatibility discovery for existing installations. Writer and speech
+  tools can reuse existing assets without downloading another copy.
+- Radeon Vulkan support in the shared DJ/Promotional Writer runtime. The tested
+  Mirillis capture-layer conflict is avoided only in owned compute subprocesses.
+- Kokoro speech with six preset voices, speed controls and optional Radeon
+  DirectML inference. Kokoro uses fixed presets and does not clone reference audio.
+- Windows CPU checkpoint loading uses bounded safetensors reads for Qwen/Index,
+  and complete cached Qwen installations no longer require a remote tokenizer
+  metadata lookup. Updated optional setup scripts apply tested dependencies.
+- Model Manager can repair missing Multilingual tokenizer assets with a verified
+  download. Multilingual generation uses local mapping/segmenter files.
+- Pronunciation & Script Prep plugin, reusable advertiser profiles/interviews,
+  separate writing/interview models and configurable CPU thread budgets.
+- Windows GUI packages include GPL v3 binary-distribution notices and source
+  directions; original application source files retain MIT licensing.
+
 - Generic **Plugins → Promotional Writer**: spoken ads, promotional spots,
   announcements, product descriptions, social posts, taglines and custom prompts.
   Local Gemma/Qwen writing models remain separate from speech engines. Reviewed
@@ -35,13 +52,18 @@ llama.cpp runtime and hardware. Run memory-heavy AI jobs sequentially.
 - Test the newly installed candidate with your real voice library and configured
   Chatterbox, Qwen3-TTS and IndexTTS runtimes. Historical engine success on an
   earlier build is not a new candidate inference result.
-- Qwen3-TTS 1.7B cache checks were reported successful; its actual candidate speech
-  generation has not yet been verified.
+- Both Qwen3-TTS model sizes, IndexTTS 2.5 and Multilingual Chatterbox have
+  completed actual CPU synthesis with the repaired source adapter. Packaged
+  acceptance records are tracked separately in BUILD_VALIDATION.md.
 - IndexTTS first-time installation still uses the documented advanced setup;
   a complete graphical dependency/model installer is not included in this RC.
 - Bethesda export has automated container/conversion/handoff coverage. Real
   FaceFX/xWMA tools and in-game audio/lip-sync acceptance remain unverified here.
 - Review distribution/model terms and final release assets before declaring GA.
   A prerelease is intentionally not offered by the stable-update checker.
+
+Native Vulkan Qwen/Index and ACE-Step tests are diagnostic experiments; those
+backends are not exposed as supported Voice Studio engines in this RC.
+DJ Writer remains a separate standalone download, outside the generic host.
 
 See `RELEASE_READINESS.md` for measured validation and remaining gates.

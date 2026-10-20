@@ -51,6 +51,7 @@ recordings/
 
 # Machine-local state
 /plugins/dj-writer/dist-lore/
+/plugins/dj-writer/dist-shared/
 .env
 .env.*
 !.env.example

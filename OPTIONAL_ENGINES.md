@@ -1,4 +1,4 @@
-# Speech engines: Qwen3-TTS and IndexTTS 2.5
+# Speech engines: Qwen3-TTS, IndexTTS 2.5 and Kokoro
 
 **Baseline:** Plague's Voice Studio v0.2.4 remains unchanged. The separate v0.3.0 build retains the four Chatterbox models in **Narration Studio** and supports both Qwen3-TTS and IndexTTS 2.5 through **Voice Engines**. Real speech generation with both has been confirmed on the creator's Windows machine. Keep independent engine runtimes out of `.venv-build` and the PyInstaller distribution folder.
 
@@ -8,10 +8,63 @@
 | --- | --- | --- | --- |
 | Qwen3-TTS | 0.6B Base and 1.7B Base choices, reference-voice cloning, English and 9 other languages, WAV | Separate Python 3.12, `qwen-tts`, model weights (download on first use) | Windows CPU speech generation confirmed with 0.6B Base; 1.7B not separately confirmed |
 | IndexTTS 2.5 | Reference-voice cloning, five languages, optional emotion vector, duration factor, WAV | Separate `uv` environment, official `index-tts` checkout and `checkpoints/` weights | Successful Windows speech generation confirmed by the creator |
+| Kokoro | Six preset English voices, automatic US/UK accent, speaking speed, WAV | Separate Python 3.12, kokoro-onnx 0.6.1, ONNX DirectML/CPU runtime, shared INT8 model and voice pack | All six voices rendered on CPU and Radeon DirectML; see KOKORO_VALIDATION.md |
+
+## Kokoro preset voices
+
+Kokoro uses prepared voice embeddings; it cannot clone a speaker from WAV/MP3
+reference audio. Your saved reference voices remain available in Chatterbox,
+Qwen3 and IndexTTS. The six exposed presets are Michael, Fenrir, George, Heart,
+Bella and Emma. Pronunciation follows the preset's US/UK accent.
+
+1. Install Python 3.12 and run `scripts/setup_kokoro_windows.ps1`. This creates
+   `%LOCALAPPDATA%\PlaguedAI\runtimes\python\kokoro-directml`, with no changes to
+   Chatterbox/Qwen/Index packages. Existing models are reused from
+   `%LOCALAPPDATA%\PlaguedAI\models\speech\kokoro`.
+   Use `-Backend CPU` for a separate CPU-only runtime under `runtimes/python/kokoro-onnx`.
+2. On a fresh machine add `-DownloadModels` to explicitly download
+   `kokoro-v1.0.int8.onnx` and `voices-v1.0.bin` from the pinned upstream
+   model-files-v1.1 release, with SHA-256 verification. Existing differing files
+   are never overwritten. Custom `-EnvironmentDir` and `-ModelDirectory` are
+   supported, as is the shared `PLAGUED_AI_HOME` override.
+3. Restart Studio, open **Voice Engines**, and choose **Kokoro**. Default paths
+   are detected automatically; custom runtime/model paths can be saved there.
+   **Test selected engine** checks imports, files and voice-pack entries; it
+   does not claim successful inference.
+4. Select a voice, enter plain spoken text, and **Generate with selected engine**.
+   Speaking speed 1.0 is normal; higher is faster. Save a character profile to
+   retain the preset and speed. No reference recording or transcript is used.
+5. Preview the WAV, find its script/voice metadata in Export Library, or send it
+   to Bethesda Export. Cancel terminates the owned engine process. The cloning
+   comparison remains limited to Qwen/Index because Kokoro cannot reproduce
+   their reference voice.
+
+**Auto** prefers DirectML GPU when available; **DirectML GPU** explicitly requires
+it, while **CPU** remains selectable in either runtime. DirectML uses DirectX 12
+on Windows, independently of the writers' Vulkan backend. The GPU runtime includes
+ONNX tools to create one cached padding-compatible graph under the shared model
+folder's `directml/` directory. Original model bytes and learned tensors remain
+unchanged. Unsupported operations still execute on CPU. Backend/providers and the
+actual graph path are recorded in the WAV sidecar. See [validation](KOKORO_VALIDATION.md).
+
+The setup helper keeps CPU and DirectML distributions in separate environments.
+For DirectML it explicitly installs kokoro-onnx without its upstream CPU-runtime
+dependency, because both ONNX distributions provide the same Python module and
+must not overwrite each other. All required dependencies are pinned in the helper.
+
+Kokoro does not process
+Chatterbox narration markup. Packages and weights are separate from the slim
+app; the setup helper is included under `_internal/scripts` in portable builds.
+Use `python scripts/validate_kokoro.py` to render real samples through Studio's
+protocol. Add `--device directml --profile` to verify actual GPU operation events.
+Model and runtime credits are in THIRD_PARTY_NOTICES.md and About.
 
 The application does not install these backends automatically. It launches an explicitly chosen Python interpreter as a local subprocess, using JSON input/output and no network server. Model downloads, if any, are done by the engine itself and may contact Hugging Face. An optional engine failure does **not** replace or uninstall Chatterbox. First-time model loading can be very slow on CPU.
 
-Both engines have produced usable speech on the creator's Windows setup. GPU acceleration, other hardware configurations and later upstream releases still depend on their dependencies. Defaults prefer CPU and full precision where supported. NVIDIA CUDA requires an independently compatible installation.
+Qwen3 and IndexTTS have produced usable speech on the creator's Windows setup.
+GPU acceleration, other hardware configurations and later upstream releases
+still depend on their dependencies. These cloning engines prefer CPU and full
+precision where supported. NVIDIA CUDA requires a compatible installation.
 
 ## Installing Qwen3-TTS (separate from Chatterbox)
 
@@ -54,8 +107,10 @@ For either engine, installing packages or weights may require significant free d
 ## Directory isolation
 
 - Stable v0.2.x user data: `%LOCALAPPDATA%\PlaguesVoiceStudio-v021`, **read only** from the v0.3 build.
-- v0.3 legacy data: `%LOCALAPPDATA%\PlaguesVoiceStudio-v030-Experimental` (retained read-only after copying portable data). New writable data: `%LOCALAPPDATA%\PlaguesVoiceStudio`.
-- Character presets: `%LOCALAPPDATA%\PlaguesVoiceStudio\character_profiles.json`; engine settings: `optional_engines.json` under the same stable root.
+- Current writable data: `%LOCALAPPDATA%\PlaguedAI\apps\voice-studio`. Legacy
+  app folders may be compatibility junctions after explicit consolidation.
+- Character presets: `character_profiles.json`; engine settings:
+  `optional_engines.json` under the current application-data folder.
 - v0.1.x voices are also available read-only if present.
 - New exports: `Music\Plague's Voice Studio` when Music exists, otherwise the permanent user-data `exports` folder. Older exports are still browsable.
 - Previous settings registry identifier: `PlaguesVoiceStudio030Experimental`; new stable identifier: `PlaguesVoiceStudio`. Missing preferences are copied once without erasing the old registry identity.
@@ -73,12 +128,40 @@ For either engine use Voice Engines > Test selected engine, then Generate. Qwen3
 A live diagnostic pane shows model import, model loading, first-time download,
 CPU inference and WAV-writing stages. An elapsed clock remains visible during
 long CPU generation. Press Cancel if it stalls. Probe and generation logs
-are stored in `%LOCALAPPDATA%\PlaguesVoiceStudio-v030-Experimental\engine_logs`.
+are stored in `%LOCALAPPDATA%\PlaguedAI\apps\voice-studio\engine_logs`.
 The core executable does not show a Python command prompt on Windows.
 First-time weights can be large and need disk space. A passing import probe
 only checks the engine installation, not actual synthesis.
 
 ## Running multiple local AI tools
+
+### Windows checkpoint loading and offline tokenizer setup
+
+The optional Qwen and Index runners use safetensors 0.8.0's `pread` reader on
+Windows CPU to avoid whole-file copy-on-write mappings that can exhaust commit
+memory and crash in native tensor loading. Updated setup scripts install the
+required reader. Qwen reuses a complete cached snapshot by local path so its
+processor does not require a remote tokenizer-metadata lookup.
+
+Index setup applies two explicit dependency overrides to the selected upstream
+checkout: safetensors 0.8.0 and OpenCV 4.12.0.88 (compatible with its NumPy 2
+requirement). Only dependency declarations change; originals and SHA-256 hashes
+are retained in `.pvs-windows-compat`. Fresh clones use source commit
+`d9e41aac89fd00b3d71497fddb287b7f24613712`. Setup defaults to CPU wheels;
+`-Backend CUDA` explicitly selects the upstream CUDA 12.8 wheel index.
+
+Chatterbox Multilingual also requires the small Chinese segmenter and local
+Cangjie mapping, even when speaking English. Model Manager reports missing
+tokenizer files; choose Multilingual and Download selected model to repair them
+without re-downloading complete model weights. Downloads verify a pinned SHA-256
+and use normal TLS certificate validation. Generation uses local assets and
+does not start a tokenizer download. New full-offline bundles include and verify
+these assets; the standard slim installer keeps them in the shared model store.
+
+The October 20 all-model Radeon retest and backend limitations are recorded in
+[GPU_MODEL_AUDIT.md](GPU_MODEL_AUDIT.md). Kokoro DirectML is integrated; successful
+native Vulkan Qwen/Index probes remain separate from their CPU/CUDA Python
+adapters in the current Studio UI.
 
 IndexTTS and Qwen3 can compete with a running language-model writer for memory and Windows paging resources. A previous `0xC0000005` IndexTTS crash was resolved on the creator's machine after DJ Writer was closed. If generation becomes unstable, finish one AI workload before starting another. This is a practical resource workaround, not a diagnosis for every Windows access violation.
 

@@ -8,10 +8,12 @@ param(
     [string]$PythonVersion = '3.12'
 )
 $ErrorActionPreference = 'Stop'
+$sharedRoot = if ($env:PLAGUED_AI_HOME) { $env:PLAGUED_AI_HOME } else { Join-Path $env:LOCALAPPDATA 'PlaguedAI' }
 if (-not $EnvironmentDir) {
     $old = Join-Path $env:LOCALAPPDATA 'PlaguesVoiceStudio-v030-Experimental\engines\qwen3'
-    $new = Join-Path $env:LOCALAPPDATA 'PlaguesVoiceStudio\engines\qwen3'
-    $EnvironmentDir = if (Test-Path (Join-Path $old 'Scripts\python.exe')) { $old } else { $new }
+    $previous = Join-Path $env:LOCALAPPDATA 'PlaguesVoiceStudio\engines\qwen3'
+    $new = Join-Path $sharedRoot 'runtimes\python\qwen3-tts'
+    $EnvironmentDir = if (Test-Path (Join-Path $old 'Scripts\python.exe')) { $old } elseif (Test-Path (Join-Path $previous 'Scripts\python.exe')) { $previous } else { $new }
 }
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Write-Host 'Installing OPTIONAL Qwen3-TTS in a separate environment.'
@@ -23,7 +25,7 @@ if (-not (Test-Path "$EnvironmentDir\Scripts\python.exe")) {
 $python = Join-Path $EnvironmentDir 'Scripts\python.exe'
 & $python -m pip install --upgrade pip
 if ($LASTEXITCODE -ne 0) { throw 'pip bootstrap failed.' }
-& $python -m pip install qwen-tts soundfile
+& $python -m pip install qwen-tts==0.1.1 transformers==4.57.3 soundfile==0.14.0 safetensors==0.8.0
 if ($LASTEXITCODE -ne 0) { throw 'Qwen3-TTS installation failed.' }
 & $python (Join-Path $root 'optional_engine_runner.py') --probe qwen3
 if ($LASTEXITCODE -ne 0) { throw 'Engine import test failed.' }

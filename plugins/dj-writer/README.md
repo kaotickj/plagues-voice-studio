@@ -452,3 +452,11 @@ Local build: install Inno Setup 6, then run `./plugins/dj-writer/build_windows.p
 Use `-SkipInstaller` for portable only, or `-InnoSetupCompiler <path>` for a
 custom compiler location. Install this standalone separately from Voice Studio;
 it is distinct from the generic Promotional Writer panel.
+# Shared AI library (0.9.3)
+
+DJ state now lives in `%LOCALAPPDATA%\PlaguedAI\apps\dj-writer`, writing models
+in `PlaguedAI\models\text`, and reusable runtimes in `PlaguedAI\runtimes\llama.cpp`.
+The legacy home remains a compatibility path after consolidation. Existing
+custom `GOODNEIGHBOR_DJ_HOME` overrides stay isolated. See the repository's
+`SHARED_AI_STORAGE.md` before migrating another machine. Profiles, accepted DJ
+character notes and history remain distinct from shared model files.

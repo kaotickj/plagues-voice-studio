@@ -1,3 +1,97 @@
+# Speech release-blocker repair - October 20, 2026
+
+Both Qwen sizes, IndexTTS 2.5 and Multilingual v3 completed offline Python CPU
+generation with the Windows reader/local-tokenizer repairs. Outputs are finite,
+non-silent WAVs with matching script sidecars. 287 host tests pass, 1 skipped,
+including native cancellation. Installed Index dependency consistency is clean.
+See SPEECH_LOADING_VALIDATION.md and artifacts/release-speech-repair/.
+
+The refreshed DJ 0.9.3 installer/portable passes 148 regression tests and frozen
+startup/icon checks. Isolated acceptance upgraded the verified 0.9.2 payload,
+reinstalled, repeated startup and uninstalled while retaining all five seeded
+library/settings files. Final report: artifacts/dj-installer-acceptance/
+b0246ffbeca44e3b82e26a2c67d9b6a7/result.json. Earlier failed/staging attempts
+remain separate. The new packages include binary license/source notices.
+
+Real-profile migration acceptance uses isolated metadata/audio copies: legacy
+voices resolve after migration, all 11 consolidated voices resolve through the
+shared library, repeated startup preserves edits, and all 17 original source
+files retain their hashes. No model weights or registry keys are changed.
+Evidence: artifacts/release-speech-repair/real-profile-migration/
+66915c742b714acc8b5364d661fb7821/result.json.
+
+Fresh host packaged inference and installer acceptance are recorded separately
+as they complete; source success does not replace those gates.
+
+# All-model Radeon retest - October 20, 2026
+
+Five writing/text models, Gemma vision, both Qwen speech sizes, IndexTTS 2.5,
+all six Kokoro presets, both ACE-Step music variants and their shared components
+completed actual Radeon inference. BART, MPNet and MiniLM also passed isolated
+DirectML inference. Native Chatterbox port failures and additional Python
+baseline failures remain explicit. Fourteen successful WAV outputs passed
+finite/nonempty/non-silent checks. Full matrix, limitations, provenance and
+reproduction: GPU_MODEL_AUDIT.md; private evidence: artifacts/gpu-model-audit/.
+Native speech/music probes have not been wired into Studio menus. No application
+production code changed after the final Kokoro package validation below.
+
+# Kokoro Radeon speech integration - October 20, 2026
+
+Added six preset voices to Voice Engines with speed, character profiles, WAV
+metadata, diagnostics and export handoff. Kokoro uses a separate ONNX Runtime
+environment; existing reference-voice engines retain their settings. Default
+Auto prefers DirectML when installed, with explicit DirectML/CPU choices.
+
+All six voices generated real speech on CPU and again on RX 7600 XT DirectML.
+The GPU path uses a cached equivalent padding graph, preserving the original
+INT8 model and learned tensors. Twelve independent operator parity cases pass
+with zero numerical difference. Profiling confirms thousands of DirectML GPU
+events per sample; unsupported operations use CPU. See KOKORO_VALIDATION.md.
+
+Regression suite: 269 passed, 1 skipped, 1 deselected (existing native process-tree
+cancellation test). Source and frozen GUI/runtime smoke checks pass. The actual
+rebuilt executable also passes --kokoro-self-test, generating speech through its
+isolated external interpreter with 4,363 DirectML events. Relevant PYZ modules
+and bundled runner match source, and portable ZIP CRC/checksum pass.
+
+Ready local test package: artifacts/kokoro-host/PlaguesVoiceStudio-Kokoro-Portable.zip.
+Evidence: artifacts/kokoro-host/, artifacts/kokoro-gpu-validation/ and
+artifacts/kokoro-graph-parity/. No new Studio installer, commit, push or public
+release has been produced. The broader all-model Radeon audit is separate.
+
+# Shared AI storage and Radeon writer builds - October 19, 2026
+
+Completed local consolidation under %LOCALAPPDATA%/PlaguedAI: 11 voices, eight
+storage trees and verified compatibility junctions. Twelve byte-identical model
+copies were replaced with hard links. Imported and SHA-256 verified all 26
+distinct server files representing nine models plus the Kokoro voice pack.
+See SHARED_AI_STORAGE.md; private inventories and model files are not committed.
+
+Real Gemma Writer 9B and Qwen3 Instruct 4B generation passes on the RX 7600 XT
+using the pinned b11703 Vulkan runtime. Excluding the Mirillis capture layer
+only in Windows Vulkan child processes resolves the native loading crash.
+Matched CPU/GPU trials, actual generated text and timings are documented in
+VULKAN_VALIDATION.md. Writing and interview preferences now use the verified
+shared GPU runtime, with original settings backed up. Speech backends are
+unchanged; ACE-Step and Kokoro weights are copied but not integrated into Studio.
+
+Host regression suite: 258 passed, 1 skipped, 1 deselected (the existing native
+process-tree cancellation test). DJ Writer: 148 passed. The final frozen host
+passes runtime and GUI/plugin smoke checks; DJ Writer 0.9.3 passes its frozen
+startup/icon check and its installer compiles. Both PYZ archives were compared
+against current project source, including the GPU workaround and migration
+helper; all included modules match. Both portable ZIPs and both plugin ZIPs
+pass CRC checks. Evidence: artifacts/shared-storage-package-validation.json,
+artifacts/shared-storage-host/, and artifacts/shared-storage-*-gpu-build.log.
+
+Local test outputs: artifacts/shared-storage-host/PlaguesVoiceStudio-SharedStorage-Portable.zip;
+plugins/dj-writer/artifacts/DJ-Writer-Setup-0.9.3.exe and
+DJ-Writer-0.9.3-Windows-Portable.zip; Promotional Writer plugin 1.1.2.
+No new Voice Studio installer, tag or public release was produced. DJ installer
+install/upgrade/uninstall acceptance and speech generation after migration still
+need acceptance. These changes and generated packages have not been committed
+or pushed. The records below describe earlier validation stages.
+
 # Plugin delivery validation - October 19, 2026
 
 Prepared the pending writer/lore/threading changes together with Pronunciation &

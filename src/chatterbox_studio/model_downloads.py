@@ -15,6 +15,7 @@ import subprocess
 import time
 
 from .paths import bundled_models_dir, canonical_data_dir, legacy_v030_dir
+from plagued_ai import root as shared_root, previous_studio_dir
 from .optional_engines import (
     EngineCancelled, EngineError, EngineRegistry, _spawn_optional_interpreter,
     _stop_process, _watch_engine_process,
@@ -43,7 +44,7 @@ CATALOG: tuple[ModelChoice, ...] = (
                 ('ve.safetensors', 't3_cfg.safetensors', 's3gen.safetensors', 'tokenizer.json', 'conds.pt')),
     ModelChoice('multilingual-v3', 'Chatterbox Multilingual V3', 'chatterbox', 'ResembleAI/chatterbox',
                 ('ve.pt', 's3gen.pt', 'conds.pt', 't3_mtl23ls_v3.safetensors',
-                 'grapheme_mtl_merged_expanded_v1.json'),
+                 'grapheme_mtl_merged_expanded_v1.json', 'Cangjie5_TC.json'),
                 ('ve.pt', 's3gen.pt', 'conds.pt', 't3_mtl23ls_v3.safetensors',
                  'grapheme_mtl_merged_expanded_v1.json', 'Cangjie5_TC.json')),
     ModelChoice('qwen-0.6b', 'Qwen3-TTS Base 0.6B', 'qwen3', 'Qwen/Qwen3-TTS-12Hz-0.6B-Base'),
@@ -53,6 +54,8 @@ MODELS = {model.key: model for model in CATALOG}
 
 
 def user_model_directory(storage: Path, key: str) -> Path:
+    if Path(storage) == canonical_data_dir():
+        return shared_root()/'models'/'chatterbox'/key
     return Path(storage) / 'models' / key
 
 
@@ -69,6 +72,9 @@ def installed_model_directory(storage: Path, model: ModelChoice) -> Path | None:
     current = user_model_directory(storage, model.key)
     if has_required_files(current, model):
         return current
+    for previous in (Path(storage)/'models'/model.key, previous_studio_dir()/'models'/model.key):
+        if Path(storage) == canonical_data_dir() and has_required_files(previous, model):
+            return previous
     legacy = legacy_model_directory(storage, model.key)
     if legacy is not None and has_required_files(legacy, model):
         return legacy
@@ -86,6 +92,10 @@ def chatterbox_status(storage: Path, model: ModelChoice) -> str:
     if model.family != 'chatterbox':
         raise ValueError('Chatterbox status requires a Chatterbox model')
     selected = installed_model_directory(storage, model)
+    if model.key == 'multilingual-v3' and (selected is not None or has_required_files(bundled_models_dir()/model.key, model)):
+        from .tokenizer_assets import installed_pkuseg
+        if installed_pkuseg(storage) is None:
+            return 'Tokenizer download required (select Download to repair)'
     if selected is not None:
         return ('Installed (previous v0.3 data)' if
                 selected == legacy_model_directory(storage, model.key)
@@ -126,7 +136,12 @@ def download_chatterbox(model: ModelChoice, storage: Path, cancelled: Event, log
     if cancelled.is_set():
         raise EngineCancelled('Cancelled')
     installed = installed_model_directory(storage, model)
+    if model.key == 'multilingual-v3' and installed is None and has_required_files(bundled_models_dir()/model.key, model):
+        installed = bundled_models_dir()/model.key
     if installed is not None:
+        if model.key == 'multilingual-v3':
+            from .tokenizer_assets import ensure_multilingual_assets
+            ensure_multilingual_assets(storage, cancelled, log)
         log(f'This Chatterbox model is already available at {installed}. No download needed.')
         return installed
     if has_required_files(target, model):
@@ -151,6 +166,9 @@ def download_chatterbox(model: ModelChoice, storage: Path, cancelled: Event, log
     if not has_required_files(target, model):
         missing = [f for f in model.required if not (target / f).is_file()]
         raise EngineError(f'{model.label}: download incomplete, missing {missing}')
+    if model.key == 'multilingual-v3':
+        from .tokenizer_assets import ensure_multilingual_assets
+        ensure_multilingual_assets(storage, cancelled, log)
     log(f'Installed {model.label} in {target}')
     return target
 
