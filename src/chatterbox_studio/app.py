@@ -595,14 +595,14 @@ class MainWindow(QMainWindow):
             return False
         if self.editor.toPlainText().strip():
             answer = QMessageBox.question(self, 'Replace narration script?',
-                'Replace the current narration text with the reviewed writer draft? Copy or save the current text first if needed.',
+                'Replace the current narration text with the reviewed plugin text? Copy or save the current text first if needed.',
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
             if answer != QMessageBox.StandardButton.Yes:
                 return False
         self.editor.setPlainText(text)
         self.tabs.setCurrentIndex(0)
         self.raise_(); self.activateWindow()
-        self.status_label.setText('Reviewed writer draft loaded. Choose a voice and Generate when ready.')
+        self.status_label.setText('Reviewed plugin text loaded. Choose a voice and Generate when ready.')
         return True
 
     def _load_script(self):

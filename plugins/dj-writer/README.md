@@ -1,4 +1,36 @@
-# Goodneighbor / Plague Radio DJ Writer v0.8.12
+# Goodneighbor / Plague Radio DJ Writer v0.9.2
+
+## CPU threading controls
+
+Model setup separates **CPU generation threads** from **Prompt-processing threads**. On Windows, recommended generation threads use detected physical cores; prompt Auto uses logical processors. Existing saved thread choices are preserved. **Use recommended CPU thread counts** applies recommendations explicitly. Higher counts can be slower on memory-bound models; compare the same brief rather than assuming more is faster. This changes throughput, not model intelligence.
+
+Generation remains in a Qt background worker. Interview and writing models run sequentially and unload after each stage. The promotional writer reports model-load time, time from completion request to first text, and the two thread budgets so startup and prompt delays can be distinguished. No parallel copies of the large models are launched.
+
+
+## v0.9.1: Curated starter pack and character notes
+
+The standalone now bundles 143 source-linked Fallout 4 narrative references built from a 181-topic catalogue. Weak introductions, index/disambiguation pages and uncertain topic matches are excluded. The curation scripts fetch descriptive article sections, select useful roles, relationships, motives and setting details, and hold insufficient entries for review. `lore_curation_report.json` records exclusions. Source credits and CC BY-SA license metadata remain with each entry; they are not included in the model context.
+
+Generation retrieves at most three relevant topics with three facts each, capped at 3,200 characters and reduced further for shorter scripts. Accepted character notes are limited to four per host and 1,000 characters. The full library is never sent to Gemma. Reference material does not make a host omniscient or establish player/quest outcomes.
+
+**Lore library → DJ character notes** keeps a separate journal for each host. Generated habits/preferences/backstory become candidates with script fingerprints. Accept or reject them, or add editor-established notes. Only accepted notes enter future planning/drafting. Existing profiles and editor continuity take priority. Quoted dialogue is excluded from automatic collection; extraction is conservative and may miss details.
+
+To rebuild and curate the starter corpus from the wiki (run in this folder):
+
+```powershell
+python build_lore_library.py --output lore_starter.json --report curation-fetch-report.json
+python enrich_lore_library.py --pack lore_starter.json --report curation-enrichment-report.json
+```
+
+The second stage selects narrative material and excludes entries without useful detail. Review the resulting pack and reports before distribution. Original editorial adaptations for key characters live in `lore_enrichment.py`. Runtime lookups use the same narrative extraction, reject index pages such as generic Dogmeat, and resolve a Fallout 4-specific article where possible. Bundled references work offline; downloaded updates remain in the user library. Removing a bundled entry hides it locally without changing the installed starter pack.
+
+## v0.9.0: Commonwealth reference library
+
+AI Studio now has a **Lore library** button. Ten original factual starter notes cover the main Commonwealth settings and common lore mistakes. Automatic wiki lookup is enabled by default and can be disabled in this dialog. Before drafting, up to three relevant topic names are looked up on the Independent Fallout Wiki. Full briefs, profiles, scripts and continuity are never sent to the wiki. Lookup may expose quest spoilers.
+
+Successful lookups save a bounded article introduction, source URL, revision ID/time, attribution and license metadata under `<DJ data folder>/ai_writer/lore_library/`. Saved wiki references are reused for 30 days, then refreshed when relevant; up to 200 articles are retained. Offline or failed lookup falls back to curated and cached notes. Search/refresh individual topics in the dialog, inspect their sources, or remove a saved article. This is reference retrieval, not model training or a guarantee of canon accuracy. Cross-game and conditional quest information must still be reviewed. Generated drafts never become library facts automatically.
+
+Relevant references reach story planning and drafting as labeled data. Editor continuity remains separate. View prompt uses the current local library without making network requests; a subsequent automatic lookup can add references before generation. The generic Promotional Writer remains free of Fallout lore and lookup.
 
 ## v0.8.12: Three grouped control rows
 
@@ -398,3 +430,25 @@ it does **not** directly fix the CPU_REPACK allocation shown in the log.
 ## AI writer memory compatibility (v0.8.3)
 
 If `llama-server` fails with `CPU_REPACK` or `failed to allocate buffer for kv cache`, see **MEMORY_RECOVERY.md**. The application now has selectable KV-cache types, automatic reduced-context retries, and a visible warning when a reduced context was used. Model files and saved data are unchanged.
+
+## Windows installer and portable packages
+
+The **DJ Writer Windows installer and portable** Actions workflow builds the
+standalone DJ Writer on pushes affecting this tool or the shared writer core,
+on pull requests, and through **Run workflow**. It runs the regression suite,
+builds the branded EXE, verifies frozen startup/icon loading, and publishes:
+
+- `DJ-Writer-Windows-Installer`: `DJ-Writer-Setup-<version>.exe`
+- `DJ-Writer-Windows-Portable`: `DJ-Writer-<version>-Windows-Portable.zip`
+- `DJ-Writer-Windows-Checksums`: SHA-256 hashes of both packages.
+
+Both use `VERSION` from `goodneighbor_dj.py`. The installer is per-user, needs
+no administrator privileges, and offers an optional desktop shortcut. Both
+editions use the existing `~/.goodneighbor_blues_dj` data location; uninstalling
+the app preserves settings, libraries and downloaded writing models. Models
+are downloaded/configured separately and are not bundled.
+
+Local build: install Inno Setup 6, then run `./plugins/dj-writer/build_windows.ps1`.
+Use `-SkipInstaller` for portable only, or `-InnoSetupCompiler <path>` for a
+custom compiler location. Install this standalone separately from Voice Studio;
+it is distinct from the generic Promotional Writer panel.

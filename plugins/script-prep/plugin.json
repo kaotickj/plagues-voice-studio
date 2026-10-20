@@ -1,0 +1,9 @@
+{
+  "id": "script-prep",
+  "name": "Pronunciation & Script Prep",
+  "version": "1.0.0",
+  "api_version": 1,
+  "entry_point": "__init__.py",
+  "description": "Offline pronunciation dictionaries and reviewable speech preparation.",
+  "author": "Kaotick Jay / Plagued Mods"
+}

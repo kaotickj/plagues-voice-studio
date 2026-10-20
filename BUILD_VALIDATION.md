@@ -1,3 +1,26 @@
+# Plugin delivery validation - October 19, 2026
+
+Prepared the pending writer/lore/threading changes together with Pronunciation &
+Script Prep 1.0.0 for repository delivery. The installable Script Prep ZIP and
+SHA-256 are tracked in plugins/script-prep/packages/. Host regression suite:
+247 passed, 1 skipped, 1 deselected (the existing native process-tree cancellation
+test). DJ Writer regression suite: 148 passed, plus 99 subtests. Script Prep and
+writer targeted suite: 44 passed. The actual source host GUI smoke test passed.
+Local models, generated evaluation data, large build artifacts and the unrelated
+user image are excluded. The records below describe earlier validation stages.
+
+# Real library-data generation comparison - October 19, 2026
+
+Generated eight real Gemma 9B CPU drafts (four promotional ads, four DJ stories including actual planning) using fixed seed 731, 6/12 threads and 8,192-token context. Compared original no-library mode, an instruction-matched empty-library control, focused references and cluttered references. Used synthetic advertiser facts, offline source-linked lore and a constant DJ character note. No user business/character files were modified.
+
+Focused advertiser facts improved specificity but did not eliminate overclaims; the empty control still invented expertise and parts-quality claims. DJ references supplied canonical names without reliably fixing causal logic: errors already appeared in generated plans. Extra facts did not yield a clear quality win and added latency in this sample. One seed and one brief per writer do not establish a general ranking; Qwen and the independent effect of character memory remain untested.
+
+All eight drafts completed successfully. Unedited text, prompts/payloads, story plans, timings, fixtures, review and output SHA-256 hashes are under artifacts/library-ablation/ (REPORT.md). Reproduction scripts: scripts/evaluate_writer_libraries.py, scripts/evaluate_writer_empty_controls.py and scripts/report_writer_libraries.py. No production code was changed during this evaluation.
+
+# Writer profiles/threading portable preview - October 19, 2026
+
+Built a separate complete CPU slim host under dist/WriterProfilesPreview with Promotional Writer 1.1.1 (advertiser interview/profile libraries, separate interview/writing model settings, shared CPU thread controls). Frozen runtime and GUI/plugin checks pass. The packaged Python files match current source and portable ZIP CRC passes. Archive and SHA-256: artifacts/writer-profiles-host/. Host suite: 223 passed, 1 skipped, 1 deselected (unchanged restricted native process-cancellation test); 21 targeted plugin tests pass. No new main installer or public release was produced. Preview changes remain local and uncommitted.
+
 # Completed local installer acceptance - October 19, 2026
 
 After the user authorized retrying, the isolated acceptance test passed. It installed the previous 0.3 payload, upgraded to 1.0.0rc1, reinstalled, verified runtime and GUI startup at every stage, then uninstalled. All nine synthetic user-data/plugin sentinels retained their SHA-256 hashes. The test used a separate AppId, no shortcuts and a workspace-only target; it did not install over the user's real application. Evidence: artifacts/installer-acceptance/09030ea1b2b7455cad71987077b30889/result.json and adjacent reports/logs. This supersedes the earlier permission-review-blocked GUI/installer status below. Real legacy-profile migration and installed-engine inference still need user acceptance.

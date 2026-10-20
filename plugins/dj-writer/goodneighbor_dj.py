@@ -31,7 +31,7 @@ from script_prompts import DEFAULT_WORDS
 from speech_director import render, export_json, clean_spoken_text, CHATTERBOX_TAGS
 
 APP_NAME = 'Goodneighbor / Plague Radio DJ Writer'
-VERSION = '0.8.12'
+VERSION = '0.9.2'
 DATA = Path(os.environ.get('GOODNEIGHBOR_DJ_HOME', str(Path.home() / '.goodneighbor_blues_dj')))
 HISTORY = DATA / 'history.json'
 CAMPAIGNS = DATA / 'advertisers.json'

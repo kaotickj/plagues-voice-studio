@@ -1,5 +1,6 @@
 param([string]$PythonExecutable = 'python', [switch]$SkipInstall,
-      [string]$OutputDirectory = 'dist')
+      [string]$OutputDirectory = 'dist', [switch]$SkipInstaller,
+      [string]$InnoSetupCompiler = '')
 $ErrorActionPreference = 'Stop'
 Push-Location $PSScriptRoot
 try {
@@ -40,10 +41,32 @@ try {
         $result = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
         if (-not $result.ok -or -not $result.icon) { throw 'Frozen icon verification failed.' }
         New-Item -ItemType Directory -Force artifacts | Out-Null
-        $zip = Join-Path $PSScriptRoot 'artifacts\DJ-Writer-Plugin-Windows.zip'
+        $version = (& $python -c "import ast; t=ast.parse(open('goodneighbor_dj.py',encoding='utf-8').read()); print(next(ast.literal_eval(n.value) for n in t.body if isinstance(n,ast.Assign) and any(isinstance(k,ast.Name) and k.id=='VERSION' for k in n.targets)))").Trim()
+        if ($LASTEXITCODE -ne 0 -or $version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid DJ Writer version.' }
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '..\..\LICENSE') -Destination (Join-Path $packageFolder 'LICENSE') -Force
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'README.md') -Destination (Join-Path $packageFolder 'README.md') -Force
+        $zip = Join-Path $PSScriptRoot "artifacts\DJ-Writer-$version-Windows-Portable.zip"
         Compress-Archive -LiteralPath $packageFolder -DestinationPath $zip -Force
-        $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
-        "$hash  DJ-Writer-Plugin-Windows.zip" | Set-Content artifacts\SHA256SUMS.txt
+        & $python -c "import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); assert z.testzip() is None, 'Portable archive integrity check failed'" $zip
+        if ($LASTEXITCODE -ne 0) { throw 'Portable archive integrity check failed.' }
+        $packages = @($zip)
+        if (-not $SkipInstaller) {
+            if (-not $InnoSetupCompiler) {
+                $InnoSetupCompiler = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+            }
+            if (-not (Test-Path -LiteralPath $InnoSetupCompiler)) { throw 'Inno Setup 6 is required. Install it or pass -SkipInstaller for a portable-only build.' }
+            $installerOutput = Join-Path $PSScriptRoot 'artifacts'
+            & $InnoSetupCompiler "/DAppVersion=$version" "/DSourceDir=$packageFolder" "/DBuildOutputDir=$installerOutput" (Join-Path $PSScriptRoot 'installer.iss')
+            if ($LASTEXITCODE -ne 0) { throw 'DJ Writer installer compilation failed.' }
+            $installer = Join-Path $installerOutput "DJ-Writer-Setup-$version.exe"
+            if (-not (Test-Path -LiteralPath $installer)) { throw 'Installer compiler produced no setup executable.' }
+            $packages += $installer
+        }
+        $checksums = foreach ($package in $packages) {
+            $hash = (Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $([IO.Path]::GetFileName($package))"
+        }
+        $checksums | Set-Content artifacts\SHA256SUMS.txt -Encoding utf8
         Write-Host "Ready for testing: $exe"
         Write-Host "Portable archive: $zip"
     } finally {

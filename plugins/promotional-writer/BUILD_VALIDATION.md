@@ -1,3 +1,15 @@
+# CPU threading update 1.1.1 - October 19, 2026
+
+Detected local Windows topology: 6 physical cores / 12 logical processors using the Windows processor-topology API. Added separate decoding/prompt-processing budgets, optional automatic prompt thread count, explicit recommendation controls, backward-compatible settings and load/first-text timings. Existing custom settings are preserved. No speed or prose-quality improvement is claimed without a controlled benchmark.
+
+21 targeted plugin tests pass; host suite: 223 passed, 1 skipped, 1 deselected (unchanged restricted-sandbox native-cancellation test). DJ Writer suite: 148 passed. A separate portable host rebuild completed under dist/WriterProfilesPreview. Actual frozen runtime and GUI/plugin checks pass. One plugin data file was refreshed to match the final source, then both checks and the ZIP/checksum generation were repeated. Source-to-packaged Python consistency and ZIP CRC pass. Portable and checksum: artifacts/writer-profiles-host/. The earlier RC installer remains unchanged.
+
+# Promotional Writer 1.1.0 advertiser interview - October 19, 2026
+
+Added user-confirmed advertiser profiles, reusable versus campaign-only answers, review/edit/remove controls and an optional local-model follow-up interview. Interview and writing preferences are separate; Qwen files can be detected for interviewing and Gemma files reused for writing. Each runtime unloads after its stage. No model weights are copied or newly downloaded.
+
+17 targeted plugin tests pass. Host regression suite: 220 passed, 1 skipped, 1 deselected (unchanged Windows process-tree cancellation test excluded in restricted sandbox). Profile persistence/isolation, campaign-answer exclusion, fact-context limits, answer edits and separation of model preferences are covered. Source plugin ZIP 1.1.0 is built and CRC checked. Real two-model interviewing/copy quality has not been benchmarked. The main frozen host has not been rebuilt for this update; use the external plugin ZIP with an API-1 host or run source. Changes remain local and uncommitted.
+
 # Promotional Writer validation — October 18, 2026
 
 ## Complete Windows host rebuild

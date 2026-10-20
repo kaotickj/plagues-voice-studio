@@ -1,4 +1,21 @@
-# Promotional Writer 1.0.0
+# Promotional Writer 1.1.1
+
+## CPU threading controls
+
+Model setup separates **CPU generation threads** from **Prompt-processing threads**. On Windows, recommended generation threads use detected physical cores; prompt Auto uses logical processors. Existing saved thread choices are preserved. **Use recommended CPU thread counts** applies recommendations explicitly. Higher counts can be slower on memory-bound models; compare the same brief rather than assuming more is faster. This changes throughput, not model intelligence.
+
+Generation remains in a Qt background worker. Interview and writing models run sequentially and unload after each stage. The promotional writer reports model-load time, time from completion request to first text, and the two thread budgets so startup and prompt delays can be distinguished. No parallel copies of the large models are launched.
+
+
+## Advertiser profiles and two-model workflow
+
+Use **Profile / interview** to create a named advertiser library. Enter its offer, audience, supported facts, voice, call to action and wording/claim boundaries. The guided interview asks for missing core details; **Ask AI follow-up questions** uses the interview model to propose up to three additional questions based on known information. Only your answers become saved facts. Questions and model guesses are not promoted into the library.
+
+Answers can be reusable or campaign-only. Both remain in the local profile for reference; campaign-only answers are added to the current brief and excluded from later reusable context. Saved answers can be reviewed, edited or removed. Unknown/undecided responses are allowed; the interview is instructed not to repeat them as if they were unanswered. Review changing offers, prices, availability and dates before reuse.
+
+**Writing model** and **Interview model** have separate settings. The existing Qwen3 4B file is detected for interviewing when available; Gemma remains the existing/default writing selection. You may change either. The stages run sequentially and each runtime unloads after completing its job. This division of work is supported, not yet a quality benchmark proving a combined model advantage. There is no merged model and no automatic second-model proofreading pass.
+
+Profiles live in `advertisers.json` beside this plugin's settings. Drafting retrieves at most 3,000 characters of the selected advertiser's stable facts and up to four reusable answers; other advertisers and interview history do not enter the prompt. Current brief fields override saved defaults. Missing/conflicting required facts should produce clarification rather than invented claims. A one-off brief remains available without a saved profile.
 
 Generic local copywriting plugin for Plague's Voice Studio. Open **Plugins →
 Promotional Writer** in a Voice Studio build with plugin API 1. This is a Python

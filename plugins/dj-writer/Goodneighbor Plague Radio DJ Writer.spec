@@ -5,7 +5,7 @@ a = Analysis(
     ['goodneighbor_dj.py'],
     pathex=['..'],
     binaries=[],
-    datas=[('dialogue.json', '.'), ('stories.json', '.'), ('assets/dj-writer.ico', 'assets'), ('assets/dj-writer.png', 'assets'), ('assets/dropdown.svg', 'assets')],
+    datas=[('LORE_LIBRARY_LICENSE.md', '.'), ('lore_curation_report.json', '.'), ('lore_starter.json', '.'), ('dialogue.json', '.'), ('stories.json', '.'), ('assets/dj-writer.ico', 'assets'), ('assets/dj-writer.png', 'assets'), ('assets/dropdown.svg', 'assets')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

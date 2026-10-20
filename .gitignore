@@ -50,6 +50,7 @@ exports/
 recordings/
 
 # Machine-local state
+/plugins/dj-writer/dist-lore/
 .env
 .env.*
 !.env.example

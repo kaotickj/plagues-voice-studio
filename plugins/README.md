@@ -2,12 +2,15 @@
 
 Plugin source lives here. Voice Studio discovers API-1 `plugin.json` manifests
 and opens panels through its **Plugins** menu. The main Windows distribution
-ships only `promotional-writer/` plus its `writer_core` dependency.
+ships `promotional-writer/`, `script-prep/` and the `writer_core` dependency.
 
 - `promotional-writer/`: generic local ad copy, promos, announcements, product
   descriptions, social posts, taglines and custom prompts. No DJ/Fallout defaults.
 - `writer_core/`: shared verified downloads, runtime configuration, model setup,
   owned llama.cpp process and memory recovery. No product-specific prompts.
+- `script-prep/`: offline pronunciation dictionaries, spoken forms for numbers,
+  and reviewable script preparation. No model required. Build its ZIP with
+  `python plugins/script-prep/build_plugin.py`.
 - `dj-writer/`: the separate Goodneighbor / Plague Radio standalone. Its branding,
   profiles and story recipes are not included in the generic plugin or host.
 

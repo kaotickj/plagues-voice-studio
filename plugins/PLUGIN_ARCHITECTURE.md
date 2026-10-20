@@ -33,8 +33,13 @@ weights or changing the old setup. Its own saved settings remain independent.
 The branded DJ standalone derives its local writer from the same runtime while
 retaining DJ-specific prompts, profiles, internal story planning and editorial
 checks. Its PyInstaller spec bundles the shared package separately. Voice Studio's
-spec includes only the generic plugin and shared runtime, excluding DJ assets,
+spec includes the generic writer, Script Prep and shared runtime, excluding DJ assets,
 models, EXEs, tests and build environments.
+
+Pronunciation & Script Prep uses the same API 1 factory and reviewed handoff,
+with atomic per-plugin dictionaries. It runs synchronously with bounded text
+and no model, thread or engine markup. Its load-script action reads the current
+host editor; preparation never changes that editor until explicit handoff.
 
 Source launches inspect the checkout's `plugins/`; frozen builds inspect bundled
 `_internal/plugins/` and optional `plugins/` beside the EXE. An external plugin

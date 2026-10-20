@@ -218,7 +218,7 @@ def test_success_returns_editable_unapproved_copy_and_host_block_prevents_start(
 
 def test_shipping_spec_excludes_dj_standalone():
     spec = (ROOT/'ChatterboxStudio.spec').read_text()
-    assert "for folder in ('promotional-writer',)" in spec
+    assert "for folder in ('promotional-writer', 'script-prep')" in spec
     assert "'writer_core.setup_dialog'" in spec
     assert "project / 'plugins' / 'dj-writer'" not in spec
 
@@ -248,3 +248,104 @@ def test_packaged_plugin_has_no_dj_shell_or_model_weights(tmp_path):
         assert 'plugins/promotional-writer/dropdown.svg' in names
         assert 'plugins/writer_core/runtime.py' in names
         assert not any('dj-writer/' in name or name.endswith(('.gguf', '.exe')) for name in names)
+
+def test_advertiser_answers_are_confirmed_scoped_and_bounded(plugin, tmp_path):
+    panel,_=plugin
+    import importlib
+    m=importlib.import_module(panel.__module__.rsplit('.',1)[0]+'.advertisers')
+    library=m.AdvertiserLibrary(tmp_path)
+    profile=library.save(dict(name='Repair shop',description='Repairs radios',answers=[
+        dict(question='What do you repair?',answer='Valve and transistor radios',reuse=True),
+        dict(question='Sale price?',answer='15 dollars this weekend',reuse=False)]))
+    context=library.context(profile)
+    assert 'Valve and transistor' in context
+    assert '15 dollars' not in context
+    assert len(context)<=3000
+    other=library.save(dict(name='Bakery',description='Makes bread',answers=[]))
+    assert 'radios' not in library.context(other)
+    assert m.AdvertiserLibrary(tmp_path).load()[0]['name']=='Repair shop'
+
+
+def test_saved_advertiser_facts_reach_copy_request_without_dj_context(plugin):
+    panel,_=plugin
+    profile=panel.advertisers.save(dict(name='Workshop',description='Repairs household radios',audience='Local residents',facts='Repairs rather than replaces',cta='Visit the workshop',answers=[]))
+    panel.reload_advertisers(profile['id'])
+    request=panel.request()
+    assert request.product=='Repairs household radios'
+    assert request.audience=='Local residents'
+    assert 'Workshop' in request.advertiser_context
+    module=sys.modules[panel.__module__.rsplit('.',1)[0]+'.prompts']
+    prompt='\n'.join(row['content'] for row in module.build_messages(request))
+    assert 'user-confirmed reusable facts' in prompt
+    assert 'If facts conflict' in prompt
+    assert 'Fallout' not in prompt
+
+
+def test_interview_questions_do_not_become_profile_facts(plugin):
+    panel,_=plugin
+    import importlib
+    m=importlib.import_module(panel.__module__.rsplit('.',1)[0]+'.advertiser_dialog')
+    dialog=m.AdvertiserDialog(panel.context,panel.interview_settings)
+    dialog.fields['name'].setText('Workshop')
+    dialog.show_questions('1. Which radios do you repair?\n2. What should customers do next?')
+    assert dialog.questions.count()==2
+    assert not panel.advertisers.path.exists()
+    dialog.answer.setPlainText('Valve radios made before 1970')
+    dialog.save_answer()
+    saved=panel.advertisers.load()[0]
+    assert len(saved['answers'])==1
+    assert saved['answers'][0]['answer']=='Valve radios made before 1970'
+    assert saved['answers'][0]['source']=='user answer'
+    dialog.edit_answer();dialog.answer.setPlainText('Valve and transistor radios');dialog.save_answer()
+    assert len(panel.advertisers.load()[0]['answers'])==1
+    dialog.deleteLater()
+
+
+def test_interview_and_writing_model_preferences_are_separate(plugin):
+    panel,_=plugin
+    original=panel.settings['model_path']
+    panel.interview_settings['model_path']='a-separate-qwen.gguf'
+    assert panel.settings['model_path']==original
+    assert panel.interview_settings is not panel.settings
+
+def test_thread_budgets_separate_prompt_and_decoding_without_changing_legacy_choice():
+    from writer_core.performance import thread_budgets
+    with patch('writer_core.performance.recommended_threads',return_value=(6,12)):
+        assert thread_budgets({'cpu_threads':4})==(4,12)
+        assert thread_budgets({'cpu_threads':6,'batch_threads':8})==(6,8)
+        assert thread_budgets({'cpu_threads':6,'batch_threads':0})==(6,12)
+
+
+def test_legacy_thread_settings_roundtrip_and_invalid_batch_is_rejected(tmp_path):
+    from writer_core.settings import validate_settings
+    settings=default_settings();settings.pop('batch_threads');settings['cpu_threads']=3
+    save_settings(tmp_path/'legacy.json',settings)
+    loaded=load_settings(tmp_path/'legacy.json')
+    assert loaded['cpu_threads']==3 and loaded['batch_threads']==0
+    with pytest.raises(ValueError):validate_settings(dict(loaded,batch_threads=65))
+
+
+def test_cpu_recommendation_dialog_keeps_custom_setting_until_applied(qt_app,tmp_path):
+    from writer_core.setup_dialog import SetupDialog
+    with patch('writer_core.setup_dialog.cpu_topology',return_value=(6,12)),patch('writer_core.setup_dialog.recommended_threads',return_value=(6,12)):
+        dialog=SetupDialog(dict(default_settings(),cpu_threads=3,batch_threads=5),tmp_path)
+        assert dialog.cpu_threads.value()==3 and dialog.batch_threads.value()==5
+        dialog.apply_thread_recommendation()
+        assert dialog.cpu_threads.value()==6 and dialog.batch_threads.value()==0
+        dialog.deleteLater()
+
+def test_runtime_passes_distinct_thread_counts_to_single_owned_model(tmp_path):
+    class Probe:
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def bind(self,address):pass
+        def getsockname(self):return ('127.0.0.1',12345)
+    writer=WriterRuntime(dict(default_settings(),cpu_threads=6,batch_threads=12),tmp_path)
+    process=SimpleNamespace(poll=lambda:0)
+    with patch('writer_core.runtime.socket.socket',return_value=Probe()),patch('writer_core.runtime.subprocess.Popen',return_value=process) as start:
+        writer._start(tmp_path/'llama-server.exe',tmp_path/'model.gguf')
+    args=start.call_args.args[0]
+    assert args[args.index('--threads')+1]=='6'
+    assert args[args.index('--threads-batch')+1]=='12'
+    assert args[args.index('--parallel')+1]=='1'
+    writer._stop_server()

@@ -9,6 +9,7 @@ from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout,
     QHBoxLayout, QLabel, QLineEdit, QMessageBox, QProgressBar, QPushButton, QSpinBox, QVBoxLayout, QWidget)
 from .downloads import Cancelled, MODELS, install_runtime, install_model
+from .performance import cpu_topology, recommended_threads
 from .settings import save_settings
 
 class DownloadWorker(QObject):
@@ -89,7 +90,16 @@ class SetupDialog(QDialog):
         self.cpu_threads = QSpinBox(); self.cpu_threads.setRange(1, 32)
         self.cpu_threads.setValue(settings.get('cpu_threads', min(12, max(1, os.cpu_count() or 4))))
         self.cpu_threads.setToolTip('llama.cpp CPU inference threads. Start near physical core count; higher can be slower. Applies to one script, not parallel drafts.')
-        form.addRow('CPU inference threads', self.cpu_threads)
+        form.addRow('CPU generation threads', self.cpu_threads)
+        self.batch_threads=QSpinBox();self.batch_threads.setRange(0,64);self.batch_threads.setSpecialValueText('Auto');self.batch_threads.setValue(settings.get('batch_threads',0))
+        self.batch_threads.setToolTip('Separate threads for processing the input prompt. Auto uses detected logical processors. More threads can be slower; compare measured times.')
+        form.addRow('Prompt-processing threads',self.batch_threads)
+        physical,logical=cpu_topology()
+        threads_note=QLabel(f'Detected {physical} physical cores / {logical} logical processors. Threading affects throughput, not writing quality. Models run sequentially.')
+        threads_note.setWordWrap(True);form.addRow('',threads_note)
+        self.recommend_threads=QPushButton('Use recommended CPU thread counts')
+        self.recommend_threads.clicked.connect(self.apply_thread_recommendation)
+        form.addRow('',self.recommend_threads)
         self.disable_repack = QCheckBox('Disable weight repacking (--no-repack, recommended for 9B)')
         self.disable_repack.setChecked(settings.get('disable_repack', True))
         self.disable_repack.setToolTip(
@@ -152,6 +162,10 @@ class SetupDialog(QDialog):
             self.model.setText(str(candidate) if candidate.is_file() else '')
         self.update_controls()
 
+    def apply_thread_recommendation(self):
+        self.cpu_threads.setValue(recommended_threads()[0])
+        self.batch_threads.setValue(0)
+
     def update_controls(self):
         model = MODELS.get(self.preset.currentData())
         if model:
@@ -163,7 +177,7 @@ class SetupDialog(QDialog):
         busy = self.thread is not None
         self.install_button.setEnabled(not busy and platform.system() in ('Windows', 'Linux') and platform.machine().lower() in ('amd64', 'x86_64'))
         self.download_button.setEnabled(not busy and model is not None)
-        for control in (self.preset, self.backend, self.context, self.cpu_threads, self.disable_repack, self.cache_mode, self.auto_recover, self.server, self.model, self.save_button, self.close_button):
+        for control in (self.preset, self.backend, self.context, self.cpu_threads, self.batch_threads, self.recommend_threads, self.disable_repack, self.cache_mode, self.auto_recover, self.server, self.model, self.save_button, self.close_button):
             control.setEnabled(not busy)
         self.server.parentWidget().setEnabled(not busy)
         self.model.parentWidget().setEnabled(not busy)
@@ -231,7 +245,7 @@ class SetupDialog(QDialog):
         candidate = deepcopy(self.settings)
         candidate.update(server_path=self.server.text().strip(), model_path=self.model.text().strip(),
                          model_preset=self.preset.currentData(), backend=self.backend.currentText(),
-                         context_size=self.context.value(), cpu_threads=self.cpu_threads.value(),
+                         context_size=self.context.value(), cpu_threads=self.cpu_threads.value(), batch_threads=self.batch_threads.value(),
                          disable_repack=self.disable_repack.isChecked(), kv_cache_mode=self.cache_mode.currentData(),
                          auto_memory_recovery=self.auto_recover.isChecked())
         if candidate['server_path'] and not Path(candidate['server_path']).is_file():

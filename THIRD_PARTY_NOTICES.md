@@ -42,3 +42,15 @@ The example installer copies this notice; it is not a complete legal compliance 
   Review the respective upstream model terms; speech model downloads are separate.
 - Plugin integration and copywriting recipes: Kaotick Jay / Plagued Mods.
   The themed DJ Writer standalone is not part of the generic host plugin bundle.
+
+### DJ Writer optional wiki reference lookup
+
+DJ Writer can fetch article introductions from the Independent Fallout Wiki
+(https://fallout.wiki/). Wiki reference text is downloaded only on lookup and
+cached in the user's DJ Writer data directory; it is not bundled in the host
+or standalone package. Cached entries retain source URLs, revision IDs,
+contributor attribution and the site's reported license metadata (currently
+Creative Commons Attribution-ShareAlike 4.0). Review the linked source/history
+and license when reusing reference prose. Original curated notes in the writer
+are concise factual summaries with source links. Generated drafts are never
+silently promoted to wiki facts or saved reference entries.

@@ -14,8 +14,8 @@ datas = [
     (str(project / 'optional_engine_runner.py'), '.'),
     (str(project / 'OPTIONAL_ENGINES.md'), '.'),
 ]
-# Ship only the generic Writer plugin, never the branded DJ standalone or its builds.
-for folder in ('promotional-writer',):
+# Ship generic plugins, never the branded DJ standalone or its builds.
+for folder in ('promotional-writer', 'script-prep'):
     for path in (project / 'plugins' / folder).rglob('*'):
         if path.is_file() and path.suffix in ('.py', '.json', '.md', '.svg') and path.name != 'build_plugin.py' and '__pycache__' not in path.parts:
             datas.append((str(path), str(Path('plugins') / folder / path.relative_to(project / 'plugins' / folder).parent)))

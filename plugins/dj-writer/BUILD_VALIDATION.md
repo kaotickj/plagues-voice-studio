@@ -1,3 +1,35 @@
+# DJ Writer 0.9.2 installer and portable - October 19, 2026
+
+The Windows packaging workflow now builds a per-user Inno Setup installer and
+a versioned portable ZIP, with separate Actions artifacts and shared SHA-256
+checksums. Local build passed 148 regression tests, frozen startup/icon smoke
+and installer compilation. Portable CRC, license and README inclusion checks
+passed. Outputs: artifacts/DJ-Writer-Setup-0.9.2.exe and
+artifacts/DJ-Writer-0.9.2-Windows-Portable.zip. User data remains in the existing
+home-directory location; no installer delete rules target it. Actual installer
+install/upgrade/uninstall acceptance has not been run for DJ Writer. Models
+are not bundled. Generated binaries remain local/Actions artifacts.
+
+# DJ Writer 0.9.2 CPU threading - October 19, 2026
+
+Shared runtime now supports separate generation and prompt-processing thread counts, Windows core-aware recommendations and backward-compatible settings. Local recommendation: 6 generation / 12 prompt threads. Existing user counts are preserved. 148 tests and the rebuilt frozen 0.9.2 startup/icon check pass. ZIP: plugins/dj-writer/artifacts/DJ-Writer-Plugin-Windows.zip. No controlled speed or quality gain is claimed yet. No changes committed or pushed.
+
+# DJ Writer 0.9.1 starter corpus and character memory - October 19, 2026
+
+Executed the 181-topic wiki catalogue builder, then narrative-section enrichment and editorial curation. The final pack contains 143 references: 60 locations, 52 people, 7 factions and 24 creature/daily-life entries. Nineteen topic matches were unresolved at the scope/identity stage, and nineteen further entries lacked useful narrative detail. See lore_curation_report.json for exclusions and attribution in each record. Selected key entries were rewritten as source-grounded editorial summaries rather than appearance lists.
+
+Live Piper Wright and Dogmeat lookups now produce useful Fallout 4-specific references and canonical CC BY-SA 4.0 links. Runtime lookup uses narrative extraction; series index pages are rejected. Writing retrieval is limited to 3 relevant topics, 3 facts per topic, 3,200 characters maximum (lower for short copy); source/license metadata stays in the viewer. Four accepted character notes, up to 1,000 characters, are supplied only for the selected DJ. Generated traits remain review candidates with script provenance.
+
+148 regression tests pass. The 0.9.1 standalone rebuild and frozen startup/icon smoke test pass. Frozen starter JSON matches the curated source; portable ZIP CRC/inclusion checks pass. Live generated-story quality remains subject to user review. No new commit or push has been made.
+
+# DJ Writer 0.9.0 lore reference validation - October 19, 2026
+
+- 139 regression tests pass, including cached/offline retrieval, source/revision retention, redirect alias reuse, missing-page search, response bounds, reference prompt integration and the library settings dialog.
+- Live Independent Fallout Wiki lookups for Goodneighbor and The Third Rail succeeded. Revision IDs and source license metadata were retained. Evidence: artifacts/dj-lore-live/.
+- Standalone rebuilt to plugins/dj-writer/dist-lore/Goodneighbor Plague Radio DJ Writer/. Frozen icon/startup smoke test passes; portable ZIP and SHA256SUMS.txt are in plugins/dj-writer/artifacts/.
+- No speech models, writing models or wiki cache are bundled. Generic Promotional Writer is unchanged. This is retrieval, not fine-tuning; factual correctness of generated stories still needs editorial review.
+- Real generated-story quality has not been benchmarked for this change. New source/build remains local pending user testing.
+
 # Local Windows build validation — October 18, 2026
 
 ## v0.8.12 three-row layout

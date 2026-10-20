@@ -1,0 +1,30 @@
+name: Pronunciation and Script Prep plugin
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, develop, 'release/**']
+    paths: ['plugins/script-prep/**', 'tests/test_script_prep.py', '.github/workflows/script-prep-plugin.yml']
+  pull_request:
+    paths: ['plugins/script-prep/**', 'tests/test_script_prep.py', '.github/workflows/script-prep-plugin.yml']
+permissions:
+  contents: read
+jobs:
+  plugin:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install "PyQt6>=6.7,<7" "pytest>=8,<10"
+      - name: Test transformations, dictionaries and GUI handoff
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest tests/test_script_prep.py -q
+      - run: python plugins/script-prep/build_plugin.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pronunciation-Script-Prep-Plugin
+          path: plugins/script-prep/artifacts/*
+          if-no-files-found: error

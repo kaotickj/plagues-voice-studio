@@ -55,6 +55,21 @@ def run(report_path: Path | None = None) -> int:
                 writer_dialog.close()
                 if writer_dialog.isVisible():
                     raise RuntimeError('Writer plugin did not close after reopening.')
+                prep_action = next((action for action in window.plugins.menu.actions()
+                                    if action.data() == 'script-prep'), None)
+                if prep_action is None:
+                    raise RuntimeError('Script Prep plugin was not packaged/discovered.')
+                prep_action.trigger()
+                prep_dialog = window.plugins.dialogs.get('script-prep')
+                if prep_dialog is None or not prep_dialog.isVisible():
+                    raise RuntimeError('Script Prep did not open from the Plugins menu.')
+                prep_dialog.panel.source.setPlainText('Dr. Jones paid $12.50.')
+                prep_dialog.panel.preview()
+                if prep_dialog.panel.output.toPlainText() != 'Doctor Jones paid twelve dollars and fifty cents.':
+                    raise RuntimeError('Script Prep speech preparation failed.')
+                if prep_dialog.panel.send_button.isEnabled():
+                    raise RuntimeError('Script Prep handoff bypassed review.')
+                prep_dialog.close()
                 # Regression: exercise the actual About action twice, including
                 # closing the dialog between attempts, in the frozen EXE.
                 about_button = window.findChild(QPushButton, 'about_button')

@@ -1,4 +1,4 @@
-name: DJ Writer plugin Windows package
+name: DJ Writer Windows installer and portable
 
 on:
   workflow_dispatch:
@@ -31,13 +31,30 @@ jobs:
         with:
           python-version: '3.12'
           architecture: x64
-      - name: Test and build DJ Writer with branded icon
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+      - name: Test and build standalone DJ Writer, installer and portable
         shell: pwsh
         run: ./plugins/dj-writer/build_windows.ps1
-      - name: Upload portable plugin and checksums
+      - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: DJ-Writer-Plugin-Windows
-          path: plugins/dj-writer/artifacts/*
+          name: DJ-Writer-Windows-Installer
+          path: plugins/dj-writer/artifacts/DJ-Writer-Setup-*.exe
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload portable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: DJ-Writer-Windows-Portable
+          path: plugins/dj-writer/artifacts/DJ-Writer-*-Windows-Portable.zip
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: DJ-Writer-Windows-Checksums
+          path: plugins/dj-writer/artifacts/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 30

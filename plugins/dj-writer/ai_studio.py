@@ -13,6 +13,9 @@ from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDialog, QFileDialog, QFormLa
     QSpinBox, QTabWidget, QTextEdit, QVBoxLayout, QWidget)
 
 from speech_director import clean_spoken_text
+from lore_library import LoreLibrary
+from character_library import CharacterLibrary
+from lore_dialog import LoreDialog
 from ai_writer import (Cancelled, DEFAULT_PROFILES, LocalWriter, MODELS, ScriptRequest,
                        build_messages, install_model, install_runtime, save_settings, station_for)
 
@@ -118,6 +121,8 @@ class AIControls(QGroupBox):
         self.setup_button = QPushButton('AI Setup'); self.setup_button.clicked.connect(self.open_setup)
         self.profiles_button = QPushButton('Profiles'); self.profiles_button.clicked.connect(self.open_profiles)
         settings_column.addWidget(self.setup_button); settings_column.addWidget(self.profiles_button)
+        self.lore_button = QPushButton('Lore library'); self.lore_button.clicked.connect(self.open_lore)
+        settings_column.addWidget(self.lore_button)
         self.view_prompt_button = QPushButton('View prompt'); self.view_prompt_button.clicked.connect(self.view_prompt)
         settings_column.addWidget(self.view_prompt_button); settings_column.addStretch()
         layout.addLayout(settings_column)
@@ -147,6 +152,12 @@ class AIControls(QGroupBox):
             self.settings = dialog.settings
             self.refresh_state()
 
+    def open_lore(self):
+        dialog = LoreDialog(self.settings, self.data_dir, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.settings = dialog.settings
+            self.refresh_state()
+
     def open_profiles(self):
         dialog = ProfilesDialog(self.settings, self.data_dir, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -169,7 +180,9 @@ class AIControls(QGroupBox):
 
     def active_prompt_text(self):
         request = self.current_request()
-        preview = '\n\n'.join(message['content'] for message in build_messages(request, self.settings, self.host.records))
+        preview = '\n\n'.join(message['content'] for message in build_messages(request, self.settings, self.host.records, LoreLibrary(self.data_dir).context(
+            ' '.join((request.brief, request.sponsor, request.advertiser_notes)).strip() or 'Goodneighbor Commonwealth'),
+            CharacterLibrary(self.data_dir).context(request.dj)))
         if request.category == 'Stories From the Commonwealth':
             preview = ('STORY WORKFLOW: first create an internal source/goal/obstacle/action/'
                        'outcome/closing/wasteland-cause plan, then write the spoken anecdote. The plan '
@@ -232,7 +245,7 @@ class AIControls(QGroupBox):
     def set_busy(self, busy):
         h = self.host
         for control in (h.mode, h.request_group, h.generate_button, h.history_button, h.ads_button,
-                        self.setup_button, self.profiles_button, self.view_prompt_button, self.words, self.brief,
+                        self.setup_button, self.profiles_button, self.lore_button, self.view_prompt_button, self.words, self.brief,
                         h.reviewed, h.copy_button, h.tts_engine, h.tts_intensity, h.auto_speech,
                         h.apply_speech_button, h.speech_preview, h.speech_export, h.tag_pick, h.tag_insert):
             control.setEnabled(not busy)
@@ -285,6 +298,8 @@ class AIControls(QGroupBox):
         history_error = self.host.remember_script(clean_spoken_text(result['text']))
         notes = ('Review notes: ' + ' '.join(result['warnings']) if result['warnings']
                  else 'AI draft. Check story facts, host voice and ending before marking reviewed.')
+        if result.get('character_candidates'):
+            notes += f' {result["character_candidates"]} character detail(s) saved for review in Lore library > DJ character notes.'
         if result.get('memory_fallback'):
             notes += (f' Memory recovery reduced context to {result["context_tokens_used"]:,} tokens for this run; '
                       'the saved AI Setup context was not changed.')

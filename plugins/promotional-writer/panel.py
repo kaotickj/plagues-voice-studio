@@ -10,6 +10,9 @@ from writer_core.runtime import WriterRuntime
 from writer_core.settings import default_settings, existing_runtime_settings, load_settings
 from writer_core.setup_dialog import SetupDialog
 from .prompts import CopyRequest, RECIPES, TONES, build_messages
+from .advertisers import AdvertiserLibrary
+from .advertiser_dialog import AdvertiserDialog
+from writer_core.downloads import MODELS
 
 
 class WriteWorker(QObject):
@@ -50,6 +53,8 @@ class PromotionalWriter(QWidget):
         self.data_dir = Path(context.data_dir)
         self.thread = self.worker = self.runtime = None
         self.setup_dialog = None
+        self.advertiser_dialog = None
+        self.advertisers = AdvertiserLibrary(self.data_dir)
         self._prior_text = ''; self._stream = ''; self._result = None
         self._prior_review = False
         self.settings = default_settings()
@@ -65,15 +70,38 @@ class PromotionalWriter(QWidget):
                     self.settings = previous
         except (OSError, ValueError, TypeError) as exc:
             settings_error = f'Could not read writer setup: {exc}. Saved files were not changed.'
+        if not Path(self.settings['model_path']).is_file():
+            for folder in (self.data_dir/'ai_writer'/'models',Path.home()/'.goodneighbor_blues_dj'/'ai_writer'/'models'):
+                candidate=folder/MODELS['gemma-writer']['filename']
+                if candidate.is_file():
+                    self.settings.update(model_path=str(candidate),model_preset='gemma-writer');break
+        self.interview_settings = dict(self.settings)
+        try:
+            interview_path = self.data_dir / 'interview' / 'ai_studio.json'
+            if interview_path.exists():self.interview_settings = load_settings(interview_path)
+            else:
+                for folder in (Path(self.settings['model_path']).parent, self.data_dir/'ai_writer'/'models', Path.home()/'.goodneighbor_blues_dj'/'ai_writer'/'models'):
+                    candidate = folder / MODELS['qwen-small']['filename']
+                    if candidate.is_file():
+                        self.interview_settings.update(model_path=str(candidate),model_preset='qwen-small',context_size=8192);break
+        except (OSError,ValueError) as exc:settings_error += ' Interview setup: '+str(exc)
         layout = QVBoxLayout(self); layout.setContentsMargins(0, 0, 0, 0); layout.setSpacing(7)
         heading = QHBoxLayout()
         title = QLabel('Promotional Writer'); title.setObjectName('sectionTitle'); heading.addWidget(title)
         heading.addStretch()
-        self.setup_button = QPushButton('Model setup…'); self.setup_button.clicked.connect(self.open_setup)
+        self.setup_button = QPushButton('Writing model…'); self.setup_button.clicked.connect(self.open_setup)
         help_button = QPushButton('Help / About'); help_button.clicked.connect(self.show_help)
-        heading.addWidget(self.setup_button); heading.addWidget(help_button); layout.addLayout(heading)
+        self.interview_setup_button = QPushButton('Interview model…');self.interview_setup_button.clicked.connect(self.open_interview_setup)
+        heading.addWidget(self.setup_button); heading.addWidget(self.interview_setup_button); heading.addWidget(help_button); layout.addLayout(heading)
         self.model_label = QLabel(); self.model_label.setWordWrap(True); self.model_label.setObjectName('mutedText')
         layout.addWidget(self.model_label)
+        advertiser_row = QHBoxLayout()
+        advertiser_row.addWidget(QLabel('Advertiser'))
+        self.advertiser = QComboBox();self.advertiser.setMinimumContentsLength(20);self.advertiser.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon);advertiser_row.addWidget(self.advertiser,1)
+        self.profile_button = QPushButton('Profile / interview…');self.profile_button.clicked.connect(self.open_advertiser)
+        advertiser_row.addWidget(self.profile_button);layout.addLayout(advertiser_row)
+        try:self.reload_advertisers()
+        except (OSError,ValueError) as exc:settings_error += ' Advertiser library: '+str(exc)
 
         self.brief_group = QGroupBox('1 · Writing brief'); form = QGridLayout(self.brief_group)
         self.category = QComboBox(); self.category.addItems(RECIPES)
@@ -134,20 +162,51 @@ class PromotionalWriter(QWidget):
 
     @property
     def is_busy(self):
-        return self.thread is not None or bool(self.setup_dialog and self.setup_dialog.thread is not None)
+        return (self.thread is not None or bool(self.setup_dialog and self.setup_dialog.thread is not None)
+                or bool(self.advertiser_dialog and self.advertiser_dialog.is_busy))
 
     def refresh_model(self):
         model = Path(self.settings['model_path'])
-        self.model_label.setText(f'Local model: {model.name} · {self.settings["backend"]}' if model.is_file()
+        self.model_label.setText(f'Writing model: {model.name} · {self.settings["backend"]}' if model.is_file()
                                 else 'Select or download a writing model in Model setup. Writing runs locally after setup.')
+        self.model_label.setText(self.model_label.text()+' | Interview: '+Path(self.interview_settings['model_path']).name)
+
+    def reload_advertisers(self, selected=''):
+        self.advertiser.clear();self.advertiser.addItem('No saved advertiser / one-off brief','')
+        self.advertiser_rows=self.advertisers.load()
+        for row in self.advertiser_rows:self.advertiser.addItem(row['name'],row['id'])
+        self.advertiser.setCurrentIndex(max(0,self.advertiser.findData(selected)))
+
+    def selected_profile(self):
+        return next((r for r in self.advertiser_rows if r['id']==self.advertiser.currentData()),{})
+
+    def open_advertiser(self):
+        if self.is_busy:return
+        try:dialog=AdvertiserDialog(self.context,self.interview_settings,self.facts.toPlainText()+' '+self.instructions.toPlainText(),self.advertiser.currentData(),self)
+        except (OSError,ValueError) as exc:self.status.setText(str(exc));return
+        self.advertiser_dialog=dialog
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            self.reload_advertisers(dialog.profile['id'])
+            for answer in dialog.session_answers:
+                self.facts.appendPlainText(answer['question']+' '+answer['answer'])
+        self.advertiser_dialog=None;dialog.deleteLater();self.update_actions()
+
+    def open_interview_setup(self):
+        if self.is_busy:return
+        dialog=SetupDialog(self.interview_settings,self.data_dir/'interview',self)
+        self.setup_dialog=dialog
+        if dialog.exec()==QDialog.DialogCode.Accepted:self.interview_settings=dialog.settings
+        self.setup_dialog=None;dialog.deleteLater();self.refresh_model()
 
     def category_changed(self, category):
         self.words.setValue(10 if category == 'Tagline' else 120)
 
     def request(self):
+        profile=self.selected_profile()
         return CopyRequest(self.category.currentText(), self.tone.currentText(), self.words.value(),
-                           self.product.text(), self.audience.text(), self.facts.toPlainText(),
-                           self.cta.text(), self.instructions.toPlainText())
+                           self.product.text() or profile.get('description','') or profile.get('name',''), self.audience.text() or profile.get('audience',''), self.facts.toPlainText(),
+                           self.cta.text() or profile.get('cta',''), self.instructions.toPlainText(),
+                           self.advertisers.context(profile) if profile else '')
 
     def on_edit(self):
         self.reviewed.setChecked(False)
@@ -163,7 +222,7 @@ class PromotionalWriter(QWidget):
         self.reviewed.setEnabled(not busy)
 
     def set_busy(self, busy):
-        for widget in (self.brief_group, self.source_group, self.setup_button, self.generate_button):
+        for widget in (self.brief_group, self.source_group, self.setup_button, self.interview_setup_button, self.advertiser, self.profile_button, self.generate_button):
             widget.setEnabled(not busy)
         self.output.setReadOnly(busy); self.cancel_button.setEnabled(busy)
         self.update_actions()
@@ -182,6 +241,10 @@ class PromotionalWriter(QWidget):
         reason = self.context.can_generate()
         if reason:
             self.status.setText(reason); return
+        profile=self.selected_profile()
+        if profile and not (profile.get('description') or profile.get('facts') or self.facts.toPlainText().strip()):
+            self.status.setText('Describe this advertiser’s offer before drafting. The interview can help fill the gaps.')
+            self.open_advertiser();return
         request = self.request()
         try:
             build_messages(request)
@@ -215,7 +278,8 @@ class PromotionalWriter(QWidget):
     def completed(self, result):
         self.preview_timer.stop(); self._result = result
         self.output.setPlainText(result['text'])
-        self.status.setText(f'Draft ready · {result["model"]} · {result["elapsed_seconds"]}s. Review before narration.')
+        timings = (f' Load {result["load_seconds"]}s; first text {result["first_text_seconds"]}s; CPU threads {result["generation_threads"]}/{result["prompt_threads"]}.' if 'load_seconds' in result else '')
+        self.status.setText(f'Draft ready · {result["model"]} · {result["elapsed_seconds"]}s. Review before narration.'+timings)
 
     @pyqtSlot(str)
     def failed(self, message):
@@ -229,6 +293,7 @@ class PromotionalWriter(QWidget):
         self.set_busy(False)
 
     def cancel(self):
+        if self.advertiser_dialog:self.advertiser_dialog.cancel()
         if self.runtime:
             self.runtime.cancel(); self.status.setText('Stopping writer; waiting for its model process to exit…')
         if self.setup_dialog and self.setup_dialog.thread:

@@ -14,6 +14,8 @@ import urllib.request
 
 from .downloads import Cancelled, KVCacheAllocationError, KV_CACHE_MODES, MODELS, context_retry_sizes, check_cancel
 
+from .performance import thread_budgets
+
 class WriterRuntime:
     """One owned server and one streamed completion. Closing/cancelling kills only it."""
     alias = "local-writer"
@@ -52,10 +54,11 @@ class WriterRuntime:
         self._active_context = int(context_size if context_size is not None else self.settings.get('context_size', 8192))
         key = secrets.token_hex(32)
         cpu = self.settings['backend'] == 'CPU'
+        decode_threads,batch_threads=thread_budgets(self.settings)
         args = [str(server), '--model', str(model), '--host', '127.0.0.1', '--port', str(port),
                 '--alias', self.alias, '--ctx-size', str(self._active_context), '--parallel', '1',
-                '--threads', str(self.settings.get('cpu_threads', min(12, max(1, os.cpu_count() or 4)))),
-                '--threads-batch', str(self.settings.get('cpu_threads', min(12, max(1, os.cpu_count() or 4)))),
+                '--threads', str(decode_threads),
+                '--threads-batch', str(batch_threads),
                 '--n-gpu-layers', '0' if cpu else '99', '--api-key', key, '--no-ui']
         # Avoid a several-GiB CPU_REPACK allocation on large quantized GGUFs.
         # Users can opt back in if their RAM permits and they want to benchmark speed.
@@ -200,7 +203,10 @@ class WriterRuntime:
         server, model = self._paths()
         started = time.monotonic()
         try:
+            decode_threads,batch_threads=thread_budgets(self.settings)
+            status(f'CPU threads: generation {decode_threads}, prompt processing {batch_threads}. One model job at a time.')
             context = self._load_with_memory_recovery(server, model, status)
+            loaded_at=time.monotonic()
             check_cancel(self.cancelled)
             if MODELS.get(self.settings.get('model_preset'), {}).get('single_user'):
                 messages = [{'role': 'user', 'content': '\n\n'.join(m['content'] for m in messages)}]
@@ -217,6 +223,8 @@ class WriterRuntime:
                            reasoning_format='deepseek')
             status('Writing promotional copy…')
             pieces, finish, completed = [], None, False
+            first_text_at=None
+            completion_started=time.monotonic()
             with self._request('/v1/chat/completions', payload, timeout=600) as response:
                 for raw in response:
                     check_cancel(self.cancelled)
@@ -237,6 +245,7 @@ class WriterRuntime:
                         if not isinstance(fragment, str):
                             raise ValueError('Unsupported writing response.')
                         if fragment:
+                            if first_text_at is None:first_text_at=time.monotonic()
                             pieces.append(fragment); on_text(fragment)
                         finish = choice.get('finish_reason') or finish
             check_cancel(self.cancelled)
@@ -246,7 +255,10 @@ class WriterRuntime:
             if not text:
                 raise ValueError('The writing model returned an empty draft.')
             return dict(text=text, model=model.name, elapsed_seconds=round(time.monotonic()-started, 2),
-                        log=str(self.log_path), context_tokens_used=context)
+                        log=str(self.log_path), context_tokens_used=context,
+                        generation_threads=decode_threads, prompt_threads=batch_threads,
+                        load_seconds=round(loaded_at-started,2),
+                        first_text_seconds=round(first_text_at-completion_started,2) if first_text_at else None)
         except Exception as exc:
             if self.cancelled.is_set():
                 raise Cancelled('Writing cancelled; the previous draft is preserved.') from exc
