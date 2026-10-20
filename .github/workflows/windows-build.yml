@@ -65,9 +65,6 @@ jobs:
       - name: Build slim model-on-demand portable and installer
         shell: pwsh
         run: ./scripts/build_windows.ps1 -Slim
-      - name: Verify isolated install, reinstall, startup and data preservation
-        shell: pwsh
-        run: ./scripts/test_installer.ps1 -SourceDirectory 'dist\PlaguesVoiceStudio030Experimental'
       # Reject multi-disk output. Users should never see an Insert Disk prompt.
       - name: Verify standalone installer
         shell: pwsh
@@ -110,6 +107,42 @@ jobs:
           name: PlaguesVoiceStudio-Windows-Standalone-Installer
           path: artifacts/PlaguesVoiceStudio-Setup-*.exe
           if-no-files-found: error
+
+  # Run installer acceptance on a separate, fresh runner. The packaging
+  # artifacts remain available if this heavier test loses its runner.
+  installer_acceptance:
+    name: Isolated install, reinstall and data preservation
+    runs-on: windows-2022
+    needs: windows
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+      - uses: actions/download-artifact@v4
+        with:
+          name: PlaguesVoiceStudio-Windows-Portable
+          path: acceptance-payload
+      - name: Extract the packaged application
+        shell: pwsh
+        run: |
+          Expand-Archive -LiteralPath 'acceptance-payload/PlaguesVoiceStudio-Slim-Portable.zip' -DestinationPath dist -Force
+          if (-not (Test-Path 'dist/PlaguesVoiceStudio030Experimental/PlaguesVoiceStudio030Experimental.exe')) {
+            throw 'Packaged application executable is missing.'
+          }
+      - name: Verify isolated install, reinstall, startup and data preservation
+        shell: pwsh
+        run: ./scripts/test_installer.ps1 -SourceDirectory 'dist\PlaguesVoiceStudio030Experimental'
+      - name: Upload installer acceptance diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlaguesVoiceStudio-Installer-Acceptance-Diagnostics
+          path: artifacts/installer-acceptance/
+          if-no-files-found: warn
 
   # Install on a fresh Windows runner, not just compile on the build machine.
   installer_smoke:
@@ -169,7 +202,7 @@ jobs:
     name: Publish tagged GitHub Release
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    needs: [windows, installer_smoke]
+    needs: [windows, installer_acceptance, installer_smoke]
     permissions:
       contents: write
     steps:
