@@ -56,11 +56,20 @@ jobs:
           sudo apt-get install -y ffmpeg libsndfile1 libegl1 libgl1 libopengl0 libpulse0 libasound2t64 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-randr0 libxcb-render-util0 libxcb-image0
       - name: Test and build native Linux portable
         run: bash scripts/build_linux.sh
+      - name: Build Debian amd64 installer from the tested application
+        run: .venv-linux-build/bin/python scripts/package_linux_deb.py --app dist/linux/PlaguesVoiceStudio030Experimental --output artifacts/linux-installer
       - name: Upload portable and checksums
         uses: actions/upload-artifact@v4
         with:
           name: PlaguesVoiceStudio-Linux-x86_64-Portable
           path: artifacts/linux/*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload Debian installer and checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlaguesVoiceStudio-Linux-amd64-Installer
+          path: artifacts/linux-installer/*
           if-no-files-found: error
           retention-days: 14
       - name: Retain build diagnostics
@@ -111,4 +120,57 @@ jobs:
         with:
           name: PlaguesVoiceStudio-Linux-Startup-Diagnostics
           path: ${{ runner.temp }}/linux-reports/*.json
+          if-no-files-found: warn
+
+  debian_installer:
+    name: Debian 13 install, reinstall and removal
+    needs: build
+    runs-on: ubuntu-24.04
+    container: debian:13
+    timeout-minutes: 20
+    steps:
+      - name: Install acceptance-test tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends xvfb xauth desktop-file-utils
+      - uses: actions/download-artifact@v4
+        with:
+          name: PlaguesVoiceStudio-Linux-amd64-Installer
+          path: payload
+      - name: Install with dependencies and verify desktop entry
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd payload
+          sha256sum -c SHA256SUMS.txt
+          apt-get install -y --no-install-recommends ./plagues-voice-studio_*_amd64.deb
+          desktop-file-validate /usr/share/applications/plagues-voice-studio.desktop
+          test "$(dpkg-query -W -f='${Architecture}' plagues-voice-studio)" = amd64
+      - name: Verify installed startup, reinstall and user-data preservation
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PLAGUED_AI_HOME="$RUNNER_TEMP/installer-profile"
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/installer-config"
+          export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+          mkdir -p "$PLAGUED_AI_HOME/apps/voice-studio" "$PLAGUED_AI_HOME/models" "$RUNNER_TEMP/installer-reports"
+          printf 'keep-existing-model\n' > "$PLAGUED_AI_HOME/models/acceptance-marker"
+          printf 'keep-existing-settings\n' > "$PLAGUED_AI_HOME/apps/voice-studio/acceptance-marker"
+          sha256sum "$PLAGUED_AI_HOME/models/acceptance-marker" "$PLAGUED_AI_HOME/apps/voice-studio/acceptance-marker" > "$RUNNER_TEMP/preserved-files.sha256"
+          timeout 180 plagues-voice-studio --self-test "$RUNNER_TEMP/installer-reports/runtime.json"
+          for iteration in 1 2; do
+            QT_QPA_PLATFORM=xcb timeout 180 xvfb-run -a plagues-voice-studio --ui-self-test "$RUNNER_TEMP/installer-reports/gui-$iteration.json"
+          done
+          apt-get install -y --reinstall --no-install-recommends ./payload/plagues-voice-studio_*_amd64.deb
+          timeout 180 plagues-voice-studio --self-test "$RUNNER_TEMP/installer-reports/reinstalled.json"
+          sha256sum -c "$RUNNER_TEMP/preserved-files.sha256"
+          apt-get remove -y plagues-voice-studio
+          test ! -e /usr/bin/plagues-voice-studio
+          sha256sum -c "$RUNNER_TEMP/preserved-files.sha256"
+      - name: Retain installer acceptance diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlaguesVoiceStudio-Linux-Installer-Diagnostics
+          path: ${{ runner.temp }}/installer-reports/*.json
           if-no-files-found: warn
