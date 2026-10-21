@@ -2,6 +2,9 @@
 
 **Release candidate:** this is a prerelease for acceptance testing. See [RC notes](RELEASE_NOTES_1.0.0rc1.md) and [remaining release gates](RELEASE_READINESS.md).
 
+Download the [Voice Studio RC installer or portable ZIP](https://github.com/kaotickj/plagues-voice-studio/releases/tag/v1.0.0rc1), with SHA-256 checksums.
+The [separate DJ Writer 0.9.3 Vulkan update](https://github.com/kaotickj/plagues-voice-studio/releases/tag/dj-writer-v0.9.3) also provides installer and portable packages.
+
 **Writer plugin:** source builds now include **Plugins → Promotional Writer** for
 generic ad copy, promotions, announcements and custom writing. It uses a separate
 local writing model and sends reviewed text to Narration Studio. The Goodneighbor

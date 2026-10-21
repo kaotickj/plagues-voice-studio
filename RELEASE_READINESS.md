@@ -35,7 +35,7 @@ These results precede the new candidate and do not replace candidate acceptance.
 - [x] Final payload passes 54 owned-source/package comparisons, portable CRC checks and isolated installer upgrade/reinstall/startup/uninstall acceptance. All 15 seeded data files survive; the prior payload is the verified 0.3.0a4 build.
 - [x] Repeat installer acceptance and regression checks after the diagnostic-only Qt settings-isolation fix: clean install/reinstall/repeated startup/uninstall preserve 15 fixtures; 287 existing tests and the new isolation regression pass, 1 skipped. Rebuilt runtime/GUI and 54 source/package comparisons pass.
 - [x] Combined revision a543df7 passes Windows build, source/package comparison, isolated reinstall/data preservation and fresh-machine installer startup (run 39526017367). Downloaded checksum/diagnostic artifacts verify success and preservation of 15 fixtures. All three unchanged plugin workflows passed on ed0fd42.
-- [ ] Publish the matching prerelease tag only after the final package and CI gates pass.
+- [x] Published v1.0.0rc1 after tag workflow 39527403701 passed all build/install/preservation gates. Public installer and portable digests match the published SHA-256 manifest. DJ Writer's separate Vulkan update is published as dj-writer-v0.9.3 from successful workflow 39528721997.
 
 ## Acceptance retained for general availability
 

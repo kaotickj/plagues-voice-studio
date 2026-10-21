@@ -1,3 +1,21 @@
+# Published releases - October 20, 2026
+
+Voice Studio **v1.0.0rc1** is published as a prerelease:
+https://github.com/kaotickj/plagues-voice-studio/releases/tag/v1.0.0rc1 .
+Tag workflow 39527403701 passed build, both fresh-runner installer gates and
+publication. The public manifest matches GitHub's asset digests:
+
+- Setup: f8da422ee9b38685c974a125e556c87b54c8aab718a37a70082790d5e43cd7e2
+- Portable: cda28ad3c948aff06c2af511a0174aa4e4d94bf5f536a835738035b0640ade2d
+
+DJ Writer **dj-writer-v0.9.3** is a separate prerelease containing the Vulkan
+capture-layer fix, shared storage and binary notices. Its CI workflow
+39528721997 passed packaging and installer acceptance; those exact tested
+installer/portable assets and their SHA-256 manifest were uploaded and verified:
+https://github.com/kaotickj/plagues-voice-studio/releases/tag/dj-writer-v0.9.3 .
+Private publication records are retained under artifacts/release-ready-rc1/
+published/ and artifacts/dj-writer-release-093/.
+
 # Generated-build cleanup - October 20, 2026
 
 Removed 35 superseded preview/build directories, old archives and disposable
