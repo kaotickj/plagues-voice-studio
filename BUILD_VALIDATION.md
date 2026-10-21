@@ -19,13 +19,13 @@ legacy/shared data and user-plugin files retain their SHA-256 hashes. Evidence:
 artifacts/rc1-acceptance/5ebca0979e1f/result.json. An earlier deep test path
 failed Windows file moves; shortening the disposable test path resolved it.
 
-Local packages before the diagnostic-only settings-isolation rebuild (not
-published; final checksums must be refreshed after installer acceptance):
+Final local packages after the diagnostic-only settings-isolation rebuild
+(not yet published; hosted packages have independent checksums):
 
 | File | Bytes | SHA-256 |
 |---|---:|---|
-| PlaguesVoiceStudio-Setup-1.0.0rc1.exe | 291643789 | 7324d2bd8df3a8ef4e4710823f0a40fe6c8a167fbb6b38ed78c9cec89b110f4f |
-| PlaguesVoiceStudio-Slim-Portable.zip | 409775167 | 690ccc1ae6178d00472cc2d14c5dff87f40e9a9a94cffb671effb6cf48a68ff7 |
+| PlaguesVoiceStudio-Setup-1.0.0rc1.exe | 291654032 | 7d8ebcef640db5ddd9ed61347aa7b1181058f59595b261d2634daba867b1225f |
+| PlaguesVoiceStudio-Slim-Portable.zip | 409775430 | bfe174e4e5aac9aefe411b23ba69e2f7d3045d80134719b4ab38fc98904aa921 |
 
 Hosted ed0fd42 builds passed all three plugin workflows. Host packaging passed,
 but GitHub reported lost runner communication during installer acceptance
@@ -33,6 +33,12 @@ but GitHub reported lost runner communication during installer acceptance
 not a demonstrated application failure. Acceptance now has bounded compilation,
 phase messages, shorter workspace paths and retained diagnostic artifacts.
 Published CI packages will have their own checksum manifest.
+
+Remote installer-runner isolation changes were integrated from 455ba8b after
+its complete Windows workflow passed (run 39480662354). The combined revision
+a543df7 adds the diagnostic isolation and bounded compilation/source checks;
+its fresh Windows build is run 39526017367. Acceptance retains the separate
+runner and now uploads log/JSON evidence without the large disposable setups.
 
 A subsequent bounded acceptance rerun exposed a GUI diagnostic isolation bug:
 the named Qt settings constructor ignored the default INI format and inherited
