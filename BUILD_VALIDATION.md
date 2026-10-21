@@ -29,7 +29,7 @@ Final local packages after the diagnostic-only settings-isolation rebuild
 
 Hosted ed0fd42 builds passed all three plugin workflows. Host packaging passed,
 but GitHub reported lost runner communication during installer acceptance
-(run 39453988265); its log blob was unavailable. This is an unresolved CI gate,
+(run 39453988265); its log blob was unavailable. This was a CI gate,
 not a demonstrated application failure. Acceptance now has bounded compilation,
 phase messages, shorter workspace paths and retained diagnostic artifacts.
 Published CI packages will have their own checksum manifest.
@@ -37,8 +37,12 @@ Published CI packages will have their own checksum manifest.
 Remote installer-runner isolation changes were integrated from 455ba8b after
 its complete Windows workflow passed (run 39480662354). The combined revision
 a543df7 adds the diagnostic isolation and bounded compilation/source checks;
-its fresh Windows build is run 39526017367. Acceptance retains the separate
-runner and now uploads log/JSON evidence without the large disposable setups.
+its fresh Windows build, run 39526017367, **passed every gate**: packaging,
+runtime/GUI/source comparison, fresh-machine installer startup and isolated
+clean install/reinstall/uninstall preserving all 15 fixtures. Downloaded
+checksum and diagnostic evidence is retained under
+artifacts/release-ready-rc1/ci-a543df7/. Acceptance retains the separate runner
+and uploads log/JSON evidence without the large disposable setups.
 
 A subsequent bounded acceptance rerun exposed a GUI diagnostic isolation bug:
 the named Qt settings constructor ignored the default INI format and inherited

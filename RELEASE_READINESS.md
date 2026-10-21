@@ -34,7 +34,7 @@ These results precede the new candidate and do not replace candidate acceptance.
 - [x] Final rebuilt EXE generates real offline speech with Nano, Multilingual v3, both Qwen sizes, IndexTTS 2.5 and Kokoro. Audio validity and exact script metadata checks pass; Kokoro profiling confirms DirectML execution.
 - [x] Final payload passes 54 owned-source/package comparisons, portable CRC checks and isolated installer upgrade/reinstall/startup/uninstall acceptance. All 15 seeded data files survive; the prior payload is the verified 0.3.0a4 build.
 - [x] Repeat installer acceptance and regression checks after the diagnostic-only Qt settings-isolation fix: clean install/reinstall/repeated startup/uninstall preserve 15 fixtures; 287 existing tests and the new isolation regression pass, 1 skipped. Rebuilt runtime/GUI and 54 source/package comparisons pass.
-- [ ] Verify fresh GitHub Actions for the final release-preparation commit and inspect uploaded assets/checksums. On ed0fd42, all three plugin workflows passed; the host build passed packaging but its runner lost communication during installer acceptance. A diagnostic rerun is required.
+- [x] Combined revision a543df7 passes Windows build, source/package comparison, isolated reinstall/data preservation and fresh-machine installer startup (run 39526017367). Downloaded checksum/diagnostic artifacts verify success and preservation of 15 fixtures. All three unchanged plugin workflows passed on ed0fd42.
 - [ ] Publish the matching prerelease tag only after the final package and CI gates pass.
 
 ## Acceptance retained for general availability
