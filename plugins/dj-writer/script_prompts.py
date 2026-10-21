@@ -1,12 +1,13 @@
 """Purpose-specific radio prompts and supplied project facts. No stock scripts."""
 
-DEFAULT_WORDS = {'Broadcast opener': 90,
- 'Station ID': 25,
- 'Station break': 50,
- 'Song introduction': 40,
- 'Song outro': 35,
- 'Ad / promo': 90,
- 'Broadcast closer': 60,
+DEFAULT_WORDS = {'Broadcast opener': 40,
+ 'Station ID': 20,
+ 'Station break': 30,
+ 'Song introduction': 30,
+ 'Song outro': 25,
+ 'Ad / promo': 60,
+ 'Website Promo': 60,
+ 'Broadcast closer': 30,
  'Stories From the Commonwealth': 600,
  'Random mix': 50}
 
@@ -151,6 +152,11 @@ FORMAT_PROMPTS = {'Broadcast opener': 'JOB: begin a fresh broadcast. Welcome the
                                   'large plot. For longer targets develop relevant actions and '
                                   'reactions, not padding. No example plot is provided: invent a '
                                   'new incident. Output prose, not these beat labels.',
+ 'Website Promo': 'JOB: one short spoken promotion for Goodneighbor Blues at goodneighborblues.com. '
+                  'Lead with the selected invitation or the supplied offer. State supplied commercial '
+                  'terms accurately, then give one clear website call to action. No fictional setting, '
+                  'invented subscriptions, benefits, prices, scarcity, deadlines, or broadcast frequency. '
+                  'A simple invitation is sufficient when no offer has been supplied.',
  'Random mix': 'JOB: choose one short between-records item: an identification, a brief station '
                'break, a metadata-free music handoff or a home-station promo. Follow only that '
                "item's purpose. Keep the selected host and station consistent. No full broadcast, "

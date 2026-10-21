@@ -94,3 +94,7 @@ class MenuTests(unittest.TestCase):
         for widget in (w.generate_button, w.output, w.reviewed, w.copy_button, w.save_button):
             self.assertTrue(w.rect().contains(widget.mapTo(w, widget.rect().bottomRight())))
         self.assertEqual(w.settings_scroll.horizontalScrollBar().maximum(), 0)
+        viewport = w.settings_scroll.viewport()
+        for widget in (w.ai.prepared_button, w.ai.template_combo):
+            self.assertTrue(viewport.rect().contains(widget.mapTo(viewport, widget.rect().bottomRight())),
+                            'Quick spot controls must be visible without scrolling.')

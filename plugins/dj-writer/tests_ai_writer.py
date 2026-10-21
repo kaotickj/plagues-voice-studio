@@ -104,9 +104,10 @@ class BuiltInPromptTests(unittest.TestCase):
                     messages = build_messages(ScriptRequest(dj, category, words=DEFAULT_WORDS[category]), default_settings())
                     text = '\n'.join(m['content'] for m in messages)
                     self.assertIn(format_prompt(category, dj), text)
-                    self.assertIn(COMMONWEALTH_RULES, text)
+                    if category != 'Website Promo':
+                        self.assertIn(COMMONWEALTH_RULES, text)
                     self.assertIn(DJ_IDENTITIES[dj], text)
-                    self.assertIn('STATION: ' + station_for(dj), text)
+                    self.assertIn('STATION: ' + ('Goodneighbor Blues / goodneighborblues.com' if category == 'Website Promo' else station_for(dj)), text)
                     self.assertIn('No additional direction', text)
 
     def test_custom_direction_keeps_the_built_in_story_prompt(self):

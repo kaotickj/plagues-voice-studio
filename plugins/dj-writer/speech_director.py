@@ -122,7 +122,7 @@ def classify(text, dj='', category='', intensity='Balanced'):
             mood, strength, reason = 'angry', .43, 'controlled indignation'
         elif '?' in sentence and ('plague' in host or 'conspiracy' in low):
             mood, strength, reason = 'surprised', .35, 'skeptical rhetorical question'
-        if category == 'Ad / promo':
+        if category in ('Ad / promo', 'Website Promo'):
             strength = min(strength, .43)
         if 'plague' in host and mood == 'afraid':
             strength = min(strength, .4)
@@ -219,7 +219,7 @@ def _render_chatterbox(text, dj, category, intensity):
         return ''
     sentence_text = [sentence for _, sentence, _ in segments]
     intro = _intro_style(sentence_text, category, dj)
-    budget = (max(3, min(6, 3 + len(plain.split()) // 150)) if category == 'Ad / promo'
+    budget = (max(3, min(6, 3 + len(plain.split()) // 150)) if category in ('Ad / promo', 'Website Promo')
               else max(2, min(20, 1 + len(plain.split()) // 140)))
     if intensity == 'Subtle':
         budget = max(1, budget - 1)
@@ -236,7 +236,7 @@ def _render_chatterbox(text, dj, category, intensity):
         style = ''
         if i == 0:
             style = intro
-        elif (category == 'Ad / promo' and not ad_pitched and
+        elif (category in ('Ad / promo', 'Website Promo') and not ad_pitched and
               _pitch_boundary(sentence) and used_styles < budget):
             style = 'advertisement'
             ad_pitched = True

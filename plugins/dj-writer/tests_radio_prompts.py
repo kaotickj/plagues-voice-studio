@@ -15,7 +15,8 @@ class RadioPromptTests(unittest.TestCase):
                     self.assertIn(DJ_IDENTITIES[host], text)
                     self.assertIn(FORMAT_PROMPTS[category], text)
                     self.assertIn('standard spelling', text)
-                    self.assertIn('Treat lore as a constraint', text)
+                    if category != 'Website Promo':
+                        self.assertIn('Treat lore as a constraint', text)
 
     def test_formats_have_distinct_broadcast_jobs(self):
         self.assertIn('One or two clean sentences', FORMAT_PROMPTS['Station ID'])

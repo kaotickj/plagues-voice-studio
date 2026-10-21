@@ -9,7 +9,7 @@ from pathlib import Path
 from ad_manager import scripts_for
 
 CATEGORIES = ['Broadcast opener', 'Station ID', 'Station break', 'Song introduction',
-              'Song outro', 'Ad / promo', 'Broadcast closer', 'Stories From the Commonwealth', 'Random mix']
+              'Song outro', 'Ad / promo', 'Website Promo', 'Broadcast closer', 'Stories From the Commonwealth', 'Random mix']
 MOODS = ['Any', 'Comforting', 'Melancholy', 'Wry', 'Reflective', 'Atmospheric', 'Suspicious', 'Ominous']
 LENGTHS = ['Short', 'Medium', 'Long']
 DJS = ['Tal Conroy', 'Hattie Boggs', 'Mister The Plague']
@@ -131,6 +131,10 @@ class DialogueEngine:
         if category not in CATEGORIES or mood not in MOODS or length not in LENGTHS:
             raise ValueError('Invalid category, mood or length.')
         if not 1 <= quantity <= 100: raise ValueError('Quantity must be 1–100.')
+        if category == 'Website Promo':
+            from spot_templates import prepared_copy, context
+            line = prepared_copy(category, '', {}, context(dj, STATION))
+            return [line], ('' if quantity == 1 else 'One prepared website invitation is available; use AI Studio quick templates for offers.')
         categories = CATEGORIES[:-1] if category == 'Random mix' else [category]
         # Custom scripts are complete, human-authored spots. They are never
         # intermixed with unrelated fragments from the bundled scene database.

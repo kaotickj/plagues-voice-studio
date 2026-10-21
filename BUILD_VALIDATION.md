@@ -1,3 +1,31 @@
+# DJ Writer 0.9.4 local prepared-spot build - October 20, 2026
+
+Adds Website Promo and 14 prepared recipes covering all 10 selectable formats,
+including editable percentage/fixed-price/subscription offers. Terms persist
+separately from lore; missing required terms block before model setup. Prepared
+copy works without a writing model and remains subject to narration review.
+Website generation omits wiki and character-memory retrieval/collection.
+
+The final build passes 163 tests, frozen icon/window/template checks and 23
+owned-module comparisons against current source. An additional minimum-size
+check confirms the template selector and Prepared copy remain visible without
+scrolling. Installer acceptance passes clean install, reinstall, repeated
+startup and uninstall while preserving all five seeded files:
+artifacts/dj-installer-acceptance/a0219a10fa7e4761888841909263483f/result.json.
+
+Actual Gemma Writer 9B samples generated a website invitation, percentage offer
+and subscription spot using isolated synthetic terms. The tightened percentage
+prompt produced: "Save 25 percent on selected digital albums at
+goodneighborblues.com with the code TEST25." These are test terms, not live
+offers. The Vulkan attempt failed from occupied GPU memory; CPU samples used
+4096 context and disabled repacking without changing saved settings. Wording
+checks flag changed offer terms for editorial review; short valid spots are
+not padded to their target word counts. Raw drafts and QA images:
+artifacts/spot-template-validation/.
+
+Local installer/portable: plugins/dj-writer/artifacts/ (0.9.4), with SHA256SUMS.
+This feature build has not been published; 0.9.3 remains the public DJ release.
+
 # Published releases - October 20, 2026
 
 Voice Studio **v1.0.0rc1** is published as a prerelease:

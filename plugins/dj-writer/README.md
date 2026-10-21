@@ -1,4 +1,26 @@
-# Goodneighbor / Plague Radio DJ Writer v0.9.3
+# Goodneighbor / Plague Radio DJ Writer v0.9.4
+
+## Prepared spots and reusable offer terms
+
+Choose **Website Promo** for goodneighborblues.com. The quick-template selector
+offers a plain invitation, percentage-off offer, fixed-price deal, subscription
+introductory deal and a single-feature promotion. **Edit terms** collects exact
+amounts, items, billing periods, introductory duration, renewal terms and optional
+codes/deadlines/eligibility. Terms are saved under the DJ data folder in
+`spot_template_terms.json`; verify current terms each time you reuse them.
+Missing required terms stop generation before a model is loaded.
+
+Every spot type has a prepared project-specific default. Simple IDs, openers,
+breaks, song links and closers have shorter suggested lengths. **Prepared copy**
+uses the selected template directly, without loading a writing model; the
+optional AI brief applies only to **Write with AI**. Song links use the supplied
+title/artist controls. Original Commonwealth stories still need an original
+draft rather than a stock story.
+
+Website/offer prompts use the Goodneighbor Blues website identity, exclude
+Fallout lore and character-memory lookups, and avoid inventing subscriber perks
+or terms. Ordinary station formats preserve the selected host's home station;
+Mister The Plague's Plague Radio identity remains available.
 
 ## Radeon Vulkan and shared AI storage
 

@@ -15,6 +15,8 @@ from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDialog, QFileDialog, QFormLa
 from speech_director import clean_spoken_text
 from lore_library import LoreLibrary
 from character_library import CharacterLibrary
+from spot_templates import (templates_for, resolve_template, checked_terms, context as spot_context,
+                            prepared_copy, load_terms, save_terms)
 from lore_dialog import LoreDialog
 from ai_writer import (Cancelled, DEFAULT_PROFILES, LocalWriter, MODELS, ScriptRequest,
                        build_messages, install_model, install_runtime, save_settings, station_for)
@@ -96,6 +98,37 @@ class WritingWorker(QObject):
             self.finished.emit()
 
 
+class TermsDialog(QDialog):
+    def __init__(self, template, values, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(template.label + ' — offer terms')
+        self.resize(640, 480)
+        self.template = template
+        self.values = values
+        layout = QVBoxLayout(self)
+        note = QLabel('Enter the actual offer terms. Required fields are marked *. '
+                      'Optional details are omitted when blank. Saved terms can be reused; check dates and prices each time.')
+        note.setWordWrap(True); layout.addWidget(note)
+        form = QFormLayout(); self.fields = {}
+        for term in template.terms:
+            control = QLineEdit(values.get(term.key, ''))
+            control.setMaxLength(300); control.setPlaceholderText(term.hint)
+            self.fields[term.key] = control
+            form.addRow(term.label + (' *' if term.required else ''), control)
+        layout.addLayout(form)
+        row = QHBoxLayout(); row.addStretch()
+        apply = QPushButton('Apply terms'); apply.clicked.connect(self.commit)
+        cancel = QPushButton('Cancel'); cancel.clicked.connect(self.reject)
+        row.addWidget(apply); row.addWidget(cancel); layout.addLayout(row)
+
+    def commit(self):
+        try:
+            self.values = checked_terms(self.template, {key: field.text() for key, field in self.fields.items()})
+        except ValueError as exc:
+            QMessageBox.warning(self, 'Offer terms', str(exc)); return
+        self.accept()
+
+
 class AIControls(QGroupBox):
     """One drafting request, sharing the host window's single script editor."""
     def __init__(self, host, settings, data_dir):
@@ -105,6 +138,15 @@ class AIControls(QGroupBox):
         self._prior_text = ''
         self._live_text = ''
         self._phase = 'Ready'
+        self._template_category = None
+        self._selected_templates = {}
+        self._terms_path = self.data_dir / 'spot_template_terms.json'
+        self._terms_load_error = ''
+        try:
+            self.template_values = load_terms(self._terms_path)
+        except (OSError, ValueError) as exc:
+            self.template_values = {}
+            self._terms_load_error = str(exc)
         # Worker's text stream is the source of truth. Keep a read-only tagged
         # preview in the editor, without feeding previously injected tags back
         # to the writing model or repeatedly rewriting the text on each token.
@@ -124,9 +166,23 @@ class AIControls(QGroupBox):
         self.lore_button = QPushButton('Lore library'); self.lore_button.clicked.connect(self.open_lore)
         settings_column.addWidget(self.lore_button)
         self.view_prompt_button = QPushButton('View prompt'); self.view_prompt_button.clicked.connect(self.view_prompt)
-        settings_column.addWidget(self.view_prompt_button); settings_column.addStretch()
+        settings_column.addWidget(self.view_prompt_button)
+        self.prepared_button = QPushButton('Prepared copy'); self.prepared_button.clicked.connect(self.use_prepared_copy)
+        self.prepared_button.setToolTip('Use the edited template terms directly, without a model. The optional AI brief is not applied.')
+        settings_column.insertWidget(1, self.prepared_button); settings_column.addStretch()
         layout.addLayout(settings_column)
         brief_column = QVBoxLayout()
+        template_row = QHBoxLayout()
+        self.template_combo = QComboBox(); self.template_combo.setObjectName('spot_template')
+        self.template_combo.setMinimumWidth(0)
+        self.template_combo.setMinimumContentsLength(6)
+        self.template_combo.setAccessibleName('Quick template')
+        self.template_combo.setToolTip('Prepared spot recipe. Select a template, then Edit terms when it has offer variables.')
+        self.template_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.template_combo.currentIndexChanged.connect(self.template_changed)
+        self.terms_button = QPushButton('Edit terms…'); self.terms_button.clicked.connect(self.edit_terms)
+        settings_column.insertWidget(2, self.terms_button)
+        template_row.addWidget(self.template_combo, 1); brief_column.addLayout(template_row)
         self.prompt_label = QLabel(); self.prompt_label.setWordWrap(True); brief_column.addWidget(self.prompt_label)
         self.brief = QTextEdit(); self.brief.setAcceptRichText(False); self.brief.setMinimumHeight(55)
         self.brief.setPlaceholderText('Optional direction or premise. Leave blank to use the built-in prompt. Maximum 4,000 characters.')
@@ -165,7 +221,58 @@ class AIControls(QGroupBox):
             self.refresh_state()
 
     def refresh_prompt(self):
-        self.prompt_label.setText(f'Built-in prompt: {self.host.cat.currentText()} | {station_for(self.host.dj.currentText())}')
+        category = self.host.cat.currentText()
+        if category != self._template_category:
+            self._template_category = category
+            self.template_combo.blockSignals(True)
+            self.template_combo.clear()
+            for template in templates_for(category):
+                self.template_combo.addItem(template.label, template.key)
+            remembered = self._selected_templates.get(category, '')
+            self.template_combo.setCurrentIndex(max(0, self.template_combo.findData(remembered)))
+            self.template_combo.blockSignals(False)
+        template = resolve_template(category, self.template_combo.currentData() or '')
+        self.terms_button.setEnabled(bool(template.terms) and not self.busy)
+        self.prepared_button.setEnabled(template.copy is not None and not self.busy)
+        brand = 'goodneighborblues.com' if template.website else station_for(self.host.dj.currentText())
+        values = self.template_values.get(template.key, {})
+        missing = [term.label for term in template.terms if term.required and not values.get(term.key)]
+        detail = (' — add ' + ', '.join(missing)) if missing else (' — saved terms; check before reuse' if template.terms else '')
+        self.prompt_label.setText(f'Prepared prompt: {category} | {brand}{detail}')
+        if self._terms_load_error:
+            self.prompt_label.setToolTip('Saved terms could not be loaded; original file is retained. Edits work for this session. ' + self._terms_load_error)
+
+    def template_changed(self):
+        self._selected_templates[self.host.cat.currentText()] = self.template_combo.currentData()
+        self.refresh_prompt()
+
+    def edit_terms(self):
+        template = resolve_template(self.host.cat.currentText(), self.template_combo.currentData() or '')
+        dialog = TermsDialog(template, self.template_values.get(template.key, {}), self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.template_values[template.key] = dialog.values
+            if not self._terms_load_error:
+                try:
+                    save_terms(self._terms_path, self.template_values)
+                except (OSError, ValueError) as exc:
+                    QMessageBox.warning(self, 'Terms used for this session', 'Could not save terms: ' + str(exc))
+            self.refresh_prompt()
+
+    def use_prepared_copy(self):
+        if self.busy:
+            return
+        request = self.current_request()
+        try:
+            text = prepared_copy(request.category, request.template_id, request.template_values,
+                                 spot_context(request.dj, station_for(request.dj), request.title, request.artist, request.sponsor))
+            if request.category == 'Ad / promo' and not resolve_template(request.category, request.template_id).website and request.advertiser_slogan:
+                text += ' ' + request.advertiser_slogan
+        except ValueError as exc:
+            QMessageBox.warning(self, 'Prepared copy', str(exc)); return
+        self.host.set_generated_script(text)
+        error = self.host.remember_script(clean_spoken_text(text))
+        self.host.review_notes.setText('Prepared copy. Check current offer terms and narration cues. The optional AI brief is not applied. ' + error)
+        self.host.statusBar().showMessage(error or 'Prepared copy is ready to edit and review. No writing model was loaded.', 7000)
 
     def current_request(self):
         h = self.host
@@ -176,13 +283,16 @@ class AIControls(QGroupBox):
         return ScriptRequest(dj=h.dj.currentText(), category=h.cat.currentText(), mood=h.mood.currentText(),
                                 words=self.words.value(), brief=self.brief.toPlainText().strip(), title=h.title_field.text().strip(),
                                 artist=h.artist.text().strip(), sponsor=h.sponsor.currentText().strip(), advertiser_notes=notes,
-                                advertiser_slogan=advertiser.get('slogan', ''))
+                                advertiser_slogan=advertiser.get('slogan', ''),
+                                template_id=self.template_combo.currentData() or '',
+                                template_values=dict(self.template_values.get(self.template_combo.currentData(), {})))
 
     def active_prompt_text(self):
         request = self.current_request()
-        preview = '\n\n'.join(message['content'] for message in build_messages(request, self.settings, self.host.records, LoreLibrary(self.data_dir).context(
+        website = resolve_template(request.category, request.template_id).website
+        preview = '\n\n'.join(message['content'] for message in build_messages(request, self.settings, self.host.records, '' if website else LoreLibrary(self.data_dir).context(
             ' '.join((request.brief, request.sponsor, request.advertiser_notes)).strip() or 'Goodneighbor Commonwealth'),
-            CharacterLibrary(self.data_dir).context(request.dj)))
+            '' if website else CharacterLibrary(self.data_dir).context(request.dj)))
         if request.category == 'Stories From the Commonwealth':
             preview = ('STORY WORKFLOW: first create an internal source/goal/obstacle/action/'
                        'outcome/closing/wasteland-cause plan, then write the spoken anecdote. The plan '
@@ -200,7 +310,7 @@ class AIControls(QGroupBox):
             text = self.active_prompt_text()
         except ValueError as exc:
             QMessageBox.warning(self, 'Writing prompt', str(exc)); return
-        dialog = QDialog(self); dialog.setWindowTitle('Active Fallout writing prompt')
+        dialog = QDialog(self); dialog.setWindowTitle('Active writing prompt')
         dialog.resize(850, 650); layout = QVBoxLayout(dialog)
         note = QLabel('The built-in format, station and DJ guidance is always included. Your optional brief adds direction; it does not replace those defaults.')
         note.setWordWrap(True); layout.addWidget(note)
@@ -213,11 +323,15 @@ class AIControls(QGroupBox):
     def generate(self):
         if self.busy:
             return
+        request = self.current_request()
+        try:
+            build_messages(request, self.settings)
+        except ValueError as exc:
+            self.state.setText(str(exc)); return
         if not Path(self.settings['server_path']).is_file() or not Path(self.settings['model_path']).is_file():
             self.open_setup()
             return
         h = self.host
-        request = self.current_request()
         if len(request.brief) > 4000 or len(request.advertiser_notes) > 2000:
             self.state.setText('Shorten the brief to 4,000 characters and advertiser description/slogan to 2,000 before generating.'); return
         self._prior_text = h.output.toPlainText()
@@ -246,6 +360,7 @@ class AIControls(QGroupBox):
         h = self.host
         for control in (h.mode, h.request_group, h.generate_button, h.history_button, h.ads_button,
                         self.setup_button, self.profiles_button, self.lore_button, self.view_prompt_button, self.words, self.brief,
+                        self.template_combo, self.terms_button, self.prepared_button,
                         h.reviewed, h.copy_button, h.tts_engine, h.tts_intensity, h.auto_speech,
                         h.apply_speech_button, h.speech_preview, h.speech_export, h.tag_pick, h.tag_insert):
             control.setEnabled(not busy)
@@ -257,6 +372,7 @@ class AIControls(QGroupBox):
             # Restore engine-dependent controls, not merely their generic
             # enabled state: IndexTTS and Qwen3 cannot insert native tags.
             h.update_tag_controls()
+            self.refresh_prompt()
 
     @pyqtSlot(str)
     def append_text(self, fragment):

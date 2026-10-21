@@ -31,7 +31,7 @@ from script_prompts import DEFAULT_WORDS
 from speech_director import render, export_json, clean_spoken_text, CHATTERBOX_TAGS
 
 APP_NAME = 'Goodneighbor / Plague Radio DJ Writer'
-VERSION = '0.9.3'
+VERSION = '0.9.4'
 from plagued_ai import dj_data_dir
 DATA = dj_data_dir()
 HISTORY = DATA / 'history.json'
@@ -493,6 +493,12 @@ class Window(QMainWindow):
             'In AI Studio, add an optional brief and word target. AI Setup selects the separate local writing model. '
             'Classic Generator uses the curated library.</p><p>Write a draft, edit it in the script desk, '
             'check the editorial notes, then mark it reviewed and export. Drag the horizontal dividers to resize the three rows.</p>'
+            '<h3>Quick spots</h3><p>Choose <b>Website Promo</b> for goodneighborblues.com. '
+            'Quick templates include percentage-off offers, fixed prices, subscription introductory deals '
+            'and a website-feature invitation. <b>Edit terms</b> supplies the actual amounts, dates and '
+            'renewal terms; these are saved for reuse. Check them before each spot. '
+            '<b>Prepared copy</b> writes the selected template directly without loading a model. '
+            'The optional AI brief applies when using Write with AI.</p>'
             '<h3>Your DJ\'s voice</h3><p>Profiles & continuity stores personality and editor-maintained facts. '
             'View writing prompt shows the format guidance. Recent drafts are not established lore.</p>'
             '<h3>Speech handoff</h3><p>Expand Narration controls for cue settings. Export a reviewed script '
@@ -528,8 +534,17 @@ if __name__ == '__main__':
                 raise RuntimeError('Packaged DJ Writer icon is missing')
             for name in ('dialogue.json', 'stories.json'):
                 json.loads((Path(__file__).resolve().parent / name).read_text(encoding='utf-8'))
+            w.cat.setCurrentText('Website Promo')
+            w.ai.prepared_button.click()
+            if 'goodneighborblues.com' not in w.output.toPlainText():
+                raise RuntimeError('Prepared website copy is missing from the frozen app')
+            w.ai.template_combo.setCurrentIndex(w.ai.template_combo.findData('percent-off'))
+            w.ai.template_values['percent-off'] = {'percent': '25', 'offer': 'test albums', 'code': 'TEST25'}
+            w.ai.prepared_button.click()
+            if not all(term in w.output.toPlainText() for term in ('25 percent', 'test albums', 'TEST25')):
+                raise RuntimeError('Frozen website offer did not preserve its supplied terms')
             w.close()
             report = Path(sys.argv[sys.argv.index('--smoke-test') + 1])
-            report.write_text(json.dumps({'ok': True, 'version': VERSION, 'icon': True}), encoding='utf-8')
+            report.write_text(json.dumps({'ok': True, 'version': VERSION, 'icon': True, 'website_templates': True}), encoding='utf-8')
         sys.exit(0)
     w = Window(); w.show(); sys.exit(app.exec())
