@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from threading import Event
+import sys
 
 from PyQt6.QtCore import QObject, Qt, QThread, QUrl, QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QDesktopServices
@@ -105,12 +106,18 @@ class EngineLab(QWidget):
         rform = QFormLayout(runtimes)
         self.qwen_py = QLineEdit(self.config['qwen3']['python'])
         self.qwen_py.setPlaceholderText('...\\qwen3\\.venv\\Scripts\\python.exe')
+        if sys.platform != 'win32':
+            self.qwen_py.setPlaceholderText('.../qwen3/.venv/bin/python')
         self.index_py = QLineEdit(self.config['index25']['python'])
         self.index_py.setPlaceholderText('...\\index-tts\\.venv\\Scripts\\python.exe')
+        if sys.platform != 'win32':
+            self.index_py.setPlaceholderText('.../index-tts/.venv/bin/python')
         self.index_repo = QLineEdit(self.config['index25']['repo'])
         self.index_repo.setPlaceholderText('Directory containing indextts and checkpoints')
         self.kokoro_py = QLineEdit(self.config['kokoro']['python'])
         self.kokoro_py.setPlaceholderText('PlaguedAI\\runtimes\\python\\kokoro-directml\\Scripts\\python.exe')
+        if sys.platform != 'win32':
+            self.kokoro_py.setPlaceholderText('.../PlaguedAI/runtimes/python/kokoro-onnx/bin/python')
         self.kokoro_models = QLineEdit(self.config['kokoro']['model_dir'])
         self.kokoro_models.setToolTip('Folder containing kokoro-v1.0.int8.onnx and voices-v1.0.bin; shared by all tools.')
         for title, field, directory in [
@@ -239,7 +246,8 @@ class EngineLab(QWidget):
             buttons.addWidget(button)
         result_layout.addLayout(buttons)
         layout.addWidget(results)
-        self.status = QLabel('Choose an engine, verify its runtime with Test selected engine, then generate speech. Kokoro setup: scripts/setup_kokoro_windows.ps1.')
+        setup = 'scripts/setup_kokoro_windows.ps1' if sys.platform == 'win32' else 'LINUX.md (optional runtimes)'
+        self.status = QLabel(f'Choose an engine, verify its runtime with Test selected engine, then generate speech. Kokoro setup: {setup}.')
         self.status.setWordWrap(True)
         layout.addWidget(self.status)
         diagnostics = QGroupBox('5. Live engine diagnostics')
@@ -263,7 +271,8 @@ class EngineLab(QWidget):
         if directory:
             path = QFileDialog.getExistingDirectory(self, 'Select engine folder')
         else:
-            path, _ = QFileDialog.getOpenFileName(self, 'Select isolated Python interpreter', '', 'Executables (*.exe);;All files (*)')
+            filters = 'Executables (*.exe);;All files (*)' if sys.platform == 'win32' else 'All files (*)'
+            path, _ = QFileDialog.getOpenFileName(self, 'Select isolated Python interpreter', '', filters)
         if path: field.setText(path)
 
     def save_runtimes(self):
@@ -307,7 +316,8 @@ class EngineLab(QWidget):
             if getattr(self, '_last_engine', None) != 'kokoro':
                 self._clone_device = self.device.currentData()
             self.device.clear()
-            for label, value in [('Auto (prefer DirectML GPU)', 'auto'), ('DirectML GPU (Radeon / Intel / NVIDIA)', 'directml'), ('CPU', 'cpu')]:
+            choices = [('Auto (prefer DirectML GPU)', 'auto'), ('DirectML GPU (Radeon / Intel / NVIDIA)', 'directml'), ('CPU', 'cpu')] if sys.platform == 'win32' else [('Auto (CPU)', 'auto'), ('CPU', 'cpu')]
+            for label, value in choices:
                 self.device.addItem(label, value)
         elif getattr(self, '_last_engine', None) == 'kokoro':
             self.device.clear()

@@ -137,8 +137,8 @@ def run(report_path: Path | None = None) -> int:
                 lab.preset_voice.setCurrentIndex(lab.preset_voice.findData('bf_emma'))
                 if lab.language.currentData() != 'English (UK)' or lab.device.currentData() != 'auto':
                     raise RuntimeError('Kokoro voice accent or compute configuration is incorrect.')
-                if lab.device.findData('directml') < 0 or lab.device.findData('cuda') >= 0:
-                    raise RuntimeError('Kokoro must offer DirectML without implying CUDA support.')
+                if (lab.device.findData('directml') >= 0) != (sys.platform == 'win32') or lab.device.findData('cuda') >= 0:
+                    raise RuntimeError('Kokoro compute choices do not match this platform.')
                 if not lab.ref_text.isHidden() or lab.compare.isEnabled():
                     raise RuntimeError('Kokoro must not offer reference cloning or cloned-voice comparison.')
                 lab.engine.setCurrentIndex(0)

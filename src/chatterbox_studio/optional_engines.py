@@ -285,8 +285,11 @@ def _isolated_engine_environment() -> dict[str, str]:
                 return folder == root or folder.startswith(root + os.sep)
             env['PATH'] = os.pathsep.join(x for x in env['PATH'].split(os.pathsep) if not is_host_bundle(x))
         # Linux frozen bootloaders can prepend their own shared-object paths.
-        if sys.platform != 'win32' and 'LD_LIBRARY_PATH_ORIG' in env:
-            env['LD_LIBRARY_PATH'] = env.pop('LD_LIBRARY_PATH_ORIG')
+        if sys.platform != 'win32':
+            if 'LD_LIBRARY_PATH_ORIG' in env:
+                env['LD_LIBRARY_PATH'] = env.pop('LD_LIBRARY_PATH_ORIG')
+            else:
+                env.pop('LD_LIBRARY_PATH', None)
     return env
 
 

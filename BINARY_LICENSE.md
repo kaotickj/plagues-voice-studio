@@ -1,7 +1,7 @@
-# Windows binary distribution
+# GUI binary distribution
 
 The original Plague's Voice Studio and DJ Writer source files retain the MIT
-license in LICENSE. The distributed Windows GUI builds include the GPL version
+license in LICENSE. The distributed Windows and Linux GUI builds include the GPL version
 of PyQt6 and are distributed as combined programs under GNU GPL version 3.
 The full text is in LICENSES/GPL-3.0.txt. Component-specific notices and licenses
 remain applicable; this notice does not change separately distributed model terms.
@@ -9,7 +9,7 @@ remain applicable; this notice does not change separately distributed model term
 The corresponding application source, dependency versions and build scripts are
 available at https://github.com/kaotickj/plagues-voice-studio . For an official
 release use the matching release tag, rather than a later main branch. Build
-instructions are in README.md, scripts/build_windows.ps1 and
+instructions are in README.md, LINUX.md, scripts/build_linux.sh, scripts/build_windows.ps1 and
 plugins/dj-writer/build_windows.ps1. requirements-release.txt records the host's
 versions and the exact Chatterbox/Perth source revisions. DJ dependencies are
 listed in plugins/dj-writer/requirements-build.txt.
@@ -23,7 +23,7 @@ Upstream source and distribution information for the pinned GUI dependencies:
 - SIP runtime source: https://pypi.org/project/PyQt6-sip/#files ; use the installed
   version recorded in the package metadata.
 
-The Voice Studio host additionally includes imageio-ffmpeg 0.6.0 (BSD-2-Clause
+The Windows Voice Studio host additionally includes imageio-ffmpeg 0.6.0 (BSD-2-Clause
 wrapper) and its unmodified Windows FFmpeg 7.1 essentials executable from Gyan.
 That FFmpeg build enables GPL and version 3; it is not an LGPL-only build.
 FFmpeg is a separate executable. Upstream release/provenance:
@@ -33,6 +33,12 @@ https://github.com/FFmpeg/FFmpeg/tree/b08d7969c5 . Build configuration is availa
 with the bundled executable's `-version`/`-buildconf` options; the provider's
 build and external-library information is at https://www.gyan.dev/ffmpeg/builds/ .
 Wrapper source: https://github.com/imageio/imageio-ffmpeg/tree/v0.6.0 .
+
+The Linux portable includes the imageio-ffmpeg wrapper but excludes its FFmpeg
+executable. Install FFmpeg through the Linux distribution's package manager;
+that distribution supplies its binary license/source information. Linux Qt
+shared libraries are separate files under _internal and may be replaced with
+compatible builds, just as the Windows Qt DLLs may be replaced.
 
 Additional bundled components retain their upstream licenses. The application
 includes THIRD_PARTY_NOTICES.md and dependency metadata/license directories

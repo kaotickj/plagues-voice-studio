@@ -1,4 +1,4 @@
-# Validated Windows x64 CPU release toolchain; Python 3.12.
+# Pinned x64 CPU release toolchain; Python 3.12. Linux validation is separate.
 # Install the complete lock with --no-deps (upstream Git dependencies are pinned here).
 # CPU wheels require --extra-index-url https://download.pytorch.org/whl/cpu.
 aiofiles==24.1.0
@@ -63,7 +63,7 @@ opentelemetry-api==1.45.1
 orjson==3.13.0
 packaging==26.3
 pandas==3.0.6
-pefile==2024.8.26
+pefile==2024.8.26; sys_platform == 'win32'
 pillow==12.3.0
 platformdirs==4.13.5
 pluggy==1.7.0
@@ -87,7 +87,7 @@ python-dateutil==2.9.0.post0
 python-discovery==1.6.4
 python-multipart==0.0.32
 pytz==2026.5
-pywin32-ctypes==0.2.3
+pywin32-ctypes==0.2.3; sys_platform == 'win32'
 PyYAML==6.0.3
 regex==2026.9.29
 requests==2.34.2

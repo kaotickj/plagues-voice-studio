@@ -151,6 +151,15 @@ powershell -ExecutionPolicy Bypass -File .\\scripts\\build_windows.ps1 -Slim
 
 The slim build fails if accidentally bundled speech weight files are found in its output. No model weights are downloaded just to build the slim installer.
 
+## Linux test build
+
+A native x86-64 Linux portable workflow is available for testing on Debian 13,
+built on Ubuntu 24.04. It includes the Studio GUI and generic plugins, with
+CPU PyTorch and model-on-demand setup. Download the tarball/checksums from the
+[Linux build workflow](https://github.com/kaotickj/plagues-voice-studio/actions/workflows/linux-build.yml).
+See [LINUX.md](LINUX.md) for system packages, extraction, launch and acceptance
+limits. Linux engine inference is being validated separately from Windows.
+
 ## Building on Windows
 
 The [Windows build workflow](https://github.com/kaotickj/plagues-voice-studio/actions/workflows/windows-build.yml)

@@ -2,7 +2,7 @@
 
 Plague's Voice Studio was created by Kaotick Jay. It is an independent graphical frontend, not an official Resemble AI product.
 
-Windows GUI binary distribution terms and source directions are in
+Windows and Linux GUI binary distribution terms and source directions are in
 BINARY_LICENSE.md; the complete GPL v3 text is included in LICENSES/GPL-3.0.txt.
 The original application source license remains MIT.
 

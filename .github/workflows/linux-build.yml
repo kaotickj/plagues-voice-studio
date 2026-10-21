@@ -1,0 +1,114 @@
+name: Plague's Voice Studio Linux package
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, develop, 'release/**']
+    paths:
+      - 'src/**'
+      - 'plugins/promotional-writer/**'
+      - 'plugins/script-prep/**'
+      - 'plugins/writer_core/**'
+      - 'scripts/**'
+      - 'assets/plagues-voice-studio-*'
+      - 'launcher.py'
+      - 'optional_engine_runner.py'
+      - 'ChatterboxStudio.spec'
+      - 'pyproject.toml'
+      - 'requirements-release.txt'
+      - 'tests/**'
+      - 'LINUX.md'
+      - 'BINARY_LICENSE.md'
+      - 'THIRD_PARTY_NOTICES.md'
+      - 'LICENSE*'
+      - 'LICENSES/**'
+      - '.github/workflows/linux-build.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'plugins/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'ChatterboxStudio.spec'
+      - 'requirements-release.txt'
+      - 'pyproject.toml'
+      - 'LINUX.md'
+      - '.github/workflows/linux-build.yml'
+
+permissions:
+  contents: read
+concurrency:
+  group: pvs-linux-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install Linux audio and Qt dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg libsndfile1 libegl1 libgl1 libopengl0 libpulse0 libasound2t64 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-randr0 libxcb-render-util0 libxcb-image0
+      - name: Test and build native Linux portable
+        run: bash scripts/build_linux.sh
+      - name: Upload portable and checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlaguesVoiceStudio-Linux-x86_64-Portable
+          path: artifacts/linux/*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlaguesVoiceStudio-Linux-Build-Diagnostics
+          path: |
+            build/linux/diagnostics/*.json
+            build/linux/*/warn-*.txt
+          if-no-files-found: warn
+
+  extracted_startup:
+    name: Fresh Linux extraction and GUI startup
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Install system dependencies without Python build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg libsndfile1 libegl1 libgl1 libopengl0 libpulse0 libasound2t64 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-randr0 libxcb-render-util0 libxcb-image0 xvfb xauth
+      - uses: actions/download-artifact@v4
+        with:
+          name: PlaguesVoiceStudio-Linux-x86_64-Portable
+          path: payload
+      - name: Verify checksums, extract to path with spaces and launch twice
+        shell: bash
+        run: |
+          cd payload
+          sha256sum -c SHA256SUMS.txt
+          mkdir -p "$RUNNER_TEMP/Linux portable test"
+          tar -xzf PlaguesVoiceStudio-*-Linux-x86_64-Portable.tar.gz -C "$RUNNER_TEMP/Linux portable test"
+          app="$RUNNER_TEMP/Linux portable test/PlaguesVoiceStudio030Experimental"
+          mkdir -p "$RUNNER_TEMP/linux-reports"
+          export PLAGUED_AI_HOME="$RUNNER_TEMP/linux-profile"
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/linux-config"
+          export HF_HUB_OFFLINE=1
+          export TRANSFORMERS_OFFLINE=1
+          timeout 180 "$app/start-voice-studio.sh" --self-test "$RUNNER_TEMP/linux-reports/runtime.json"
+          for iteration in 1 2; do
+            QT_QPA_PLATFORM=xcb timeout 180 xvfb-run -a "$app/start-voice-studio.sh" --ui-self-test "$RUNNER_TEMP/linux-reports/gui-$iteration.json"
+          done
+          cat "$RUNNER_TEMP/linux-reports/"*.json
+      - name: Retain extracted startup diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlaguesVoiceStudio-Linux-Startup-Diagnostics
+          path: ${{ runner.temp }}/linux-reports/*.json
+          if-no-files-found: warn

@@ -1,3 +1,20 @@
+# Linux packaging pipeline - October 20, 2026
+
+Adds an experimental x86-64 Linux CPU/model-on-demand portable workflow built
+on Ubuntu 24.04 for initial Debian 13 testing. The shared pinned dependency
+snapshot marks pefile/pywin32-ctypes as Windows-only; the shared PyInstaller
+spec omits Windows resources and the imageio FFmpeg binary on Linux. Linux
+uses system FFmpeg. Tar packaging preserves executable permissions and links,
+records source/build provenance and rejects accidental model weights.
+
+Windows source verification after these changes: **292 passed, 1 skipped**;
+the isolated Qt main-window/plugin smoke check passes. Added coverage checks
+ELF/package identity, archive checksums, POSIX link/mode retention and isolation
+of external-engine library paths. Kokoro DirectML is offered only on Windows.
+Linux native freezing and fresh extracted X11 startup are required hosted
+workflow gates, not established by the Windows checks. Real Linux speech,
+optional-engine installation and Debian 13 desktop acceptance remain pending.
+
 # DJ Writer 0.9.4 local prepared-spot build - October 20, 2026
 
 Adds Website Promo and 14 prepared recipes covering all 10 selectable formats,

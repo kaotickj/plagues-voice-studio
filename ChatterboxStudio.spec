@@ -2,6 +2,7 @@
 """PyInstaller one-folder package; models/ populated by download_models.py."""
 from pathlib import Path
 import os
+import sys
 from PyInstaller.utils.hooks import collect_all, collect_submodules, copy_metadata
 
 project = Path(SPECPATH)
@@ -17,6 +18,8 @@ datas = [
     (str(project / 'OPTIONAL_ENGINES.md'), '.'),
     (str(project / 'scripts' / 'setup_kokoro_windows.ps1'), 'scripts'),
 ]
+if sys.platform == 'linux':
+    datas.append((str(project / 'LINUX.md'), '.'))
 # Ship generic plugins, never the branded DJ standalone or its builds.
 for folder in ('promotional-writer', 'script-prep'):
     for path in (project / 'plugins' / folder).rglob('*'):
@@ -31,6 +34,13 @@ if os.environ.get('PVS_SLIM_BUILD') != '1':
 
 for package in ('chatterbox', 'imageio_ffmpeg', 's3tokenizer', 'perth', 'spacy_pkuseg', 'srsly'):
     pkg_datas, pkg_bins, pkg_hidden = collect_all(package, include_py_files=False)
+    if package == 'imageio_ffmpeg' and sys.platform == 'linux':
+        # Linux uses the distribution's FFmpeg (see LINUX.md). Avoid shipping a
+        # second native binary with a different system/library/license baseline.
+        pkg_datas = [(src, dst) for src, dst in pkg_datas
+                     if not Path(src).name.startswith('ffmpeg-')]
+        pkg_bins = [(src, dst) for src, dst in pkg_bins
+                    if not Path(src).name.startswith('ffmpeg-')]
     datas += pkg_datas
     if package == 'chatterbox':
         hidden = pkg_hidden
@@ -81,8 +91,8 @@ pyz = PYZ(analysis.pure)
 exe = EXE(
     pyz, analysis.scripts, [], exclude_binaries=True,
     name='PlaguesVoiceStudio030Experimental',
-    icon=str(project / 'assets' / 'plagues-voice-studio.ico'),
-    version=str(project / 'assets' / 'version_info.txt'),
+    icon=str(project / 'assets' / 'plagues-voice-studio.ico') if sys.platform == 'win32' else None,
+    version=str(project / 'assets' / 'version_info.txt') if sys.platform == 'win32' else None,
     console=False,
     disable_windowed_traceback=False,
 )

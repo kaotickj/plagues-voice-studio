@@ -45,6 +45,11 @@ These results precede the new candidate and do not replace candidate acceptance.
 
 ## Distribution scope
 
+Linux has a separate experimental x86-64 portable workflow targeting Debian 13
+with an Ubuntu 24.04 build baseline. See LINUX.md. Its runtime/GUI/extraction
+gates and real speech acceptance are independent of the published Windows RC;
+the Windows RC's passed checks do not establish Linux readiness.
+
 The standard Windows CPU package excludes model weights and provides model-on-demand setup. IndexTTS uses the documented advanced setup path; complete graphical onboarding remains a general-availability requirement. The full offline edition is separate.
 
 Kokoro presets and writer Vulkan support are in this RC. Experimental native

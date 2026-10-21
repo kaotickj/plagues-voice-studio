@@ -122,7 +122,8 @@ def test_kokoro_controls_profiles_and_no_reference_dependency(kokoro_request, tm
     assert request['voice_path']=='' and request['preset_voice']=='bf_emma'
     assert request['language']=='English (UK)' and request['speed']==1.2
     assert lab.voice.isHidden() and lab.ref_text.isHidden() and not lab.preset_voice.isHidden()
-    assert lab.device.currentData()=='auto' and lab.device.findData('directml')>=0
+    assert lab.device.currentData()=='auto'
+    assert (lab.device.findData('directml')>=0) == (sys.platform=='win32')
     assert not lab.compare.isEnabled()
     lab.engine.setCurrentIndex(lab.engine.findData('index25'))
     assert not lab.voice.isHidden() and lab.preset_voice.isHidden()
