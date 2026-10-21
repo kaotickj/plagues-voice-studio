@@ -29,7 +29,10 @@ Chatterbox, Qwen3 or IndexTTS. Run `scripts/setup_kokoro_windows.ps1` once; exis
 shared weights are reused. Add `-DownloadModels` on a fresh machine to explicitly
 download the checksum-verified model/voice pack. See [Kokoro setup](OPTIONAL_ENGINES.md#kokoro-preset-voices).
 
-This is a **separately installed v0.3.0 build** based on the v0.2.4 stable source. Do not overwrite or uninstall v0.2.4. The preserved stable archive has SHA-256 `23464fb7c541e000d03f2c47f14e18629fe70d97f1b9b4d4ebadf556776d5928`.
+This **1.0.0rc1 candidate** upgrades the experimental 0.3 installation using its
+existing installer identity and directory. It stores shared AI assets under
+`%LOCALAPPDATA%\PlaguedAI` and preserves discovery of existing engine runtimes.
+The separate v0.2.4 installation remains independent.
 
 ### What you can do
 
@@ -48,7 +51,9 @@ Voice Studio includes a **Check for updates** action in the top bar. It queries 
 
 When a newer stable version is available, **View official release** opens the validated GitHub release page so you can review its notes and download the appropriate installer. The application does **not** download, execute, or replace software automatically; model runtimes, scripts, profiles, audio files, and installed voices remain unchanged. The update lookup sends no audio or script data. GitHub receives an ordinary request to its release metadata endpoint. Prereleases (including release candidates) are intentionally not promoted as stable updates.
 
-**Before public release:** verify a working automatic Windows build and the upgrade installer on a clean Windows machine. A release-check UI alone is not a complete unattended update/rollback mechanism. Versioned installers, published checksums and signed packages are recommended for future releases.
+Local RC installer upgrade, reinstall, repeated startup and data-preservation
+checks pass. Fresh hosted Windows CI remains a publication gate; see
+[release readiness](RELEASE_READINESS.md). Installers are currently unsigned.
 
 ## Live engine diagnostics and isolated runtimes
 

@@ -47,14 +47,14 @@ can reuse existing writing-model paths without copying weights or DJ profiles.
 The Windows build uses CPU PyTorch. Writer Vulkan support depends on the selected
 llama.cpp runtime and hardware. Run memory-heavy AI jobs sequentially.
 
-## Candidate acceptance still required
+## Validation and remaining acceptance
 
-- Test the newly installed candidate with your real voice library and configured
-  Chatterbox, Qwen3-TTS and IndexTTS runtimes. Historical engine success on an
-  earlier build is not a new candidate inference result.
-- Both Qwen3-TTS model sizes, IndexTTS 2.5 and Multilingual Chatterbox have
-  completed actual CPU synthesis with the repaired source adapter. Packaged
-  acceptance records are tracked separately in BUILD_VALIDATION.md.
+- The final local frozen candidate generated real offline speech with Nano,
+  Multilingual Chatterbox, both Qwen sizes, IndexTTS 2.5 and Kokoro. Isolated
+  installer upgrade/reinstall/startup/uninstall preserved 15 seeded data files.
+  Detailed evidence is recorded in BUILD_VALIDATION.md.
+- Listening quality, reference-voice fidelity and your normal production workflow
+  still need user acceptance. Automated audio checks establish valid output.
 - IndexTTS first-time installation still uses the documented advanced setup;
   a complete graphical dependency/model installer is not included in this RC.
 - Bethesda export has automated container/conversion/handoff coverage. Real

@@ -18,6 +18,7 @@ def run(report_path: Path | None = None) -> int:
     try:
         from PyQt6.QtCore import QTimer, QSettings
         from PyQt6.QtWidgets import QApplication, QPushButton, QDialog, QLabel, QLineEdit, QListWidget, QTabWidget, QPlainTextEdit
+        from . import app as app_module
         from .app import MainWindow, CSS, _application_icon
         app = QApplication.instance() or QApplication([sys.argv[0]])
         app.setStyle("Fusion")
@@ -30,6 +31,15 @@ def run(report_path: Path | None = None) -> int:
             os.environ['PLAGUES_VOICE_STUDIO_030_HOME'] = str(Path(tmp) / 'data')
             QSettings.setDefaultFormat(QSettings.Format.IniFormat)
             QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, tmp)
+            # The named QSettings(org, app) overload always uses NativeFormat
+            # on Windows, regardless of setDefaultFormat. Supply explicit file
+            # settings so this diagnostic cannot read/write the real registry.
+            original_settings = app_module.QSettings
+            def isolated_settings(organization, application):
+                settings = QSettings(str(Path(tmp) / (application + '.ini')), QSettings.Format.IniFormat)
+                settings.setFallbacksEnabled(False)
+                return settings
+            app_module.QSettings = isolated_settings
             try:
                 window = MainWindow()
                 if window.windowIcon().isNull():
@@ -167,6 +177,7 @@ def run(report_path: Path | None = None) -> int:
                 window.player.stop()
                 window.deleteLater()
             finally:
+                app_module.QSettings = original_settings
                 if old is None: os.environ.pop('PLAGUES_VOICE_STUDIO_030_HOME', None)
                 else: os.environ['PLAGUES_VOICE_STUDIO_030_HOME'] = old
         report["status"] = "passed"

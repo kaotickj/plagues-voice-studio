@@ -65,6 +65,7 @@ jobs:
       - name: Build slim model-on-demand portable and installer
         shell: pwsh
         run: ./scripts/build_windows.ps1 -Slim
+
       # Reject multi-disk output. Users should never see an Insert Disk prompt.
       - name: Verify standalone installer
         shell: pwsh
@@ -107,6 +108,13 @@ jobs:
           name: PlaguesVoiceStudio-Windows-Standalone-Installer
           path: artifacts/PlaguesVoiceStudio-Setup-*.exe
           if-no-files-found: error
+      - name: Retain frozen build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlaguesVoiceStudio-Windows-Diagnostics
+          path: build/frozen-*.json
+          if-no-files-found: warn
 
   # Run installer acceptance on a separate, fresh runner. The packaging
   # artifacts remain available if this heavier test loses its runner.
@@ -134,14 +142,19 @@ jobs:
             throw 'Packaged application executable is missing.'
           }
       - name: Verify isolated install, reinstall, startup and data preservation
+        timeout-minutes: 25
         shell: pwsh
-        run: ./scripts/test_installer.ps1 -SourceDirectory 'dist\PlaguesVoiceStudio030Experimental'
+        run: |
+          Get-PSDrive -PSProvider FileSystem | Select-Object Name,Used,Free
+          ./scripts/test_installer.ps1 -SourceDirectory 'dist\PlaguesVoiceStudio030Experimental' -OutputDirectory 'artifacts\ia'
       - name: Upload installer acceptance diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: PlaguesVoiceStudio-Installer-Acceptance-Diagnostics
-          path: artifacts/installer-acceptance/
+          path: |
+            artifacts/ia/**/*.log
+            artifacts/ia/**/*.json
           if-no-files-found: warn
 
   # Install on a fresh Windows runner, not just compile on the build machine.

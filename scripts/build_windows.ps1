@@ -145,6 +145,8 @@ if ($uiSmoke.ExitCode -ne 0 -or $uiResult.status -ne 'passed' -or $uiResult.vers
     $details = ($uiResult.errors | Out-String).Trim()
     throw "Frozen GUI startup test failed. Installer not created. Details:`n$details"
 }
+& $python scripts\verify_frozen_source.py --exe $exe --report build\frozen-source-check.json
+Assert-Success 'Frozen application source/package comparison failed.'
 Write-Host 'Frozen Qt main-window test PASSED.'
 if ($Slim) {
     $distModels = Join-Path $root 'dist\PlaguesVoiceStudio030Experimental\_internal\models'

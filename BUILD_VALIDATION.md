@@ -1,3 +1,52 @@
+# Final local RC acceptance - October 20, 2026
+
+The final frozen EXE passes actual offline speech generation for Nano,
+Multilingual v3, Qwen Base 0.6B and 1.7B, IndexTTS 2.5 and Kokoro. Each speech
+checker validates finite, non-silent audio and saved script metadata; Kokoro
+uses its dedicated checker and records 4,363 DirectML GPU events. These checks
+establish execution, not listening quality or reference-voice fidelity.
+Evidence: artifacts/release-ready-rc1/frozen-speech/ and
+artifacts/release-speech-repair/final-frozen-inference.log.
+
+All 54 owned-code/plugin comparisons between current source and the frozen
+payload pass (source-package-check.json). The portable ZIP passes CRC checks,
+contains required srsly/tokenizer code and binary license notices, and excludes
+model weights and the branded DJ standalone.
+
+Isolated host installer acceptance passes upgrade from the actual 0.3.0a4
+payload, reinstall, repeated runtime/GUI startup and uninstall. All 15 seeded
+legacy/shared data and user-plugin files retain their SHA-256 hashes. Evidence:
+artifacts/rc1-acceptance/5ebca0979e1f/result.json. An earlier deep test path
+failed Windows file moves; shortening the disposable test path resolved it.
+
+Local packages before the diagnostic-only settings-isolation rebuild (not
+published; final checksums must be refreshed after installer acceptance):
+
+| File | Bytes | SHA-256 |
+|---|---:|---|
+| PlaguesVoiceStudio-Setup-1.0.0rc1.exe | 291643789 | 7324d2bd8df3a8ef4e4710823f0a40fe6c8a167fbb6b38ed78c9cec89b110f4f |
+| PlaguesVoiceStudio-Slim-Portable.zip | 409775167 | 690ccc1ae6178d00472cc2d14c5dff87f40e9a9a94cffb671effb6cf48a68ff7 |
+
+Hosted ed0fd42 builds passed all three plugin workflows. Host packaging passed,
+but GitHub reported lost runner communication during installer acceptance
+(run 39453988265); its log blob was unavailable. This is an unresolved CI gate,
+not a demonstrated application failure. Acceptance now has bounded compilation,
+phase messages, shorter workspace paths and retained diagnostic artifacts.
+Published CI packages will have their own checksum manifest.
+
+A subsequent bounded acceptance rerun exposed a GUI diagnostic isolation bug:
+the named Qt settings constructor ignored the default INI format and inherited
+Windows registry settings. The diagnostic now supplies explicit temporary INI
+files with fallbacks disabled. Source GUI checks and the rebuilt frozen GUI
+check pass, as do all 54 source/package comparisons. This change affects the
+explicit test mode, not normal application settings. The existing regression
+suite passes (287 passed, 1 skipped), and the additional settings-isolation
+regression passes separately. Corrected clean install, reinstall, repeated
+runtime/GUI startup and uninstall preserve all 15 fixtures:
+artifacts/ia/41f018ec4b6e/result.json. The earlier upgrade acceptance remains
+applicable to production behavior, which this diagnostic-only change does not
+alter. The temporarily blocked approval was resolved by user authorization.
+
 # Speech release-blocker repair - October 20, 2026
 
 Both Qwen sizes, IndexTTS 2.5 and Multilingual v3 completed offline Python CPU
@@ -20,8 +69,7 @@ files retain their hashes. No model weights or registry keys are changed.
 Evidence: artifacts/release-speech-repair/real-profile-migration/
 66915c742b714acc8b5364d661fb7821/result.json.
 
-Fresh host packaged inference and installer acceptance are recorded separately
-as they complete; source success does not replace those gates.
+Final host packaged inference and installer acceptance are recorded above.
 
 # All-model Radeon retest - October 20, 2026
 

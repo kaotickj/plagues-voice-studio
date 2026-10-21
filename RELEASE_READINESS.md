@@ -31,9 +31,10 @@ These results precede the new candidate and do not replace candidate acceptance.
 - [x] Both Python Qwen sizes, IndexTTS 2.5 and Multilingual v3 generated real offline CPU speech from the repaired source with matching script sidecars.
 - [x] Real-profile metadata/audio-copy migration passes, all 11 shared voices resolve, repeated startup preserves edits and all 17 original files remain unchanged. No model weights or registry keys copied/modified.
 - [x] DJ Writer 0.9.3 installer acceptance passes: verified 0.9.2 payload upgrade, reinstall, repeated startup, uninstall and preservation of five seeded library/settings files.
-- [ ] Complete final rebuilt-host real inference checks (including packaged Multilingual dependencies), with reference voices and saved transcripts.
-- [ ] Repeat isolated host installer upgrade/reinstall/startup/uninstall acceptance on the latest payload. Earlier RC acceptance passed but predates these changes.
-- [ ] Verify fresh GitHub Actions for the final release-preparation commit and inspect uploaded assets/checksums. The last pushed feb9aa8 revision passed all four workflows.
+- [x] Final rebuilt EXE generates real offline speech with Nano, Multilingual v3, both Qwen sizes, IndexTTS 2.5 and Kokoro. Audio validity and exact script metadata checks pass; Kokoro profiling confirms DirectML execution.
+- [x] Final payload passes 54 owned-source/package comparisons, portable CRC checks and isolated installer upgrade/reinstall/startup/uninstall acceptance. All 15 seeded data files survive; the prior payload is the verified 0.3.0a4 build.
+- [x] Repeat installer acceptance and regression checks after the diagnostic-only Qt settings-isolation fix: clean install/reinstall/repeated startup/uninstall preserve 15 fixtures; 287 existing tests and the new isolation regression pass, 1 skipped. Rebuilt runtime/GUI and 54 source/package comparisons pass.
+- [ ] Verify fresh GitHub Actions for the final release-preparation commit and inspect uploaded assets/checksums. On ed0fd42, all three plugin workflows passed; the host build passed packaging but its runner lost communication during installer acceptance. A diagnostic rerun is required.
 - [ ] Publish the matching prerelease tag only after the final package and CI gates pass.
 
 ## Acceptance retained for general availability

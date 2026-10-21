@@ -49,6 +49,8 @@ try {
         throw 'Generic writer plugin is missing from the package.'
     }
     if (Test-Path -LiteralPath (Join-Path $folder '_internal\plugins\dj-writer')) { throw 'Branded standalone must not be bundled.' }
+    & $PythonExecutable scripts\verify_frozen_source.py --exe $exe --report (Join-Path $reports 'source-package-check.json')
+    if ($LASTEXITCODE -ne 0) { throw 'Packaged Python/plugin files do not match source.' }
     $archive = Join-Path $reports $ArchiveName
     Compress-Archive -LiteralPath $folder -DestinationPath $archive -Force
     $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()

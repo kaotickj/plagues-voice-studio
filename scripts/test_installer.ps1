@@ -18,11 +18,12 @@ function In-Repo([string]$path) {
 }
 $payload = In-Repo $SourceDirectory
 $output = In-Repo $OutputDirectory
-$run = Join-Path $output ([guid]::NewGuid().ToString('N'))
+$run = Join-Path $output ([guid]::NewGuid().ToString('N').Substring(0, 12))
 $target = Join-Path $run 'installed'
 $profile = Join-Path $run 'profile'
 New-Item -ItemType Directory -Force -Path $run, $profile | Out-Null
 function Run-Checked([string]$file, [string[]]$arguments, [int]$timeout = 180000) {
+    Write-Host "Running $([IO.Path]::GetFileName($file)) (timeout $($timeout / 1000)s)"
     $process = Start-Process -FilePath $file -ArgumentList $arguments -PassThru -WindowStyle Hidden
     if (-not $process.WaitForExit($timeout)) { $process.Kill(); throw "Timed out: $file" }
     if ($process.ExitCode -ne 0) { throw "$file exited $($process.ExitCode). See $run" }
@@ -32,8 +33,17 @@ function Compile-Test([string]$source, [string]$name, [string]$version = '') {
     New-Item -ItemType Directory -Force -Path $destination | Out-Null
     $arguments = @('/DAcceptanceBuild', "/DSourceDir=$source", "/DBuildOutputDir=$destination")
     if ($version) { $arguments += "/DAppVersion=$version" }
-    & $Compiler @arguments (Join-Path $repo 'installer.iss') *> (Join-Path $run "$name-compile.log")
-    if ($LASTEXITCODE -ne 0) { throw "Acceptance installer compilation failed: $name" }
+    $arguments += (Join-Path $repo 'installer.iss')
+    $quotedArguments = $arguments | ForEach-Object { '"' + $_ + '"' }
+    Write-Host "Compiling $name acceptance installer; logs: $run"
+    $compilerProcess = Start-Process -FilePath $Compiler -ArgumentList $quotedArguments -PassThru -WindowStyle Hidden `
+        -RedirectStandardOutput (Join-Path $run "$name-compile.log") `
+        -RedirectStandardError (Join-Path $run "$name-compile-error.log")
+    if (-not $compilerProcess.WaitForExit(600000)) {
+        $compilerProcess.Kill()
+        throw "Acceptance installer compilation timed out: $name"
+    }
+    if ($compilerProcess.ExitCode -ne 0) { throw "Acceptance installer compilation failed: $name" }
     return Join-Path $destination 'PVS-Acceptance-Setup.exe'
 }
 function Install-Test([string]$setup, [string]$name) {
@@ -49,6 +59,7 @@ function Check-Profile {
     }
 }
 function Check-Installed([string]$name) {
+    Write-Host "Checking installed $name runtime, GUI and retained data"
     $exe = Join-Path $target 'PlaguesVoiceStudio030Experimental.exe'
     foreach ($mode in @('--self-test', '--ui-self-test')) {
         $report = Join-Path $run ($name + '-' + $mode.TrimStart('-') + '.json')
@@ -73,9 +84,21 @@ foreach ($folder in @('PlaguesVoiceStudio-v030-Experimental', 'PlaguesVoiceStudi
         $sentinels[$path] = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
     }
 }
+foreach ($file in @('voices\retained-reference.wav', 'voices.json', 'models\retained-weight.marker',
+                   'apps\voice-studio\settings.fixture.json',
+                   'apps\voice-studio\plugins\promotional-writer\advertisers.fixture.json',
+                   'apps\dj-writer\characters.fixture.json')) {
+    $path = Join-Path (Join-Path $profile 'PlaguedAI') $file
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $path) | Out-Null
+    $content = if ($file -eq 'voices.json') { '[]' } else { "Shared-library acceptance fixture: $file" }
+    [IO.File]::WriteAllText($path, $content)
+    $sentinels[$path] = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+}
 $oldQt = $env:QT_QPA_PLATFORM
 $oldLocalData = $env:LOCALAPPDATA
+$oldSharedData = $env:PLAGUED_AI_HOME
 $env:QT_QPA_PLATFORM = 'offscreen'; $env:LOCALAPPDATA = $profile
+$env:PLAGUED_AI_HOME = Join-Path $profile 'PlaguedAI'
 $steps = @()
 $uninstalled = $false
 try {
@@ -106,5 +129,5 @@ try {
     if (-not $uninstalled -and (Test-Path -LiteralPath (Join-Path $target 'unins000.exe'))) {
         Run-Checked (Join-Path $target 'unins000.exe') @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART')
     }
-    $env:QT_QPA_PLATFORM = $oldQt; $env:LOCALAPPDATA = $oldLocalData
+    $env:QT_QPA_PLATFORM = $oldQt; $env:LOCALAPPDATA = $oldLocalData; $env:PLAGUED_AI_HOME = $oldSharedData
 }
