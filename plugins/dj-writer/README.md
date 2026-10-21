@@ -1,4 +1,23 @@
-# Goodneighbor / Plague Radio DJ Writer v0.9.2
+# Goodneighbor / Plague Radio DJ Writer v0.9.3
+
+## Radeon Vulkan and shared AI storage
+
+Writing and interview models can use the shared llama.cpp Vulkan runtime and
+existing models under `%LOCALAPPDATA%\PlaguedAI`. Select the Vulkan compute
+backend in Model setup with a compatible GPU runtime. CPU remains available.
+The Windows runtime excludes the conflicting Mirillis capture layer only in
+its own Vulkan subprocesses; it does not change system capture settings.
+
+On the tested RX 7600 XT, Gemma Writer 9B and Qwen3 Instruct 4B completed real
+Vulkan generation. See [measured results](https://github.com/kaotickj/plagues-voice-studio/blob/main/VULKAN_VALIDATION.md). Hardware,
+model loading and context size affect speed. Vulkan improves execution speed;
+the models retain their existing writing abilities and do not train themselves
+from requests. Review generated drafts and accept character notes explicitly.
+
+Windows installer and portable packages include checksums and binary license
+notices. Model weights and inference runtimes are installed separately and
+can be reused by Promotional Writer. The DJ standalone remains separate from
+Voice Studio's generic Promotional Writer plugin.
 
 ## CPU threading controls
 

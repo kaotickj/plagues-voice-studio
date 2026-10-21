@@ -1,3 +1,14 @@
+# Generated-build cleanup - October 20, 2026
+
+Removed 35 superseded preview/build directories, old archives and disposable
+acceptance installer EXEs at the user's request. Approximately 15.9 GiB was
+reclaimed; C: had 19.8 GiB free after cleanup. The current RC payload, installer,
+portable ZIP and DJ Writer 0.9.3 installer/portable remain, with their checksums
+verified after cleanup. Source tests, reports, models, voices and application
+data are retained. Historical output paths below may refer to removed build
+payloads; their log/JSON evidence remains. Private cleanup inventory:
+artifacts/cleanup-20261020.json.
+
 # Final local RC acceptance - October 20, 2026
 
 The final frozen EXE passes actual offline speech generation for Nano,
