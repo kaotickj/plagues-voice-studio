@@ -151,12 +151,17 @@ powershell -ExecutionPolicy Bypass -File .\\scripts\\build_windows.ps1 -Slim
 
 The slim build fails if accidentally bundled speech weight files are found in its output. No model weights are downloaded just to build the slim installer.
 
-## Linux test build
+## Linux test build and Debian installer
 
 A native x86-64 Linux portable workflow is available for testing on Debian 13,
 built on Ubuntu 24.04. It includes the Studio GUI and generic plugins, with
 CPU PyTorch and model-on-demand setup. Download the tarball/checksums from the
 [Linux build workflow](https://github.com/kaotickj/plagues-voice-studio/actions/workflows/linux-build.yml).
+The same workflow also builds a **Debian 13 amd64 `.deb` installer**, with an
+application-menu entry and declared audio/Qt system dependencies. Download the
+`PlaguesVoiceStudio-Linux-amd64-Installer` artifact and verify its checksums before
+installing. Neither format bundles model weights or optional engine runtimes;
+install/reinstall/removal preserves per-user models, voices and settings.
 See [LINUX.md](LINUX.md) for system packages, extraction, launch and acceptance
 limits. Linux engine inference is being validated separately from Windows.
 
