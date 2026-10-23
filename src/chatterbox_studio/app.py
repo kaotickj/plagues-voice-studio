@@ -24,7 +24,6 @@ from .pvs_library import CompatibleVoiceLibrary, new_export_directory, narration
 from .export_browser import ExportBrowser
 from .worker import RenderWorker
 from .narration_markup import plan_script, MarkupError
-from .bethesda_widget import BethesdaExportTab
 from .engine_lab import EngineLab
 from .model_manager import ModelManager
 from .help_center import HelpCenter
@@ -113,7 +112,8 @@ class MainWindow(QMainWindow):
         self.plugins = PluginManager(self)
         self._restore_settings()
         self._refresh_voices()
-        self.bethesda_tab.reapply_selected_voice()
+        if self.bethesda_tab is not None:
+            self.bethesda_tab.reapply_selected_voice()
         self._on_model_changed()
         self._on_text_changed()
         # Update checks are disabled by default and never block the first paint.
@@ -357,8 +357,7 @@ class MainWindow(QMainWindow):
         batch_controls.addStretch()
         batch_layout.addLayout(batch_controls)
 
-        self.bethesda_tab = BethesdaExportTab(self)
-        self.tabs.addTab(self.bethesda_tab, "Bethesda Voice Export")
+        self._build_bethesda_tab()
         self.export_browser = ExportBrowser(self)
         self.tabs.addTab(self.export_browser, "Export Library")
         self.engine_lab = EngineLab(self)
@@ -832,6 +831,15 @@ class MainWindow(QMainWindow):
         self.pause.setValue(int(self.settings.value("pause_ms", 180)))
         self.chunk.setValue(int(self.settings.value("max_chars", 220)))
 
+    def _build_bethesda_tab(self):
+        # The production converter depends on Windows FaceFX/xWMA tooling.
+        # Portable container/project helpers remain usable independently.
+        self.bethesda_tab = None
+        if sys.platform == 'win32':
+            from .bethesda_widget import BethesdaExportTab
+            self.bethesda_tab = BethesdaExportTab(self)
+            self.tabs.addTab(self.bethesda_tab, "Bethesda Voice Export")
+
     def closeEvent(self, event: QCloseEvent):
         if self.plugins.is_busy:
             self.plugins.cancel_all()
@@ -844,7 +852,9 @@ class MainWindow(QMainWindow):
                 'An update check is finishing. Please try closing Voice Studio again shortly.')
             event.ignore()
             return
-        if self.thread is not None or self.bethesda_tab.is_busy or self.engine_lab.is_busy or self.model_manager.is_busy:
+        if self.thread is not None or any(
+                getattr(getattr(self, name, None), 'is_busy', False)
+                for name in ('bethesda_tab', 'engine_lab', 'model_manager')):
             QMessageBox.information(self, "Generation running",
                 "Please stop generation or model downloads and wait until all tasks finish before closing.")
             event.ignore()
@@ -853,7 +863,8 @@ class MainWindow(QMainWindow):
         self.settings.setValue("format", self.format.currentData())
         self.settings.setValue("pause_ms", self.pause.value())
         self.settings.setValue("max_chars", self.chunk.value())
-        self.bethesda_tab._save_tools()
+        if self.bethesda_tab is not None:
+            self.bethesda_tab._save_tools()
         self.player.stop()
         self.plugins.close_all()
         super().closeEvent(event)

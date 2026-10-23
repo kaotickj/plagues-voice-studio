@@ -96,8 +96,13 @@ does not establish them. Kokoro offers CPU on Linux; DirectML is Windows-only.
 Writer's verified downloader currently supplies a Linux CPU llama.cpp runtime;
 automatic Linux writer Vulkan setup is not included.
 
-Bethesda's Windows FaceFX/xWMA tools are not included or validated through Wine.
-Use WAV export while native/Wine conversion acceptance remains outstanding.
+Full Bethesda LIP/XWM/FUZ production is supported on Windows only. Linux builds
+exclude its tab, production UI module and handoff actions; ordinary WAV/MP3
+exports remain available. The supported XWM encoders depend on Windows, and
+Voice Studio has no integrated or tested Wine conversion route. Saved Bethesda
+project data is preserved. Portable format/project helpers remain in the source
+for validation and compatibility; passing their Linux tests does not establish
+a working Linux XWM encoder.
 
 ## Build from source
 

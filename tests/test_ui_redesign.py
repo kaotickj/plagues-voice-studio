@@ -64,7 +64,6 @@ def test_model_manager_is_available_and_preserves_existing_views():
     smoke = (SRC / 'ui_smoke_test.py').read_text(encoding='utf-8')
     engine = (SRC / 'engine.py').read_text(encoding='utf-8')
     assert 'self.tabs.addTab(self.model_manager, "Model Manager")' in app
-    assert 'or self.model_manager.is_busy' in app
     assert "self.setObjectName('model_manager')" in manager
     assert 'Download selected model' in manager
     assert 'Check Qwen cache' in manager

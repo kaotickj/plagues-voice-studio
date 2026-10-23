@@ -106,9 +106,10 @@ the creator's Windows installation.</p>
 <p><b>Kokoro</b> offers six ready-made English voices, speaking speed controls and
 DirectML GPU or CPU inference using the shared INT8 model. It does not clone reference recordings.
 Your saved reference voices remain available in the cloning engines.</p>
-<p>Browse earlier recordings in Export Library and prepare Fallout 4 / Skyrim
-WAV, LIP, XWM and FUZ voice assets using compatible external utilities you supply.
-Game dialogue plugins are not edited.</p>
+<p>Browse earlier recordings in Export Library. <b>On Windows only</b>, prepare
+Fallout 4 / Skyrim LIP, XWM and FUZ voice assets using compatible external
+utilities you supply. Bethesda production controls are excluded from Linux builds;
+ordinary WAV/MP3 exports remain available. Game dialogue plugins are not edited.</p>
 <h3>Updates</h3><p>Select <b>Check for updates</b> in the main window to compare your version with the official GitHub stable releases. Update checks are optional. Voice Studio does not download or install updates itself and does not upload scripts, recordings or voice profiles.</p><h3>Our approach</h3><p>Local-first voice production, clear engine choices,
 reusable creative workflows, previewable exports and respect for speaker permission.
 An initial model download may require an internet connection.</p>
@@ -137,8 +138,10 @@ separately. <a href="https://github.com/thewh1teagle/kokoro-onnx">Visit kokoro-o
 <a href="https://huggingface.co/hexgrad/Kokoro-82M">Kokoro model card</a>.</p>
 <p><b>Qt/PyQt6:</b> Desktop user interface. PyQt6 has separate
 GPL/commercial licensing requirements.</p>
-<p><b>Bethesda export:</b> Game-specific conversion utilities and
-Creation Kit resources are supplied by the user, never redistributed here.</p>
+<p><b>Bethesda export (Windows only):</b> Game-specific conversion utilities and
+Creation Kit resources are supplied by the user, never redistributed here.
+The supported XWM encoders require Windows. Wine is not an integrated or tested
+conversion route.</p>
 <p>This independent application is not affiliated with or endorsed by Resemble AI,
 Bethesda Game Studios, or their respective publishers.</p>
 <p><b>Voice permissions:</b> Only clone voices with permission. Upstream

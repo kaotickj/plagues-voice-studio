@@ -1,5 +1,11 @@
 # Bethesda export release check
 
+Full Bethesda LIP/XWM/FUZ production is **Windows only**. Linux builds omit the
+production tab, handoff actions and UI module while preserving ordinary audio
+exports and saved project data. Portable format-validation tests can run on
+Linux; they do not provide a Linux XWM encoding pipeline. Wine is not an
+integrated or tested production route.
+
 This check covers the desktop application's existing WAV → LIP + XWM → FUZ
 workflow. The application does not create or edit plugin dialogue records.
 

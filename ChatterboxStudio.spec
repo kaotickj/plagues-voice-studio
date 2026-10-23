@@ -73,8 +73,15 @@ hidden += collect_submodules('chatterbox')
 hidden += ['writer_core', 'writer_core.downloads', 'writer_core.runtime',
            'writer_core.settings', 'writer_core.setup_dialog', 'PyQt6.QtSvg']
 hidden += ['plagued_ai']
+# Keep portable FUZ/container and project helpers on every platform. Only the
+# complete Windows-tool-dependent production UI is excluded from Linux builds.
+hidden += ['chatterbox_studio.bethesda_export', 'chatterbox_studio.mod_profiles']
 hidden += ['PyQt6.QtMultimedia', 'PyQt6.QtMultimediaWidgets', 'soundfile', 'imageio_ffmpeg',
            'librosa', 'transformers', 'diffusers', 'torch', 'torchaudio', 'safetensors']
+
+excluded = ['gradio', 'gradio_client', 'streamlit', 'tensorflow', 'tensorboard']
+if sys.platform != 'win32':
+    excluded.append('chatterbox_studio.bethesda_widget')
 
 analysis = Analysis(
     [str(project / 'launcher.py')],
@@ -84,7 +91,7 @@ analysis = Analysis(
     hiddenimports=hidden,
     hookspath=[],
     hooksconfig={},
-    excludes=['gradio', 'gradio_client', 'streamlit', 'tensorflow', 'tensorboard'],
+    excludes=excluded,
     noarchive=False,
 )
 pyz = PYZ(analysis.pure)

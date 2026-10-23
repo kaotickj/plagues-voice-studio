@@ -235,13 +235,17 @@ class EngineLab(QWidget):
         self.table.setMinimumHeight(145)
         result_layout.addWidget(self.table)
         buttons = QHBoxLayout()
-        for label, function in [
+        recording_actions = [
             ('Play selected', self.play_selected),
             ('Stop playback', self.host.player.stop),
-            ('Send selected to Bethesda Export', self.send_to_bethesda),
             ('Open exports folder', self.open_folder),
-        ]:
+        ]
+        if getattr(self.host, 'bethesda_tab', None) is not None:
+            recording_actions.insert(2, ('Send selected to Bethesda Export', self.send_to_bethesda))
+        for label, function in recording_actions:
             button = QPushButton(label)
+            if function == self.send_to_bethesda:
+                button.setObjectName('bethesda_export_handoff')
             button.clicked.connect(function)
             buttons.addWidget(button)
         result_layout.addLayout(buttons)
@@ -601,10 +605,13 @@ class EngineLab(QWidget):
         else: QMessageBox.information(self, 'Select audio', 'Select a generated recording first.')
 
     def send_to_bethesda(self):
+        tab = getattr(self.host, 'bethesda_tab', None)
+        if tab is None:
+            return
         file = self.selected_path()
         if file and file.is_file():
-            self.host.bethesda_tab.audio.setText(str(file))
-            self.host.tabs.setCurrentWidget(self.host.bethesda_tab)
+            tab.audio.setText(str(file))
+            self.host.tabs.setCurrentWidget(tab)
         else:
             QMessageBox.information(self, 'Select audio', 'Choose a generated recording first.')
 

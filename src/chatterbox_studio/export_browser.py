@@ -80,9 +80,11 @@ class ExportBrowser(QWidget):
         stop = QPushButton('Stop')
         stop.clicked.connect(self.host.player.stop)
         action.addWidget(stop)
-        send = QPushButton('Use selected for Bethesda export')
-        send.clicked.connect(self.send_selected)
-        action.addWidget(send)
+        if getattr(self.host, 'bethesda_tab', None) is not None:
+            send = QPushButton('Use selected for Bethesda export')
+            send.setObjectName('bethesda_export_handoff')
+            send.clicked.connect(self.send_selected)
+            action.addWidget(send)
         show = QPushButton('Open containing folder')
         show.clicked.connect(self.open_selected)
         action.addWidget(show)
@@ -166,10 +168,13 @@ class ExportBrowser(QWidget):
             QMessageBox.information(self, 'Select an export', 'Choose a recording from the list first.')
 
     def send_selected(self):
+        tab = getattr(self.host, 'bethesda_tab', None)
+        if tab is None:
+            return
         file = self.selected_path()
         if file and file.is_file():
-            self.host.bethesda_tab.audio.setText(str(file))
-            self.host.tabs.setCurrentWidget(self.host.bethesda_tab)
+            tab.audio.setText(str(file))
+            self.host.tabs.setCurrentWidget(tab)
         else:
             QMessageBox.information(self, 'Select an export', 'Choose a recording first.')
 

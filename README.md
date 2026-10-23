@@ -113,7 +113,7 @@ Read **[OPTIONAL_ENGINES.md](OPTIONAL_ENGINES.md)** before setting up extra mode
 - Chatterbox Nano, Turbo, Original English and Multilingual V3, unchanged Narration Studio generation pipeline.
 - Source text import/export, markup (`[pause]`, `[rate]`, `[volume]`, `[emphasis]`) in Chatterbox narration, WAV/MP3, batch queue.
 - Persistent saved voice references and an Export Library with playback of older recordings, script preview and Copy Script from matching JSON metadata.
-- Bethesda project mappings, WAV/LIP/XWM/FUZ production, and optional direct game/mod installation using locally supplied conversion tools. Game plugin files are never edited.
+- **Windows only:** Bethesda project mappings, LIP/XWM/FUZ production, and optional direct game/mod installation using locally supplied Windows conversion tools. Linux builds omit these production controls and retain ordinary WAV/MP3 export. Game plugin files are never edited.
 - Dark-green branded PyQt6 GUI, searchable Help center, About/Credits/Diagnostics, and Windows frozen runtime & Qt smoke tests.
 
 ## Shared AI library and user data

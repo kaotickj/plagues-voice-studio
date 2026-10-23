@@ -157,7 +157,9 @@ class PluginManager:
             action.triggered.connect(lambda: QMessageBox.warning(self.host, 'Plugin loading details', '\n'.join(self.errors)))
 
     def can_generate(self):
-        if self.host.thread is not None or self.host.engine_lab.is_busy or self.host.model_manager.is_busy or self.host.bethesda_tab.is_busy:
+        if self.host.thread is not None or any(
+                getattr(getattr(self.host, name, None), 'is_busy', False)
+                for name in ('engine_lab', 'model_manager', 'bethesda_tab')):
             return 'Finish Voice Studio generation or model operations before starting the writer.'
         if self.is_busy:
             return 'Another plugin operation is still running.'

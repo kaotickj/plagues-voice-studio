@@ -27,7 +27,7 @@ TOPICS: tuple[tuple[str, str, str], ...] = (
 <li><b>Choose a voice</b>, if that model requires a reference recording.</li>
 <li><b>Write or import</b> your script. Short paragraphs work well for spoken delivery.</li>
 <li><b>Generate now</b> or add multiple jobs to the Batch Queue.</li>
-<li><b>Review</b> the result in Export Library, then send it to Bethesda Voice Export if needed.</li></ol>
+<li><b>Review</b> the result in Export Library. On Windows, send it to Bethesda Voice Export if needed.</li></ol>
 <h3>Qwen3-TTS voice cloning</h3><p>For Qwen3-TTS, open the <b>Voice Engines</b> tab, configure the separate Qwen Python environment, choose your reference voice and model, and generate speech. The generated WAV joins Export Library and can be sent to Bethesda Voice Export. IndexTTS 2.5 is also supported through Voice Engines and uses its own installed runtime and checkpoints.</p>
 <h3>Offline models</h3><p>Models bundled during a <b>FullOffline</b> build are available without downloads. Otherwise the program may download model weights on first use. The build option and the model chosen in the GUI are separate.</p>
 '''),
@@ -62,11 +62,16 @@ TOPICS: tuple[tuple[str, str, str], ...] = (
 <h2>Export Library</h2>
 <p>Choose a folder to browse and play earlier renders. Double-click a recording or use <b>Play selected</b>.</p>
 <p>Select a recording to preview its original script in the read-only <b>Script preview</b> pane, then choose <b>Copy script</b> to reuse it. The text comes from the matching <code>.json</code> file; Qwen3-TTS and IndexTTS save JSON metadata with their recordings. Chatterbox script metadata is available in builds that include its matching sidecar-export update. Older or imported audio without this metadata shows an explanatory message. Vocal tags, punctuation and paragraph breaks are preserved.</p><p>Use <b>Add folder</b> to include another export directory. Older exported audio is not moved, edited, or deleted. Supported playback formats depend on codecs available to Qt Multimedia on your computer.</p>
-<p><b>Use selected for Bethesda export</b> loads the file path into the game-audio converter; it does not alter the recording itself.</p>
+<p><b>On Windows</b>, <b>Use selected for Bethesda export</b> loads the file path into the game-audio converter; it does not alter the recording itself. Linux builds omit Bethesda production controls and retain ordinary audio export.</p>
 <p>New exports are automatically named from the selected voice and a timestamp, unless you explicitly enter a filename. Existing files are not silently overwritten.</p>
 '''),
     ('Bethesda voice export', 'fallout skyrim lip xwm fuz game data mo2 mod voice type response facefx', '''
 <h2>Bethesda voice export</h2>
+<p><b>Windows only.</b> Full LIP/XWM/FUZ production requires user-supplied Windows
+tools: FaceFXWrapper with Fonix data, and WMAEncodeRS or Creation Kit xwmaencode.
+The supported XWM encoders depend on Windows. This tab and its handoff actions
+are excluded from Linux builds; use ordinary WAV/MP3 export there. Wine is not
+an integrated or tested conversion route.</p>
 <p>This workflow builds a Fallout 4 / Skyrim-compatible FUZ file and can place it in an exact game or mod folder. <b>The game plugin is not opened or edited.</b></p>
 <ol><li>Save a project with the owning plugin filename and the target <b>Data</b> folder or MO2 mod root.</li>
 <li>Save a Voice Profile pairing a Creation Kit <b>VoiceType EditorID</b> with a Chatterbox voice/model.</li>
