@@ -112,12 +112,52 @@ def test_pre_cancel_does_not_launch_engine(tmp_path, monkeypatch):
 
 def test_index_requires_repo_and_checkpoints(tmp_path, monkeypatch):
     monkeypatch.setattr(oe, 'runtime_script_path', lambda: fake_runner(tmp_path))
+    monkeypatch.setenv('PLAGUED_AI_HOME', str(tmp_path / 'shared'))
+    monkeypatch.delenv('PLAGUED_INDEX_CHECKPOINTS', raising=False)
     with pytest.raises(oe.EngineError, match='repository'):
         oe.check_configuration('index25', sys.executable, str(tmp_path))
     (tmp_path/'indextts').mkdir()
     (tmp_path/'indextts'/'infer_v2_5.py').write_text('')
     with pytest.raises(oe.EngineError, match='checkpoint'):
         oe.check_configuration('index25', sys.executable, str(tmp_path))
+
+
+def test_index_accepts_shared_setup_models_without_repository_checkpoint_copy(tmp_path, monkeypatch):
+    """Match setup_index_windows.ps1's default model destination without a download."""
+    monkeypatch.setattr(oe, 'runtime_script_path', lambda: fake_runner(tmp_path))
+    monkeypatch.setenv('PLAGUED_AI_HOME', str(tmp_path / 'shared'))
+    monkeypatch.delenv('PLAGUED_INDEX_CHECKPOINTS', raising=False)
+    repo = tmp_path / 'repository'
+    (repo / 'indextts').mkdir(parents=True)
+    (repo / 'indextts' / 'infer_v2_5.py').write_text('# fixture repository')
+    checkpoints = tmp_path / 'shared' / 'models' / 'index-tts' / '2.5'
+    checkpoints.mkdir(parents=True)
+    config = checkpoints / 'config.yaml'
+    config.write_text('# fixture existing setup output')
+    before = config.read_bytes()
+
+    oe.check_configuration('index25', sys.executable, str(repo))
+
+    assert oe._isolated_engine_environment()['PLAGUED_INDEX_CHECKPOINTS'] == str(checkpoints)
+    assert not (repo / 'checkpoints').exists()
+    assert config.read_bytes() == before
+    config.unlink()
+    with pytest.raises(oe.EngineError, match='checkpoint'):
+        oe.check_configuration('index25', sys.executable, str(repo))
+
+
+def test_index_keeps_explicit_repository_checkpoints_authoritative(tmp_path, monkeypatch):
+    monkeypatch.setattr(oe, 'runtime_script_path', lambda: fake_runner(tmp_path))
+    repo = tmp_path / 'repository'
+    (repo / 'indextts').mkdir(parents=True)
+    (repo / 'indextts' / 'infer_v2_5.py').write_text('# fixture repository')
+    (repo / 'checkpoints').mkdir()
+    config = repo / 'checkpoints' / 'config.yaml'
+    config.write_text('# fixture local checkpoints')
+    monkeypatch.setattr(oe, '_isolated_engine_environment',
+                        lambda: pytest.fail('Local checkpoints must not require shared models'))
+    oe.check_configuration('index25', sys.executable, str(repo))
+    assert config.read_text() == '# fixture local checkpoints'
 
 
 def test_source_includes_lab_and_frozen_bundle(tmp_path):

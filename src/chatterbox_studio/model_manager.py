@@ -164,7 +164,8 @@ class ModelManager(QWidget):
             self.check.setEnabled(not self.is_busy and bool(python))
         self.status.setText(f'{selected.label}: {state}')
         self.download.setEnabled(not self.is_busy and (
-            (selected.family == 'chatterbox' and state == 'Download available') or
+            (selected.family == 'chatterbox' and state in (
+                'Download available', 'Tokenizer download required (select Download to repair)')) or
             (selected.family == 'qwen3' and bool(qwen_python(self.host.storage)))))
 
     def _start(self, operation: str):
@@ -173,6 +174,12 @@ class ModelManager(QWidget):
             QMessageBox.information(self, 'Writer running', 'Finish or cancel the writer before starting model operations.')
             return
         if self.is_busy:
+            return
+        if getattr(self.host, 'thread', None) is not None or any(
+                getattr(getattr(self.host, name, None), 'is_busy', False)
+                for name in ('engine_lab', 'bethesda_tab')):
+            QMessageBox.information(self, 'Operation running',
+                'Finish or cancel the active narration, voice-engine, or export operation before starting model operations.')
             return
         key = self.model.currentData()
         entry = MODELS[key]

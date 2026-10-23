@@ -674,6 +674,11 @@ class MainWindow(QMainWindow):
             return
         if self.thread is not None:
             return
+        if any(getattr(getattr(self, name, None), 'is_busy', False)
+               for name in ('engine_lab', 'model_manager', 'bethesda_tab')):
+            QMessageBox.information(self, 'Operation running',
+                'Finish or cancel the active voice, model, or export operation before starting narration.')
+            return
         self.current_jobs = jobs[:]
         self.thread = QThread(self)
         self.worker = RenderWorker(jobs)

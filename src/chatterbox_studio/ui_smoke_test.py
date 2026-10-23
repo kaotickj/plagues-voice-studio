@@ -13,6 +13,54 @@ from pathlib import Path
 from . import __version__
 
 
+def _check_export_script_preview(browser, sample_dir: Path) -> None:
+    """Exercise the real export widgets without synthesis or audio playback."""
+    from wave import open as open_wave
+    from PyQt6.QtCore import QMimeData, Qt
+    from PyQt6.QtWidgets import QApplication
+    from .export_metadata import write_export_metadata
+
+    sample_dir.mkdir()
+    script = '[narration] The Charles River is quiet.\n\n[whispering] Not for long, sweetheart.'
+    audio_path = sample_dir / 'test_story.wav'
+    with open_wave(str(audio_path), 'wb') as audio:
+        audio.setnchannels(1)
+        audio.setsampwidth(2)
+        audio.setframerate(8000)
+        audio.writeframes(b'\x00\x00' * 800)
+    write_export_metadata(audio_path, {'engine': 'chatterbox', 'model': 'turbo', 'text': script})
+    browser.add_root(sample_dir)
+    matches = browser.list.findItems(audio_path.name, Qt.MatchFlag.MatchExactly, 0)
+    if len(matches) != 1:
+        raise RuntimeError('Generated Chatterbox WAV missing from Export Library.')
+    browser.list.setCurrentItem(matches[0])
+    if browser.script_preview.toPlainText() != script:
+        raise RuntimeError('Export Library failed to display the exact saved script.')
+    if not browser.script_preview.isReadOnly() or not browser.copy_script.isEnabled():
+        raise RuntimeError('Export script preview must be read-only and copyable.')
+    clipboard = QApplication.clipboard()
+    saved_clipboard = QMimeData()
+    current_clipboard = clipboard.mimeData()
+    if current_clipboard is not None:
+        for mime_type in current_clipboard.formats():
+            saved_clipboard.setData(mime_type, current_clipboard.data(mime_type))
+    try:
+        browser.copy_script.click()
+        if clipboard.text() != script:
+            raise RuntimeError('Copy script did not preserve the original tags and whitespace.')
+    finally:
+        clipboard.setMimeData(saved_clipboard)
+    legacy_path = sample_dir / 'older_without_script.wav'
+    legacy_path.write_bytes(audio_path.read_bytes())
+    browser.refresh()
+    matches = browser.list.findItems(legacy_path.name, Qt.MatchFlag.MatchExactly, 0)
+    if len(matches) != 1:
+        raise RuntimeError('Legacy audio not listed in Export Library.')
+    browser.list.setCurrentItem(matches[0])
+    if browser.script_preview.toPlainText() or browser.copy_script.isEnabled():
+        raise RuntimeError('Legacy recording reused a different audio file script.')
+
+
 def run(report_path: Path | None = None) -> int:
     report = {"version": __version__, "test": "Qt main-window and About dialog lifecycle", "status": "failed", "errors": []}
     try:
@@ -165,6 +213,10 @@ def run(report_path: Path | None = None) -> int:
                 help_search.clear()
                 if help_center.topic_list.count() < 6:
                     raise RuntimeError('Help topic list incomplete.')
+                # Run this in the frozen application as well as the source GUI:
+                # controls existing alone do not establish exact preview/copy.
+                _check_export_script_preview(window.export_browser,
+                                             Path(tmp) / 'script-preview-acceptance')
                 about_button.click()
                 if about_dialog.findChild(QTabWidget, 'about_tabs') is None:
                     raise RuntimeError('About credits and diagnostics tabs missing.')

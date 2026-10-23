@@ -101,7 +101,12 @@ def check_configuration(engine: str, python_exe: str, repo: str = '', model_dir:
         if not (root / 'indextts' / 'infer_v2_5.py').is_file():
             raise EngineError('IndexTTS requires the checked-out index-tts repository directory.')
         if not (root / 'checkpoints' / 'config.yaml').is_file():
-            raise EngineError('IndexTTS checkpoint config missing: <repository>/checkpoints/config.yaml')
+            # Match the runner: existing repository checkpoints stay authoritative,
+            # then use the shared model directory selected for its child process.
+            shared = _isolated_engine_environment().get('PLAGUED_INDEX_CHECKPOINTS', '')
+            if not shared or not (Path(shared) / 'config.yaml').is_file():
+                raise EngineError('IndexTTS checkpoint config missing: '
+                                  '<repository>/checkpoints/config.yaml or the configured shared model directory.')
     if engine == 'kokoro':
         kokoro_model_files(model_dir)
     if not runtime_script_path().is_file():

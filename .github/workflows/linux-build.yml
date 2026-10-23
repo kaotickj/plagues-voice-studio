@@ -1,39 +1,10 @@
 name: Plague's Voice Studio Linux package
 
+# Linux release builds run locally under the user's build policy. Retain this
+# historical acceptance workflow for explicitly authorized manual recovery only;
+# source pushes and pull requests must not schedule Linux runners or artifacts.
 on:
   workflow_dispatch:
-  push:
-    branches: [main, develop, 'release/**']
-    paths:
-      - 'src/**'
-      - 'plugins/promotional-writer/**'
-      - 'plugins/script-prep/**'
-      - 'plugins/writer_core/**'
-      - 'scripts/**'
-      - 'assets/plagues-voice-studio-*'
-      - 'launcher.py'
-      - 'optional_engine_runner.py'
-      - 'ChatterboxStudio.spec'
-      - 'pyproject.toml'
-      - 'requirements-release.txt'
-      - 'tests/**'
-      - 'LINUX.md'
-      - 'BINARY_LICENSE.md'
-      - 'THIRD_PARTY_NOTICES.md'
-      - 'LICENSE*'
-      - 'LICENSES/**'
-      - '.github/workflows/linux-build.yml'
-  pull_request:
-    paths:
-      - 'src/**'
-      - 'plugins/**'
-      - 'scripts/**'
-      - 'tests/**'
-      - 'ChatterboxStudio.spec'
-      - 'requirements-release.txt'
-      - 'pyproject.toml'
-      - 'LINUX.md'
-      - '.github/workflows/linux-build.yml'
 
 permissions:
   contents: read

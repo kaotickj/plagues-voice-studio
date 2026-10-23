@@ -380,6 +380,11 @@ class BethesdaExportTab(QWidget):
         if self.thread is not None or self.host.thread is not None:
             QMessageBox.information(self, 'Busy', 'Finish the active job first.')
             return
+        if any(getattr(getattr(self.host, name, None), 'is_busy', False)
+               for name in ('plugins', 'engine_lab', 'model_manager')):
+            QMessageBox.information(self, 'Operation running',
+                'Finish or cancel the active voice, model, or plugin operation before starting an export.')
+            return
         try:
             # Previewing a target never creates project files. Only a real
             # export needs its source/backup directory to be writable.

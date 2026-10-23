@@ -35,10 +35,12 @@ class ModelChoice:
 CATALOG: tuple[ModelChoice, ...] = (
     ModelChoice('nano', 'Chatterbox Nano', 'chatterbox', 'ResembleAI/chatterbox-nano',
                 ('ve.safetensors', 't3_nano_v1.safetensors', 's3gen_meanflow.safetensors'),
-                ('*.safetensors', '*.json', '*.txt', '*.pt', '*.model')),
+                ('ve.safetensors', 't3_nano_v1.safetensors', 's3gen_meanflow.safetensors',
+                 '*.json', '*.txt', '*.pt', '*.model')),
     ModelChoice('turbo', 'Chatterbox Turbo', 'chatterbox', 'ResembleAI/chatterbox-turbo',
                 ('ve.safetensors', 't3_turbo_v1.safetensors', 's3gen_meanflow.safetensors'),
-                ('*.safetensors', '*.json', '*.txt', '*.pt', '*.model')),
+                ('ve.safetensors', 't3_turbo_v1.safetensors', 's3gen_meanflow.safetensors',
+                 '*.json', '*.txt', '*.pt', '*.model')),
     ModelChoice('english', 'Chatterbox Original English', 'chatterbox', 'ResembleAI/chatterbox',
                 ('ve.safetensors', 't3_cfg.safetensors', 's3gen.safetensors', 'tokenizer.json', 'conds.pt'),
                 ('ve.safetensors', 't3_cfg.safetensors', 's3gen.safetensors', 'tokenizer.json', 'conds.pt')),
@@ -184,15 +186,18 @@ import shutil
 repo, operation = sys.argv[1], sys.argv[2]
 # A cached Hub revision is NOT evidence that multi-GB model weights are complete.
 # Verify both speech-tokenizer and primary weight files before claiming readiness.
-required = ("config.json", "model.safetensors",
-            "speech_tokenizer/config.json", "speech_tokenizer/model.safetensors")
+required = ("config.json", "model.safetensors", "tokenizer_config.json",
+            "vocab.json", "merges.txt", "generation_config.json",
+            "preprocessor_config.json", "speech_tokenizer/config.json",
+            "speech_tokenizer/model.safetensors", "speech_tokenizer/preprocessor_config.json")
 
 def verify(path):
     root = Path(path)
     missing = []
     for filename in required:
         item = root / filename
-        if not item.is_file() or item.stat().st_size < 1024:
+        minimum = 1024 if filename.endswith(".safetensors") else 1
+        if not item.is_file() or item.stat().st_size < minimum:
             missing.append(filename)
     if missing:
         raise RuntimeError("Incomplete Qwen model snapshot; missing/empty files: " + ", ".join(missing))

@@ -463,6 +463,12 @@ class EngineLab(QWidget):
         if self.thread is not None:
             QMessageBox.information(self, 'Engine already running', 'Finish or cancel the current generation first.')
             return
+        if getattr(self.host, 'thread', None) is not None or any(
+                getattr(getattr(self.host, name, None), 'is_busy', False)
+                for name in ('model_manager', 'bethesda_tab')):
+            QMessageBox.information(self, 'Operation running',
+                'Finish or cancel the active narration, model, or export operation before starting a voice-engine operation.')
+            return
         self.thread = QThread(self)
         self.worker = OptionalEngineWorker(jobs=jobs, probe=probe,
                                            diagnostic_dir=self.host.storage / 'engine_logs')
