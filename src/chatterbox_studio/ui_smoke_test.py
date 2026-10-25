@@ -1,6 +1,8 @@
 """Smoke test actual Qt window construction, without invoking speech synthesis.
 
 Run on Windows via PlaguesVoiceStudio030Experimental.exe --ui-self-test <report.json>.
+Use --ui-self-test-no-audio <report.json> for the same widget checks with
+diagnostic-only inert media objects. That mode does not initialize real audio.
 Exits nonzero and writes exception details if the GUI cannot be initialized.
 """
 from __future__ import annotations
@@ -11,6 +13,57 @@ import tempfile
 import traceback
 from pathlib import Path
 from . import __version__
+
+
+def _no_audio_media_types(player_type):
+    """Media-only stand-ins for an explicitly requested no-audio diagnostic.
+
+    Keep application widgets and their connections intact. Any attempt to load
+    a source or play audio fails, rather than reaching a device or sound server.
+    """
+    class Signal:
+        def __init__(self):
+            self.callbacks = []
+
+        def connect(self, callback):
+            self.callbacks.append(callback)
+
+        def emit(self, value):
+            for callback in self.callbacks:
+                callback(value)
+
+    class NoAudioPlayer:
+        PlaybackState = player_type.PlaybackState
+
+        def __init__(self, parent=None):
+            self.playbackStateChanged = Signal()
+
+        def setAudioOutput(self, output):
+            self.audio_output = output
+
+        def playbackState(self):
+            return self.PlaybackState.StoppedState
+
+        def stop(self):
+            self.playbackStateChanged.emit(self.PlaybackState.StoppedState)
+
+        def setSource(self, *args, **kwargs):
+            raise RuntimeError('No-audio UI diagnostic forbids loading audio sources.')
+
+        def play(self):
+            raise RuntimeError('No-audio UI diagnostic forbids audio playback.')
+
+    class NoAudioOutput:
+        def __init__(self, parent=None):
+            self._volume = 1.0
+
+        def setVolume(self, volume):
+            self._volume = volume
+
+        def volume(self):
+            return self._volume
+
+    return NoAudioPlayer, NoAudioOutput
 
 
 def _check_export_script_preview(browser, sample_dir: Path) -> None:
@@ -61,8 +114,15 @@ def _check_export_script_preview(browser, sample_dir: Path) -> None:
         raise RuntimeError('Legacy recording reused a different audio file script.')
 
 
-def run(report_path: Path | None = None) -> int:
-    report = {"version": __version__, "test": "Qt main-window and About dialog lifecycle", "status": "failed", "errors": []}
+def run(report_path: Path | None = None, *, no_audio: bool = False) -> int:
+    report = {"version": __version__,
+              "test": "Qt main-window and About dialog lifecycle" + (" (NO AUDIO)" if no_audio else ""),
+              "mode": "no_audio" if no_audio else "standard",
+              "real_audio": not no_audio,
+              "playback": False,
+              "audio_note": ("Real audio is disabled. Inert media objects are used; audio source loading and playback are forbidden."
+                             if no_audio else "Real Qt multimedia objects are initialized. Audio playback is not tested."),
+              "status": "failed", "errors": []}
     try:
         from PyQt6.QtCore import QTimer, QSettings
         from PyQt6.QtWidgets import QApplication, QPushButton, QDialog, QLabel, QLineEdit, QListWidget, QTabWidget, QPlainTextEdit
@@ -83,12 +143,16 @@ def run(report_path: Path | None = None) -> int:
             # on Windows, regardless of setDefaultFormat. Supply explicit file
             # settings so this diagnostic cannot read/write the real registry.
             original_settings = app_module.QSettings
+            original_player = app_module.QMediaPlayer
+            original_audio_output = app_module.QAudioOutput
             def isolated_settings(organization, application):
                 settings = QSettings(str(Path(tmp) / (application + '.ini')), QSettings.Format.IniFormat)
                 settings.setFallbacksEnabled(False)
                 return settings
             app_module.QSettings = isolated_settings
             try:
+                if no_audio:
+                    app_module.QMediaPlayer, app_module.QAudioOutput = _no_audio_media_types(original_player)
                 window = MainWindow()
                 if window.windowIcon().isNull():
                     raise RuntimeError('Application icon was not packaged.')
@@ -237,6 +301,8 @@ def run(report_path: Path | None = None) -> int:
                 window.deleteLater()
             finally:
                 app_module.QSettings = original_settings
+                app_module.QMediaPlayer = original_player
+                app_module.QAudioOutput = original_audio_output
                 if old is None: os.environ.pop('PLAGUES_VOICE_STUDIO_030_HOME', None)
                 else: os.environ['PLAGUES_VOICE_STUDIO_030_HOME'] = old
         report["status"] = "passed"

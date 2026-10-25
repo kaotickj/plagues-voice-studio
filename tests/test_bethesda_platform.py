@@ -107,6 +107,9 @@ def test_close_without_production_tab_preserves_saved_tool_settings(
     window.settings.setValue('bethesda/facefx', 'preserved Windows tool path')
     window.model = window.format = SimpleNamespace(currentData=lambda: 'saved setting')
     window.pause = window.chunk = SimpleNamespace(value=lambda: 100)
+    window.generation_profile = SimpleNamespace(currentData=lambda: 'custom')
+    window.exaggeration = window.cfg = SimpleNamespace(value=lambda: .5)
+    window.temperature = SimpleNamespace(value=lambda: .8)
     window.player = SimpleNamespace(stop=Mock())
     before = {key: window.settings.value(key) for key in window.settings.allKeys()}
     notice = Mock()
@@ -122,6 +125,10 @@ def test_close_without_production_tab_preserves_saved_tool_settings(
     else:
         assert event.isAccepted()
         assert window.settings.value('bethesda/facefx') == 'preserved Windows tool path'
+        assert window.settings.value('narration/profile') == 'custom'
+        assert window.settings.value('narration/custom_exaggeration') == .5
+        assert window.settings.value('narration/custom_cfg_weight') == .5
+        assert window.settings.value('narration/custom_temperature') == .8
         window.player.stop.assert_called_once()
         window.plugins.close_all.assert_called_once()
         notice.assert_not_called()
