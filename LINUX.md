@@ -2,8 +2,9 @@
 
 Experimental **x86-64** portable build. The October 25 local qualification
 candidate was built on **Debian 13 (glibc 2.41)**; its results do not establish
-Ubuntu 24.04 compatibility. The separate CI workflow uses Ubuntu 24.04 as a
-glibc 2.39 build baseline and needs its own current-source acceptance run.
+Ubuntu 24.04 compatibility. The release CI workflow uses Ubuntu 24.04 as a
+glibc 2.39 build baseline and validates its own artifacts at each release revision.
+Use the download's BUILD-INFO and release checksums to identify which build you have.
 Debian 13 is the local test target. Older glibc distributions,
 ARM and musl/Alpine are not covered by this build. No Python installation is
 needed to run the portable application.
@@ -45,7 +46,8 @@ Debian 13 container installs the `.deb` with dependencies, validates its desktop
 entry, exercises the installed runtime and GUI/plugin startup twice, reinstalls
 it, then removes it while checking seeded model/settings files are preserved.
 Installer and acceptance diagnostics are retained as separate workflow artifacts.
-This describes the workflow's gates, not a completed RC2 run. Local archive
+This describes the workflow's required gates; the release page and Actions run
+record their result for each revision. Local archive
 inspection, source tests and headless startup do not replace a clean install,
 upgrade, removal and desktop-playback acceptance test for the final package.
 

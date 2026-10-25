@@ -1,6 +1,6 @@
 # Plague's Voice Studio 1.0.0rc2
 
-This release candidate is being qualified locally. No RC2 publication or replacement of an installed application is implied by these notes.
+RC2 is a prerelease for general-purpose narration, communication, storytelling and character dialogue. Windows x64 and Debian 13 amd64 installers, portable packages and SHA-256 manifests belong to this release. Models and optional engine runtimes remain separate. Actual release assets are published only after the applicable platform checks pass.
 
 - **Natural Narration (Original English)** is an opt-in profile for built-in and reference voices. It uses CFG 0.3, temperature 0.8, expressiveness/reference conditioning 0.5, 220-character segments and 180 ms segment gaps. Current settings remains the default; switching back restores custom controls. Two voices favored CFG 0.3 in blind listening on one short passage and seed. This is limited naturalness evidence, not a universal quality improvement.
 - The profile is visibly unavailable for Nano, Turbo and Multilingual V3. Qwen3-TTS and IndexTTS retain their separate workflows. Plain narration receives no added vocal effects. Original manuscripts, prepared render input and effective settings stay separate in export metadata.
@@ -9,4 +9,10 @@ This release candidate is being qualified locally. No RC2 publication or replace
 
 The installed app, shared models, references, recordings and permanent settings identities are preserved by this work. Windows installer identity and legacy executable/directory names remain stable for upgrade compatibility. RC2 has its own version so it can be distinguished from RC1.
 
-Source tests, frozen runtime checks, real speech/listening, clean install/upgrade, desktop playback and Windows/Bethesda acceptance are separate gates. See [release readiness](RELEASE_READINESS.md) for current scope and remaining work. Do not treat historical RC1 results as RC2 evidence.
+Local Linux qualification passed 458 tests and 17 subtests, with one Windows-only skip; frozen imports, the explicit no-audio GUI diagnostic and 53 owned-source comparisons passed. Independent archive validation passed 23 portable and 45 Debian checks. The real RC1-to-RC2 Debian upgrade preserved the checked settings/reference metadata and retained an exact rollback package. The creator reported faster, more concise and more natural generation, then verified restart persistence. These are subjective use reports, not a controlled latency measurement or blanket quality acceptance.
+
+Windows build/installer acceptance and Linux build/extracted startup/clean Debian install/reinstall/removal are separate release jobs at the final release revision. The release page records their actual results and asset checksums. Headless tests do not establish desktop audio, every optional engine/model, or reference fidelity on every machine. Real Windows Bethesda external-tool/game acceptance remains unrun; Linux excludes that production workflow. Installers are unsigned; full-offline model redistribution is outside this release.
+
+**Voice-library note:** the current five-record Debian index was byte-identical to its pre-upgrade backup and all indexed files were present. Earlier eleven-reference documentation concerned the Windows setup. The missing six identities were not established locally, and no RC2 deletion was demonstrated. Originals can be re-imported safely when needed without deleting existing records. Kokoro's six presets are separate from imported references.
+
+Source tests, real speech/listening, package installation and manual use remain distinct evidence. See [release readiness](RELEASE_READINESS.md). Historical RC1 results do not qualify RC2.

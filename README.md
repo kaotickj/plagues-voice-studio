@@ -1,8 +1,15 @@
 # Plague's Voice Studio v1.0.0rc2
 
-**Release candidate source:** RC2 is being qualified locally and has not been published by this work. See [RC2 notes](RELEASE_NOTES_1.0.0rc2.md) and [remaining release gates](RELEASE_READINESS.md).
+**Release candidate:** RC2 adds optional Natural Narration and a reviewable manuscript-to-export workflow. It is a prerelease, not a claim that every model, voice or platform has passed manual acceptance. See [RC2 notes](RELEASE_NOTES_1.0.0rc2.md), [release evidence and limits](RELEASE_READINESS.md), and the [wiki](https://github.com/kaotickj/plagues-voice-studio/wiki).
 
-Published installers and portable packages are listed on the [official releases page](https://github.com/kaotickj/plagues-voice-studio/releases), with SHA-256 checksums. Historical [RC1 notes](RELEASE_NOTES_1.0.0rc1.md) describe that earlier candidate, not RC2 acceptance.
+Download installers and portable packages from the [RC2 release](https://github.com/kaotickj/plagues-voice-studio/releases/tag/v1.0.0rc2), with their SHA-256 manifests. Platform binaries are published after their release checks pass; queued builds and GitHub's automatic source archives are not installer downloads. Historical [RC1 notes](RELEASE_NOTES_1.0.0rc1.md) describe that earlier candidate.
+
+| Platform | Installer | First launch |
+| --- | --- | --- |
+| Windows x64 | `PlaguesVoiceStudio-Setup-1.0.0rc2.exe` | Run the installer, then launch Plague's Voice Studio. Existing application identity and data paths are retained. |
+| Debian 13 amd64 | `plagues-voice-studio_1.0.0~rc2-1_amd64.deb` | Check the checksum, then use `sudo apt install ./plagues-voice-studio_*_amd64.deb` and launch `plagues-voice-studio`. GitHub may replace the filename's tilde with a dot; the internal version remains `1.0.0~rc2-1`. |
+
+Windows ZIP and Linux `.tar.gz` portable editions are also provided. Keep each extracted directory intact. Check the Linux package's `BUILD-INFO.json` and [Linux guide](LINUX.md) for its glibc baseline and system dependencies. Model weights and optional Qwen/Index/Kokoro runtimes are configured separately; the installers do not include them.
 The [separate DJ Writer 0.9.3 Vulkan update](https://github.com/kaotickj/plagues-voice-studio/releases/tag/dj-writer-v0.9.3) also provides installer and portable packages.
 
 **Writer plugin:** source builds now include **Plugins → Promotional Writer** for
@@ -55,9 +62,15 @@ Voice Studio includes a **Check for updates** action in the top bar. It queries 
 
 When a newer stable version is available, **View official release** opens the validated GitHub release page so you can review its notes and download the appropriate installer. The application does **not** download, execute, or replace software automatically; model runtimes, scripts, profiles, audio files, and installed voices remain unchanged. The update lookup sends no audio or script data. GitHub receives an ordinary request to its release metadata endpoint. Prereleases (including release candidates) are intentionally not promoted as stable updates.
 
-Earlier RC1 installer checks do not qualify RC2. Current-source Linux install/
-upgrade and Windows package acceptance remain separate gates; see
-[release readiness](RELEASE_READINESS.md). Installers are currently unsigned.
+The local Debian RC2 upgrade passed checksum, launcher and user-data preservation checks with a retained rollback package. The creator reports more natural generation and verified restart persistence; this is subjective use feedback, not a measured speed comparison or an all-engine quality guarantee. Windows installer acceptance and the Linux clean install/reinstall/removal jobs separately gate their release artifacts; see [release readiness](RELEASE_READINESS.md). Installers are currently unsigned.
+
+### Narration profiles and passage review
+
+**Current settings** remains the default and preserves your chosen controls. **Clear Narration** is an optional fixed starting point. **Natural Narration (Original English)** uses CFG **0.3**, temperature **0.8**, expressiveness/reference conditioning **0.5**, up to **220 characters** per segment and **180 ms** segment gaps. It applies to built-in and imported Original English voices, adds no vocal effects, and does not change other engines. Select Current settings again to restore custom values. Unsupported models visibly disable Natural Narration.
+
+Use **Preview render plan** (**Ctrl+Shift+P**) to review exact render input, segments and effective settings without generating audio. Full document or Selected passage determines the scope of Generate and Batch Queue. A selected passage produces a separate export; it does not splice existing audio. Export Library keeps **Render input** separate from **Original manuscript**, with effective settings and voice identity in the matching JSON sidecar.
+
+**Existing voice libraries:** references belong to the configured local shared library, which may differ between computers or operating systems. An RC2 investigation found the same five Debian reference records before and after upgrade; older eleven-reference documentation described the Windows setup. No RC2 deletion was established. Missing originals can be re-imported through Add when convenient, without deleting existing records. Kokoro's six presets are a separate list.
 
 ## Live engine diagnostics and isolated runtimes
 
@@ -194,9 +207,7 @@ It tests install, reinstall, repeated installed startup, uninstall and preservat
 of seeded data/user-plugin files. Production Actions also install the real setup
 on a fresh Windows runner and verify its runtime and GUI before publishing.
 
-Tagged versions such as `v1.0.0rc2` can publish a **prerelease** only after the build
-and installer jobs pass. Main-branch pushes create Actions artifacts, not a public
-release. Published assets include the portable ZIP, setup EXE and SHA-256 manifest.
+Tagged versions such as `v1.0.0rc2` run the Windows release pipeline; authorized manual release runs provide the Linux packages. Ordinary main-branch or documentation pushes do not start an application build. The Windows pipeline retains all installer acceptance gates and prepares a draft; the release is published only after both platforms' tested installer binaries and distinct checksum manifests are attached. Published assets include the Windows portable ZIP/setup EXE and Linux portable tarball/DEB.
 The size gate rejects files at or above 2 GiB and never splits the installer into
 disks. Full-offline editions require separate size/license validation and hosting.
 

@@ -1,5 +1,6 @@
 """Static release-packaging regressions that need no Windows SDK/ML weights."""
 from pathlib import Path
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -20,11 +21,19 @@ def test_build_supports_slim_without_forcing_model_downloads():
     assert "if ($Slim -and ($FullOffline -or $SkipModels))" in build
 
 
-def test_workflow_triggers_main_and_builds_slim_by_default():
+def test_windows_release_tags_and_manual_builds_keep_all_publication_gates():
     workflow = (ROOT / ".github" / "workflows" / "windows-build.yml").read_text(encoding="utf-8")
-    assert "      - main\n" in workflow
-    assert "      - develop\n" in workflow
-    assert "      - 'release/**'\n" in workflow
+    # BaseLoader keeps GitHub's YAML 1.2 `on` key as text instead of treating it
+    # as the YAML 1.1 boolean understood by SafeLoader.
+    parsed = yaml.load(workflow, Loader=yaml.BaseLoader)
+    assert set(parsed['on']) == {'workflow_dispatch', 'push'}
+    assert parsed['on']['push'] == {'tags': ['v*']}
+    assert set(parsed['jobs']) == {'windows', 'installer_acceptance', 'installer_smoke', 'publish_release'}
+    assert parsed['jobs']['publish_release']['needs'] == ['windows', 'installer_acceptance', 'installer_smoke']
+    assert parsed['jobs']['publish_release']['if'] == "startsWith(github.ref, 'refs/tags/v')"
+    publish = next(step for step in parsed['jobs']['publish_release']['steps']
+                   if step.get('uses', '').startswith('softprops/action-gh-release@'))
+    assert publish['with']['draft'] == 'true'
     assert "run: ./scripts/build_windows.ps1 -Slim" in workflow
     assert "PlaguesVoiceStudio-Slim-Portable.zip" in workflow
     assert "publish_release:" in workflow
@@ -32,3 +41,11 @@ def test_workflow_triggers_main_and_builds_slim_by_default():
     assert "installer_acceptance:" in workflow
     assert "PlaguesVoiceStudio-Installer-Acceptance-Diagnostics" in workflow
     assert "SHA256SUMS.txt" in workflow
+
+
+def test_promotional_writer_keeps_manual_and_pr_checks_without_duplicate_push_jobs():
+    path = ROOT / '.github' / 'workflows' / 'promotional-writer-plugin.yml'
+    parsed = yaml.load(path.read_text(encoding='utf-8'), Loader=yaml.BaseLoader)
+    assert set(parsed['on']) == {'workflow_dispatch', 'pull_request'}
+    assert parsed['on']['pull_request']['paths']
+    assert set(parsed['jobs']) == {'plugin'}

@@ -1,18 +1,6 @@
 name: Promotional Writer plugin
 on:
   workflow_dispatch:
-  push:
-    branches: [main, develop, 'release/**']
-    paths:
-      - 'plugins/promotional-writer/**'
-      - 'plugins/writer_core/**'
-      - 'src/plagued_ai/**'
-      - 'src/chatterbox_studio/plugin_manager.py'
-      - 'src/chatterbox_studio/app.py'
-      - 'src/chatterbox_studio/engine_lab.py'
-      - 'src/chatterbox_studio/model_manager.py'
-      - 'tests/test_writer_plugin.py'
-      - '.github/workflows/promotional-writer-plugin.yml'
   pull_request:
     paths:
       - 'plugins/promotional-writer/**'

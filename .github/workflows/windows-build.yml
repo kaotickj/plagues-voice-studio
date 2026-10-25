@@ -2,37 +2,10 @@ name: Plague's Voice Studio Windows package
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-      - develop
-      - 'release/**'
+    # Release tags build once. Routine branch/documentation pushes must not
+    # duplicate this expensive package and installer acceptance pipeline.
     tags:
       - 'v*'
-    # Documentation, README screenshots and audio-showcase copy don't change
-    # the Windows app. Avoid 20+ minute rebuilds for those commits.
-    # Code changes on main/develop/release branches automatically build; tags build release packages.
-    paths:
-      - 'src/**'
-      - 'plugins/promotional-writer/**'
-      - 'plugins/script-prep/**'
-      - 'plugins/writer_core/**'
-      - 'scripts/**'
-      - 'models/**'
-      - 'assets/plagues-voice-studio-*'
-      - 'assets/version_info.txt'
-      - 'launcher.py'
-      - 'optional_engine_runner.py'
-      - 'ChatterboxStudio.spec'
-      - 'installer.iss'
-      - 'pyproject.toml'
-      - 'requirements-release.txt'
-      - 'tests/**'
-      - 'OPTIONAL_ENGINES.md'
-      - 'THIRD_PARTY_NOTICES.md'
-      - 'LICENSE'
-      - 'LICENSES/**'
-      - 'BINARY_LICENSE.md'
-      - '.github/workflows/windows-build.yml'
 concurrency:
   group: pvs-windows-${{ github.ref }}
   # A newer push must not destroy a nearly completed Windows installer build.
@@ -264,6 +237,9 @@ jobs:
         with:
           body_path: ${{ steps.notes.outputs.path }}
           generate_release_notes: true
+          # The release owner attaches the separately tested Linux installers
+          # and verifies all assets before making this cross-platform release public.
+          draft: true
           prerelease: ${{ contains(github.ref_name, 'rc') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
           files: |
             release-payload/portable/*.zip

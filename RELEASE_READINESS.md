@@ -1,21 +1,29 @@
 # Plague's Voice Studio release readiness
 
-Updated October 25, 2026. Target: **v1.0.0rc2**, a release candidate undergoing local qualification.
+Updated October 25, 2026. Target: **v1.0.0rc2**, a release candidate for Windows x64 and Linux amd64.
 
-## RC2 qualification checkpoint
+## RC2 evidence and release gates
 
-| Gate | Current evidence and limit |
+| Gate | Evidence or required result |
 | --- | --- |
-| Narration profile, preview, settings and export software tests | Focused source checks pass, including independent Qt tests with isolated settings and media stand-ins. They do not test desktop playback or real model audio. |
-| Quality evidence | On the prior qualified Linux build, the creator preferred CFG 0.3 over 0.5 for both Original English built-in and one approved reference voice, using one short passage and seed. Exact audio was saved for listening. This supports the optional profile, not a universal default change. |
-| Final RC2 source and frozen artifacts | Must pass the full source suite, dependency/version consistency, frozen imports, source identity and GUI startup after all final changes. Prior `aac92f9` packages do not include RC2 changes. |
-| Linux packaging | Portable/DEB inspections passed on prior `aac92f9`. RC2 needs its own package and install/upgrade/removal/data-preservation evidence. The local build host is Debian 13/glibc 2.41; Ubuntu 24.04 compatibility is unqualified. |
-| Model setup | Source-level discovery/cancellation/retry/offline tests use synthetic files or injected failures. Live fresh downloads and every model's real inference are not established by those tests. The Nano/Turbo tokenizer-readiness repair needs the final regression suite. |
-| Desktop audio | Current local GUI tests use the explicit no-audio diagnostic; sound-server access is unavailable in the execution sandbox. No bypass is permitted. Human listening of delivered files is separate from app playback. |
-| Windows package/install | Current RC2 build and clean installer acceptance are unrun. An authorized major-test Actions run must bind the final source commit; routine pushes/builds are not authorized. |
-| Bethesda | Production LIP/XWM/FUZ workflow is Windows-only and excluded from Linux. Real external-tool and in-game acceptance remain unrun for RC2; simulated-tool tests do not establish them. |
+| Core narration, preview, profile restoration, reference isolation and export | Source suite: **458 passed, 17 subtests passed, one Windows-only skip** on the qualified local code. Independent Qt checks cover keyboard access, preview text, custom-setting restoration and unsupported-model handling. No extra human-only preview/reference-switch signoff is required by this checklist. |
+| Local frozen runtime and package identity | Runtime imports, explicit no-audio GUI diagnostic and **53 owned-source comparisons passed**. Independent archives: **23 portable and 45 DEB checks passed**, including embedded version/commit, executable hashes, permissions and glibc metadata. |
+| Local installed upgrade and preservation | Actual Debian RC1/e07 to RC2 upgrade passed. An exact prior DEB and 47 scoped files were backed up; checked user metadata, mappings and five current reference records remained unchanged immediately after installation. Installed runtime and explicit no-audio diagnostics passed. No automatic render was started. |
+| Human use | The creator preferred CFG 0.3 over 0.5 in two blind comparisons on one short passage/seed, later reported faster/more concise/more natural generation, and explicitly verified restart persistence. These are bounded subjective reports, not universal improvement or a controlled latency benchmark. |
+| Required Windows release jobs | `windows`, `installer_acceptance` and `installer_smoke` must all pass at the final release revision before their binary assets are accepted. Historical RC1 results do not substitute. Publication first prepares a draft. |
+| Required Linux release jobs | `build`, `extracted_startup` and `debian_installer` must all pass at the final release revision, including clean install/reinstall/removal and seeded-data preservation. Local archive/upgrade checks do not substitute for those jobs. |
+| Required publication | Attach the actual Windows setup EXE and Linux DEB, their portable counterparts, distinct checksum manifests and matching source/build provenance. Verify uploaded names, versions, digests and successful state before publishing the single RC2 draft. Queued CI or source archives alone are insufficient. |
+| Model setup | Software tests exercise readiness, cancellation, retry, offline reuse and injected failures. Existing Nano/Turbo tokenizer assets passed offline construction/round trips. These tests do not establish live fresh-download repair or every model's real inference. |
+| Desktop audio and optional engines | Headless diagnostics use inert media and do not establish hardware playback. Optional Qwen/Index/Kokoro runtimes and model variants remain separately configured; no all-engine Linux claim follows from Original English tests. |
+| Bethesda and other distribution limits | Linux excludes production LIP/XWM/FUZ. Real Windows external-tool/game acceptance, fresh graphical Index onboarding, installer signing and full-offline redistribution remain unverified or outside this RC; they are not claimed complete. |
 
-Before installation or publication, report the final candidate, exact source/artifact identities, measured tests and remaining platform limitations. A Linux-only prerelease must be explicitly scoped; it cannot inherit Windows readiness. No Actions run, tag publication, model download or installed-app replacement is authorized by this checklist.
+The local application code was qualified and manually exercised at `ebb921addeb59193565bbf296888a933ab12bdb8`. Subsequent release documentation/trigger changes do not alter application behavior; the final tag's CI artifacts must record their own exact revision. The local Debian build uses glibc 2.41; release CI uses Ubuntu 24.04 and each artifact reports its actual baseline in BUILD-INFO.
+
+**Voice inventory:** the current five-record Debian index is byte-identical to its pre-upgrade backup and all indexed files exist. The historical eleven-reference documentation concerns a Windows profile; six identities were not established locally. No RC2 deletion was demonstrated. Original exemplars may be imported later without deleting existing references; no automatic migration or import is performed.
+
+## Actions cost policy
+
+Run one required Windows release pipeline from the final `v*` tag and one explicitly dispatched Linux release pipeline at that same revision. Ordinary main/documentation pushes do not build the application. Component manual/PR checks remain available; avoid redundant push/tag builds or retries of successful jobs. All required release tests and publication dependencies remain intact. Record actual run URLs/results and assets on the release page and wiki after completion; this file is not a substitute for those results.
 
 ## Historical RC1 record
 
