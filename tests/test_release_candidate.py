@@ -10,19 +10,19 @@ sys.path.insert(0, str(ROOT/'scripts'))
 from check_release_version import check_release_identity
 
 
-@pytest.mark.parametrize('tag', ['v1.0.0', 'v0.3.0', 'v1.0.0rc2'])
+@pytest.mark.parametrize('tag', ['v1.0.0', 'v0.3.0', 'v1.0.0rc1'])
 def test_mislabeled_release_tags_are_blocked(tag):
     with pytest.raises(ValueError, match='Expected tag'):
         check_release_identity(ROOT, tag)
 
 
 def test_matching_rc_tag_is_allowed():
-    assert check_release_identity(ROOT, 'v1.0.0rc1') == '1.0.0rc1'
+    assert check_release_identity(ROOT, 'v1.0.0rc2') == '1.0.0rc2'
 
 
 def test_rc_version_matches_package_installer_and_windows_metadata():
     package = tomllib.loads((ROOT/'pyproject.toml').read_text(encoding='utf-8'))
-    assert __version__ == '1.0.0rc1' == package['project']['version']
+    assert __version__ == '1.0.0rc2' == package['project']['version']
     assert f'#define AppVersion "{__version__}"' in (ROOT/'installer.iss').read_text()
     assert f"'ProductVersion', '{__version__}'" in (ROOT/'assets/version_info.txt').read_text()
 

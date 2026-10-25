@@ -22,6 +22,7 @@ LANGUAGES = {
 NARRATION_PROFILES = {
     "custom": "Current settings",
     "clear_narration": "Clear Narration",
+    "natural_narration": "Natural Narration (Original English)",
 }
 
 # A reproducible general-use starting point, not a claim of better audio.
@@ -30,6 +31,24 @@ _CLEAR_NARRATION = {
     "max_chars": 220, "pause_ms": 180,
     "exaggeration": 0.5, "cfg_weight": 0.5, "temperature": 0.8,
 }
+
+# An opt-in setting preferred in a bounded two-voice listening comparison.
+# It changes generation CFG only; reference conditioning remains at 0.5.
+_NATURAL_NARRATION = {**_CLEAR_NARRATION, "cfg_weight": 0.3}
+
+
+def is_narration_profile_supported(profile: str, model: str) -> bool:
+    return (profile in NARRATION_PROFILES and model in MODEL_CHOICES
+            and (profile != "natural_narration" or model == "english"))
+
+
+def _validate_profile_model(profile: str, model: str) -> None:
+    if profile not in NARRATION_PROFILES:
+        raise ValueError("Unknown narration profile")
+    if model not in MODEL_CHOICES:
+        raise ValueError("Unknown Chatterbox model")
+    if not is_narration_profile_supported(profile, model):
+        raise ValueError("Natural Narration is available only for Original English")
 
 @dataclass(frozen=True)
 class NarrationJob:
@@ -62,9 +81,12 @@ class NarrationJob:
         Turbo/Nano have no generation CFG or exaggeration controls. Reference
         preparation retains its separate exaggeration argument for compatibility.
         """
+        _validate_profile_model(self.profile, self.model)
         values = {key: getattr(self, key) for key in _CLEAR_NARRATION}
         if self.profile == "clear_narration":
             values.update(_CLEAR_NARRATION)
+        elif self.profile == "natural_narration":
+            values.update(_NATURAL_NARRATION)
         values["conditioning_exaggeration"] = values["exaggeration"]
         if self.model in ("nano", "turbo"):
             values["exaggeration"] = None
@@ -91,8 +113,7 @@ class NarrationJob:
         from .narration_markup import parse_script
         if not self.text.strip():
             raise ValueError("Enter some narration text")
-        if self.profile not in NARRATION_PROFILES:
-            raise ValueError("Unknown narration profile")
+        _validate_profile_model(self.profile, self.model)
         if self.render_scope not in ("full_document", "selection"):
             raise ValueError("Unknown narration render scope")
         if self.prepared_text is not None and not isinstance(self.prepared_text, str):
@@ -101,8 +122,6 @@ class NarrationJob:
             raise ValueError("Enter some narration text to render")
         if self.render_scope == "selection" and self.prepared_text is None:
             raise ValueError("A selection render needs its reviewed passage")
-        if self.model not in MODEL_CHOICES:
-            raise ValueError("Unknown Chatterbox model")
         if self.device not in ("auto", "cpu", "cuda"):
             raise ValueError("Unknown processing device")
         if self.model == "multilingual-v3" and self.language not in LANGUAGES:

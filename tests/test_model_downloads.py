@@ -9,6 +9,13 @@ from chatterbox_studio import model_downloads as md
 from chatterbox_studio.optional_engines import EngineCancelled
 
 
+def chatterbox_fixture_files(item, tokenizer_format='split'):
+    files = list(item.required)
+    if item.key in ('nano', 'turbo'):
+        files += ['tokenizer.json'] if tokenizer_format == 'self-contained' else ['vocab.json', 'merges.txt']
+    return files
+
+
 def test_catalog_contains_production_engines_only():
     assert len(md.CATALOG) == 6
     assert {m.key for m in md.CATALOG if m.family == 'qwen3'} == {'qwen-0.6b', 'qwen-1.7b'}
@@ -42,7 +49,7 @@ def test_chatterbox_status_only_accepts_nonempty_required_files(tmp_path, monkey
     assert md.chatterbox_status(tmp_path, item) == 'Download available'
     folder = md.user_model_directory(tmp_path, 'nano')
     folder.mkdir(parents=True)
-    for name in item.required:
+    for name in chatterbox_fixture_files(item):
         (folder / name).write_bytes(b'x')
     assert md.chatterbox_status(tmp_path, item) == 'Installed (user data)'
     (folder / item.required[0]).write_bytes(b'')
@@ -59,7 +66,7 @@ def test_download_checks_cancel_between_hf_files(tmp_path, monkeypatch):
         target.write_bytes(b'good')
         if len(observed) == 1:
             event.set()
-    hub = types.SimpleNamespace(list_repo_files=lambda repo: list(item.required),
+    hub = types.SimpleNamespace(list_repo_files=lambda repo: chatterbox_fixture_files(item),
                                 hf_hub_download=download)
     monkeypatch.setitem(sys.modules, 'huggingface_hub', hub)
     with pytest.raises(EngineCancelled):
@@ -72,7 +79,7 @@ def test_download_verifies_model_and_uses_user_data(tmp_path, monkeypatch):
     item = md.MODELS['turbo']
     def download(**kwargs):
         (Path(kwargs['local_dir']) / kwargs['filename']).write_bytes(b'weight')
-    hub = types.SimpleNamespace(list_repo_files=lambda repo: list(item.required),
+    hub = types.SimpleNamespace(list_repo_files=lambda repo: chatterbox_fixture_files(item),
                                 hf_hub_download=download)
     monkeypatch.setitem(sys.modules, 'huggingface_hub', hub)
     folder = md.download_chatterbox(item, tmp_path, Event(), lambda *_: None)
@@ -183,7 +190,7 @@ def test_failed_chatterbox_install_retains_partial_files_and_can_retry(tmp_path,
         target.write_bytes(b'fixture model content')
         transferred.append(kwargs['filename'])
         return str(target)
-    hub = types.SimpleNamespace(list_repo_files=lambda repo: list(item.required),
+    hub = types.SimpleNamespace(list_repo_files=lambda repo: chatterbox_fixture_files(item),
                                 hf_hub_download=download)
     monkeypatch.setitem(sys.modules, 'huggingface_hub', hub)
     with pytest.raises(type(failure), match=str(failure).replace('[', r'\[').replace(']', r'\]')):
@@ -194,7 +201,7 @@ def test_failed_chatterbox_install_retains_partial_files_and_can_retry(tmp_path,
     assert unrelated.read_bytes() == b'existing user recording'
     interrupted['active'] = False
     assert md.download_chatterbox(item, tmp_path, Event(), lambda *_: None) == destination
-    assert transferred == list(item.required)
+    assert transferred == chatterbox_fixture_files(item)
     assert md.has_required_files(destination, item)
     assert unrelated.read_bytes() == b'existing user recording'
 
@@ -202,7 +209,7 @@ def test_failed_chatterbox_install_retains_partial_files_and_can_retry(tmp_path,
 @pytest.mark.parametrize('key', ['nano', 'turbo'])
 def test_meanflow_install_does_not_fetch_unused_s3gen_weights(tmp_path, monkeypatch, key):
     item = md.MODELS[key]
-    available = [*item.required, 's3gen.safetensors', 'tokenizer_config.json', 'vocab.json', 'conds.pt']
+    available = [*chatterbox_fixture_files(item), 's3gen.safetensors', 'conds.pt']
     observed = []
     def download(**kwargs):
         observed.append(kwargs['filename'])
@@ -212,4 +219,75 @@ def test_meanflow_install_does_not_fetch_unused_s3gen_weights(tmp_path, monkeypa
     md.download_chatterbox(item, tmp_path, Event(), lambda *_: None)
     assert 's3gen.safetensors' not in observed
     assert set(item.required).issubset(observed)
-    assert {'tokenizer_config.json', 'vocab.json', 'conds.pt'}.issubset(observed)
+    assert {'tokenizer_config.json', 'vocab.json', 'merges.txt', 'conds.pt'}.issubset(observed)
+
+
+@pytest.mark.parametrize('key', ['nano', 'turbo'])
+@pytest.mark.parametrize('tokenizer_format', ['split', 'self-contained'])
+def test_complete_nano_turbo_tokenizer_reused_offline(tmp_path, monkeypatch, key, tokenizer_format):
+    item = md.MODELS[key]
+    folder = md.user_model_directory(tmp_path, key); folder.mkdir(parents=True)
+    for name in chatterbox_fixture_files(item, tokenizer_format):
+        (folder / name).write_bytes(b'synthetic complete file')
+    monkeypatch.setattr(md, 'bundled_models_dir', lambda: tmp_path / 'no-bundle')
+    monkeypatch.setitem(sys.modules, 'huggingface_hub', types.SimpleNamespace(
+        list_repo_files=lambda *_: pytest.fail('Complete offline tokenizer must not start download'),
+        hf_hub_download=lambda **_: pytest.fail('Complete files must be reused')))
+    assert md.has_required_files(folder, item)
+    assert md.installed_model_directory(tmp_path, item) == folder
+    assert md.chatterbox_status(tmp_path, item) == 'Installed (user data)'
+    assert md.download_chatterbox(item, tmp_path, Event(), lambda *_: None) == folder
+
+
+@pytest.mark.parametrize('key', ['nano', 'turbo'])
+@pytest.mark.parametrize('tokenizer_format, missing', [
+    ('split', 'tokenizer_config.json'), ('split', 'vocab.json'), ('split', 'merges.txt'),
+    ('self-contained', 'tokenizer_config.json'), ('self-contained', 'tokenizer.json'),
+])
+@pytest.mark.parametrize('empty', [False, True], ids=['missing', 'zero-byte'])
+def test_incomplete_tokenizer_is_not_installed_and_retry_repairs_only_fixture_files(
+        tmp_path, monkeypatch, key, tokenizer_format, missing, empty):
+    item = md.MODELS[key]
+    folder = md.user_model_directory(tmp_path, key); folder.mkdir(parents=True)
+    files = chatterbox_fixture_files(item, tokenizer_format)
+    for name in files:
+        (folder / name).write_bytes(b'original synthetic file')
+    if empty:
+        (folder / missing).write_bytes(b'')
+    else:
+        (folder / missing).unlink()
+    weights = {name: (folder / name).read_bytes() for name in item.required if name.endswith('.safetensors')}
+    user_audio = tmp_path / 'existing-user-audio.wav'; user_audio.write_bytes(b'untouched synthetic user audio')
+    monkeypatch.setattr(md, 'bundled_models_dir', lambda: tmp_path / 'no-bundle')
+    assert not md.has_required_files(folder, item)
+    assert md.installed_model_directory(tmp_path, item) is None
+    assert md.chatterbox_status(tmp_path, item) == 'Download available'
+    calls = []
+    def download(**kwargs):
+        calls.append(kwargs['filename'])
+        path = Path(kwargs['local_dir']) / kwargs['filename']
+        if not path.is_file() or path.stat().st_size == 0:
+            path.write_bytes(b'repaired synthetic tokenizer file')
+        return str(path)
+    monkeypatch.setitem(sys.modules, 'huggingface_hub', types.SimpleNamespace(
+        list_repo_files=lambda repo: files, hf_hub_download=download))
+    assert md.download_chatterbox(item, tmp_path, Event(), lambda *_: None) == folder
+    assert missing in calls  # Readiness did not take the old "already installed" path.
+    assert md.has_required_files(folder, item)
+    assert md.chatterbox_status(tmp_path, item) == 'Installed (user data)'
+    assert {name: (folder / name).read_bytes() for name in weights} == weights
+    assert user_audio.read_bytes() == b'untouched synthetic user audio'
+
+
+@pytest.mark.parametrize('key', ['nano', 'turbo'])
+def test_failed_tokenizer_repair_names_both_supported_representations(tmp_path, monkeypatch, key):
+    item = md.MODELS[key]
+    def download(**kwargs):
+        (Path(kwargs['local_dir']) / kwargs['filename']).write_bytes(b'synthetic file')
+    monkeypatch.setitem(sys.modules, 'huggingface_hub', types.SimpleNamespace(
+        list_repo_files=lambda repo: list(item.required), hf_hub_download=download))
+    with pytest.raises(md.EngineError, match='missing/empty') as failure:
+        md.download_chatterbox(item, tmp_path, Event(), lambda *_: None)
+    message = str(failure.value)
+    assert all(name in message for name in ('tokenizer.json', 'vocab.json', 'merges.txt'))
+    assert md.chatterbox_status(tmp_path, item) != 'Installed (user data)'

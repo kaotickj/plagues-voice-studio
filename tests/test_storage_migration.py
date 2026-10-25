@@ -87,7 +87,7 @@ def test_old_chatterbox_weights_are_reused_without_download(monkeypatch, tmp_pat
     item = md.MODELS["nano"]
     folder = old / "models" / "nano"
     folder.mkdir(parents=True)
-    for fn in item.required:
+    for fn in (*item.required, "tokenizer.json"):
         (folder / fn).write_bytes(b"valid")
     monkeypatch.setattr(md, "canonical_data_dir", lambda: new)
     monkeypatch.setattr(md, "legacy_v030_dir", lambda: old)
@@ -109,7 +109,7 @@ def test_new_chatterbox_weights_take_precedence(monkeypatch, tmp_path):
     for target in (old, new):
         folder = target / "models" / "nano"
         folder.mkdir(parents=True)
-        for fn in item.required:
+        for fn in (*item.required, "tokenizer.json"):
             (folder / fn).write_bytes(b"valid")
     assert md.installed_model_directory(new, item) == new / "models" / "nano"
 

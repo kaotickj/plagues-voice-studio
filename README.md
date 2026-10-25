@@ -1,8 +1,8 @@
-# Plague's Voice Studio v1.0.0rc1
+# Plague's Voice Studio v1.0.0rc2
 
-**Release candidate:** this is a prerelease for acceptance testing. See [RC notes](RELEASE_NOTES_1.0.0rc1.md) and [remaining release gates](RELEASE_READINESS.md).
+**Release candidate source:** RC2 is being qualified locally and has not been published by this work. See [RC2 notes](RELEASE_NOTES_1.0.0rc2.md) and [remaining release gates](RELEASE_READINESS.md).
 
-Download the [Voice Studio RC installer or portable ZIP](https://github.com/kaotickj/plagues-voice-studio/releases/tag/v1.0.0rc1), with SHA-256 checksums.
+Published installers and portable packages are listed on the [official releases page](https://github.com/kaotickj/plagues-voice-studio/releases), with SHA-256 checksums. Historical [RC1 notes](RELEASE_NOTES_1.0.0rc1.md) describe that earlier candidate, not RC2 acceptance.
 The [separate DJ Writer 0.9.3 Vulkan update](https://github.com/kaotickj/plagues-voice-studio/releases/tag/dj-writer-v0.9.3) also provides installer and portable packages.
 
 **Writer plugin:** source builds now include **Plugins → Promotional Writer** for
@@ -10,7 +10,7 @@ generic ad copy, promotions, announcements and custom writing. It uses a separat
 local writing model and sends reviewed text to Narration Studio. The Goodneighbor
 DJ standalone is not bundled. See [plugin setup and source testing](plugins/promotional-writer/README.md).
 
-**Created by Kaotick Jay.** Local AI voice production for narration, radio, character voices, and Bethesda game dialogue.
+**Created by Kaotick Jay.** Local AI voice production for video narration, communication, storytelling and character dialogue. Optional plugins add specialized workflows.
 
 ## Project roadmap and audio showcase
 
@@ -32,7 +32,7 @@ Chatterbox, Qwen3 or IndexTTS. Run `scripts/setup_kokoro_windows.ps1` once; exis
 shared weights are reused. Add `-DownloadModels` on a fresh machine to explicitly
 download the checksum-verified model/voice pack. See [Kokoro setup](OPTIONAL_ENGINES.md#kokoro-preset-voices).
 
-This **1.0.0rc1 candidate** upgrades the experimental 0.3 installation using its
+This **1.0.0rc2 candidate** retains the experimental 0.3 installation's
 existing installer identity and directory. It stores shared AI assets under
 `%LOCALAPPDATA%\PlaguedAI` and preserves discovery of existing engine runtimes.
 The separate v0.2.4 installation remains independent.
@@ -40,6 +40,7 @@ The separate v0.2.4 installation remains independent.
 ### What you can do
 
 - Generate Chatterbox speech with Nano, Turbo, Original English, or Multilingual V3, including model-appropriate controls, narration markup, batch jobs, and WAV/MP3 output.
+- Choose optional **Natural Narration (Original English)** for CFG 0.3 with neutral delivery settings. It works with the built-in voice or imported references, preserves custom settings and adds no vocal effects. Two short blind comparisons favored this setting; listen to your own passage before choosing it. Other models and Voice Engines do not use this profile.
 - Generate multilingual reference-voice speech with Qwen3-TTS Base models in a separate Python environment, with WAV output, diagnostic logs, cancellation, and reusable character profiles.
 - Generate preset-voice speech with Kokoro, including US/UK pronunciation,
   speaking speed, character presets and WAV/script metadata.
@@ -54,8 +55,8 @@ Voice Studio includes a **Check for updates** action in the top bar. It queries 
 
 When a newer stable version is available, **View official release** opens the validated GitHub release page so you can review its notes and download the appropriate installer. The application does **not** download, execute, or replace software automatically; model runtimes, scripts, profiles, audio files, and installed voices remain unchanged. The update lookup sends no audio or script data. GitHub receives an ordinary request to its release metadata endpoint. Prereleases (including release candidates) are intentionally not promoted as stable updates.
 
-Local RC installer upgrade, reinstall, repeated startup and data-preservation
-checks pass. Fresh hosted Windows CI remains a publication gate; see
+Earlier RC1 installer checks do not qualify RC2. Current-source Linux install/
+upgrade and Windows package acceptance remain separate gates; see
 [release readiness](RELEASE_READINESS.md). Installers are currently unsigned.
 
 ## Live engine diagnostics and isolated runtimes
@@ -193,14 +194,14 @@ It tests install, reinstall, repeated installed startup, uninstall and preservat
 of seeded data/user-plugin files. Production Actions also install the real setup
 on a fresh Windows runner and verify its runtime and GUI before publishing.
 
-Tagged versions such as `v1.0.0rc1` can publish a **prerelease** only after the build
+Tagged versions such as `v1.0.0rc2` can publish a **prerelease** only after the build
 and installer jobs pass. Main-branch pushes create Actions artifacts, not a public
 release. Published assets include the portable ZIP, setup EXE and SHA-256 manifest.
 The size gate rejects files at or above 2 GiB and never splits the installer into
 disks. Full-offline editions require separate size/license validation and hosting.
 
 The legacy executable filename and default installation directory retain `030`
-and `Experimental` for upgrade compatibility. The visible version is 1.0.0rc1;
+and `Experimental` for upgrade compatibility. The visible version is 1.0.0rc2;
 AppData and QSettings identities remain permanent and unversioned. No engine
 runtime or large model folder is moved. Actual new-candidate engine inference and
 in-game Bethesda acceptance remain separate manual gates.

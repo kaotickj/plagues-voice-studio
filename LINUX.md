@@ -1,7 +1,10 @@
 # Plague's Voice Studio — Linux test build
 
-Experimental **x86-64** portable build, built on Ubuntu 24.04 (glibc 2.39).
-Debian 13 is the intended first user test target. Older glibc distributions,
+Experimental **x86-64** portable build. The October 25 local qualification
+candidate was built on **Debian 13 (glibc 2.41)**; its results do not establish
+Ubuntu 24.04 compatibility. The separate CI workflow uses Ubuntu 24.04 as a
+glibc 2.39 build baseline and needs its own current-source acceptance run.
+Debian 13 is the local test target. Older glibc distributions,
 ARM and musl/Alpine are not covered by this build. No Python installation is
 needed to run the portable application.
 
@@ -37,11 +40,14 @@ the installer does not make Chatterbox/Qwen/Index inference hardware-independent
 The `.deb` targets Debian 13 amd64. Other distributions are not established by
 this acceptance job; use the portable build where appropriate.
 
-The same workflow builds both formats from one tested onedir tree. A fresh
+The CI workflow is designed to build both formats from one tested onedir tree. A fresh
 Debian 13 container installs the `.deb` with dependencies, validates its desktop
 entry, exercises the installed runtime and GUI/plugin startup twice, reinstalls
 it, then removes it while checking seeded model/settings files are preserved.
 Installer and acceptance diagnostics are retained as separate workflow artifacts.
+This describes the workflow's gates, not a completed RC2 run. Local archive
+inspection, source tests and headless startup do not replace a clean install,
+upgrade, removal and desktop-playback acceptance test for the final package.
 
 ## Run on Debian 13
 
@@ -58,7 +64,7 @@ artifact wrapper, then run these commands inside the download directory:
 
 ```sh
 sha256sum -c SHA256SUMS.txt
-tar -xzf PlaguesVoiceStudio-1.0.0rc1-Linux-x86_64-Portable.tar.gz
+tar -xzf PlaguesVoiceStudio-1.0.0rc2-Linux-x86_64-Portable.tar.gz
 cd PlaguesVoiceStudio030Experimental
 ./start-voice-studio.sh
 ```
@@ -75,6 +81,8 @@ native Wayland plugin is unavailable; this uses XWayland.
 2. Add a reference recording, generate a short line using **CPU**, play it and
    export its WAV. The bundled PyTorch is CPU-only; selecting CUDA does not
    install a CUDA runtime. Native Vulkan speech experiments are not integrated.
+   Original English also offers opt-in Natural Narration (CFG 0.3); its limited
+   listening preference is not a promise that every voice or passage improves.
 3. Open **Plugins → Promotional Writer** and **Pronunciation & Script Prep**.
    The branded standalone DJ Writer is a separate application.
 4. Close/reopen Studio and confirm that saved voices, paths and exports remain.
@@ -132,7 +140,7 @@ The builder uses `dpkg-deb` (the `dpkg` package on Debian/Ubuntu) and does not
 require root. It preserves library symlinks, records archive ownership as
 root:root and rejects non-amd64 payloads, escaping symlinks, version mismatches
 and accidentally bundled model weights. Prerelease versions use Debian's `~`
-ordering, for example `1.0.0~rc1-1`, so the final release upgrades correctly.
+ordering, for example `1.0.0~rc2-1`, so RC2 follows RC1 and the final release upgrades correctly.
 
 The GPL v3 binary notice in `BINARY_LICENSE.md` applies to this GUI build too.
 Linux uses the system FFmpeg package rather than redistributing imageio's

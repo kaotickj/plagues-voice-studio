@@ -33,11 +33,13 @@ class DebianPackageTests(unittest.TestCase):
         executable.chmod(0o755)
         import tomllib
         version = tomllib.loads((ROOT / 'pyproject.toml').read_text())['project']['version']
-        (self.app / 'BUILD-INFO.json').write_text(json.dumps({'version': version}))
+        (self.app / 'BUILD-INFO.json').write_text(json.dumps({
+            'version': version, 'libc': ['glibc', '2.39']}))
 
     def test_prerelease_ordering(self):
         for before, after in [('1.0.0a1', '1.0.0b1'), ('1.0.0b1', '1.0.0rc1'),
-                              ('1.0.0rc1', '1.0.0'), ('1.0.0', '1.0.1')]:
+                              ('1.0.0rc1', '1.0.0rc2'), ('1.0.0rc2', '1.0.0'),
+                              ('1.0.0', '1.0.1')]:
             with self.subTest(before=before):
                 self.assertEqual(subprocess.run(['dpkg', '--compare-versions',
                     packager.debian_version(before), 'lt', packager.debian_version(after)]).returncode, 0)
@@ -75,6 +77,34 @@ class DebianPackageTests(unittest.TestCase):
             desktop = self.root / 'studio.desktop'
             desktop.write_text(packager.DESKTOP)
             subprocess.run(['desktop-file-validate', str(desktop)], check=True)
+
+    @unittest.skipUnless(shutil.which('dpkg-deb'), 'Debian packaging tools required')
+    def test_build_glibc_controls_real_debian_dependency(self):
+        provenance = self.app / 'BUILD-INFO.json'
+        info = json.loads(provenance.read_text())
+        for declared, minimum in [('2.39', '2.39'), ('2.41', '2.41'), ('2.28', '2.39')]:
+            with self.subTest(declared=declared):
+                info['libc'] = ['glibc', declared]
+                provenance.write_text(json.dumps(info))
+                deb = packager.package(self.app, self.root / ('glibc-' + declared))
+                depends = subprocess.check_output(
+                    ['dpkg-deb', '-f', str(deb), 'Depends'], text=True).strip()
+                self.assertTrue(depends.startswith(f'libc6 (>= {minimum}), '), depends)
+
+    def test_rejects_missing_malformed_or_non_glibc_build_metadata(self):
+        provenance = self.app / 'BUILD-INFO.json'
+        info = json.loads(provenance.read_text())
+        for libc in (None, 'glibc 2.41', ['musl', '1.2.5'], ['glibc'],
+                     ['glibc', 2.41], ['glibc', '2'], ['glibc', '2.41rc1'],
+                     ['glibc', '2.41\nConflicts: important-package'],
+                     ['glibc', '2.41), dangerous-package (>= 1']):
+            with self.subTest(libc=libc):
+                info['libc'] = libc
+                provenance.write_text(json.dumps(info))
+                output = self.root / 'malformed-output'
+                with self.assertRaisesRegex(ValueError, 'glibc'):
+                    packager.package(self.app, output)
+                self.assertFalse(output.exists())
 
     def test_rejects_wrong_architecture_and_models(self):
         executable = self.app / packager.EXECUTABLE

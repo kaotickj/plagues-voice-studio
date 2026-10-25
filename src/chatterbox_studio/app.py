@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
     QWidget, QHeaderView, QAbstractItemView, QDialog,
 )
 from . import __version__
-from .jobs import LANGUAGES, MODEL_CHOICES, NarrationJob
+from .jobs import LANGUAGES, MODEL_CHOICES, NarrationJob, is_narration_profile_supported
 from .paths import user_data_dir
 from .settings_migration import copy_legacy_settings
 from .pvs_library import CompatibleVoiceLibrary, new_export_directory, narration_basename
@@ -322,8 +322,9 @@ class MainWindow(QMainWindow):
         self.generation_profile.setObjectName('generation_profile')
         self.generation_profile.addItem('Current settings', 'custom')
         self.generation_profile.addItem('Clear Narration', 'clear_narration')
+        self.generation_profile.addItem('Natural Narration (Original English)', 'natural_narration')
         self.generation_profile.setAccessibleName('Narration profile')
-        self.generation_profile.setToolTip('Clear Narration uses general-use settings: temperature 0.8, 220-character segments and 180 ms gaps; supported expressiveness and CFG are 0.5. No vocal effects are added.')
+        self.generation_profile.setToolTip('Optional narration profiles use temperature 0.8, 220-character segments and 180 ms gaps. Clear Narration uses supported expressiveness and CFG 0.5. Natural Narration requires Original English and uses CFG 0.3 with expressiveness 0.5. Choose Current settings to restore your controls. No vocal effects are added.')
         profile_label = QLabel('&Profile')
         profile_label.setBuddy(self.generation_profile)
         self.generation_summary = QLabel('')
@@ -574,6 +575,12 @@ class MainWindow(QMainWindow):
             'Multilingual V3 offers language selection and generation controls; Turbo vocal tags may be spoken literally.' if multilingual else
             'Original English offers expressiveness and CFG controls; Turbo vocal tags are not natively supported.'
         )
+        natural_index = self.generation_profile.findData('natural_narration')
+        natural_item = self.generation_profile.model().item(natural_index)
+        natural_item.setEnabled(is_narration_profile_supported('natural_narration', key))
+        natural_item.setToolTip('Available only with Original English. Uses CFG 0.3; listen to your own passage before choosing a profile.')
+        if not is_narration_profile_supported(self.generation_profile.currentData(), key):
+            self.generation_profile.setCurrentIndex(self.generation_profile.findData('custom'))
         self._update_generation_controls()
         self._update_tag_compatibility()
 
@@ -586,10 +593,15 @@ class MainWindow(QMainWindow):
     def _on_generation_profile_changed(self):
         previous = getattr(self, '_shown_generation_profile', 'custom')
         current = self.generation_profile.currentData()
+        # Disabled combo entries can still be selected programmatically, including
+        # when restoring settings. Normalize before asking for effective values.
+        if not is_narration_profile_supported(current, self.model.currentData()):
+            self.generation_profile.setCurrentIndex(self.generation_profile.findData('custom'))
+            return
         if previous != current:
             if previous == 'custom':
                 self._custom_generation_values = self._generation_values()
-            if current == 'clear_narration':
+            if current != 'custom':
                 settings = NarrationJob(text='', model=self.model.currentData(), device='cpu',
                     language='en', voice_path='', output_path='preview.wav',
                     profile=current).effective_settings()
@@ -621,8 +633,13 @@ class MainWindow(QMainWindow):
             language='en', voice_path='', output_path='preview.wav', **self._generation_values()).effective_settings()
         capability = (f'Expressiveness {settings["exaggeration"]:.2f}; CFG {settings["cfg_weight"]:.2f}. '
                       if standard else 'Expressiveness and CFG generation controls are unavailable for this model. ')
-        profile = ('Clear Narration uses the documented general-use settings. Choose Current settings to edit. '
-                   if not custom else 'Current settings keep your chosen values. ')
+        profile = {
+            'clear_narration': 'Clear Narration uses the documented general-use settings. Choose Current settings to edit. ',
+            'natural_narration': 'Natural Narration is an optional Original English starting point. Choose Current settings to edit. ',
+            'custom': 'Current settings keep your chosen values. ',
+        }[self.generation_profile.currentData()]
+        if self.model.currentData() != 'english':
+            profile += 'Natural Narration is unavailable; it requires Original English. '
         self.generation_summary.setText(profile + capability
             + f'Temperature {settings["temperature"]:.2f}; up to {settings["max_chars"]} characters per segment; '
               f'{settings["pause_ms"]} ms segment gap. No vocal effects are added; explicit manuscript tags are preserved.')

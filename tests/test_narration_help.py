@@ -69,6 +69,23 @@ def test_passage_and_preview_help_explains_actual_scope(help_widget):
     assert 'without generating audio' in tags
 
 
+def test_natural_profile_help_is_opt_in_and_limits_the_listening_evidence(help_widget):
+    from chatterbox_studio.jobs import NarrationJob
+
+    text = article(help_widget, 'natural narration', 'Clear Narration and passage previews')
+    values = NarrationJob(text='An ordinary narration.', model='english', device='cpu',
+                          language='en', voice_path='', output_path='unused.wav',
+                          profile='natural_narration').effective_settings()
+    assert 'Current settings is the default profile' in text
+    assert 'Natural Narration (Original English)' in text
+    assert f'CFG {values["cfg_weight"]:g}' in text
+    for phrase in ('built-in voice and imported references',
+                   'not established as better for every passage or voice',
+                   'restores your custom controls',
+                   'does not apply to Turbo, Nano, Multilingual V3, Qwen3-TTS or IndexTTS'):
+        assert phrase in text
+
+
 def test_export_help_uses_current_widget_labels(help_widget, monkeypatch, tmp_path):
     from PyQt6.QtCore import QSettings
     from PyQt6.QtWidgets import QWidget

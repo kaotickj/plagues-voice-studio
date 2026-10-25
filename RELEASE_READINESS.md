@@ -1,6 +1,25 @@
 # Plague's Voice Studio release readiness
 
-Updated October 20, 2026. Target: **v1.0.0rc1**, a release candidate.
+Updated October 25, 2026. Target: **v1.0.0rc2**, a release candidate undergoing local qualification.
+
+## RC2 qualification checkpoint
+
+| Gate | Current evidence and limit |
+| --- | --- |
+| Narration profile, preview, settings and export software tests | Focused source checks pass, including independent Qt tests with isolated settings and media stand-ins. They do not test desktop playback or real model audio. |
+| Quality evidence | On the prior qualified Linux build, the creator preferred CFG 0.3 over 0.5 for both Original English built-in and one approved reference voice, using one short passage and seed. Exact audio was saved for listening. This supports the optional profile, not a universal default change. |
+| Final RC2 source and frozen artifacts | Must pass the full source suite, dependency/version consistency, frozen imports, source identity and GUI startup after all final changes. Prior `aac92f9` packages do not include RC2 changes. |
+| Linux packaging | Portable/DEB inspections passed on prior `aac92f9`. RC2 needs its own package and install/upgrade/removal/data-preservation evidence. The local build host is Debian 13/glibc 2.41; Ubuntu 24.04 compatibility is unqualified. |
+| Model setup | Source-level discovery/cancellation/retry/offline tests use synthetic files or injected failures. Live fresh downloads and every model's real inference are not established by those tests. The Nano/Turbo tokenizer-readiness repair needs the final regression suite. |
+| Desktop audio | Current local GUI tests use the explicit no-audio diagnostic; sound-server access is unavailable in the execution sandbox. No bypass is permitted. Human listening of delivered files is separate from app playback. |
+| Windows package/install | Current RC2 build and clean installer acceptance are unrun. An authorized major-test Actions run must bind the final source commit; routine pushes/builds are not authorized. |
+| Bethesda | Production LIP/XWM/FUZ workflow is Windows-only and excluded from Linux. Real external-tool and in-game acceptance remain unrun for RC2; simulated-tool tests do not establish them. |
+
+Before installation or publication, report the final candidate, exact source/artifact identities, measured tests and remaining platform limitations. A Linux-only prerelease must be explicitly scoped; it cannot inherit Windows readiness. No Actions run, tag publication, model download or installed-app replacement is authorized by this checklist.
+
+## Historical RC1 record
+
+The following October 20 record concerns **v1.0.0rc1** and earlier source. Its checked boxes do not qualify RC2.
 
 ## Completed source work
 

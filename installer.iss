@@ -1,6 +1,6 @@
 #define AppName "Plague's Voice Studio"
 #ifndef AppVersion
-  #define AppVersion "1.0.0rc1"
+  #define AppVersion "1.0.0rc2"
 #endif
 #define AppPublisher "Kaotick Jay"
 #define AppExeName "PlaguesVoiceStudio030Experimental.exe"
@@ -23,7 +23,7 @@
 AppId={{{#AppGuid}}
 AppName={#AppName}
 AppVersion={#AppVersion}
-VersionInfoVersion=1.0.0.1
+VersionInfoVersion=1.0.0.2
 AppPublisher={#AppPublisher}
 VersionInfoCompany={#AppPublisher}
 VersionInfoDescription={#AppName}

@@ -17,8 +17,9 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = 'plagues-voice-studio'
 EXECUTABLE = 'PlaguesVoiceStudio030Experimental'
 INSTALL_PATH = Path('usr/lib') / PACKAGE
+GLIBC_BASELINE = (2, 39)
 DEPENDENCIES = (
-    'libc6 (>= 2.39)', 'libgcc-s1', 'libstdc++6', 'zlib1g',
+    'libgcc-s1', 'libstdc++6', 'zlib1g',
     'ffmpeg', 'libsndfile1', 'libegl1', 'libgl1', 'libopengl0',
     'libpulse0', 'libasound2t64', 'libglib2.0-0t64', 'libdbus-1-3',
     'libfontconfig1', 'libfreetype6', 'libx11-6', 'libx11-xcb1',
@@ -47,6 +48,24 @@ def debian_version(version: str) -> str:
         raise ValueError('Unsupported release version: ' + version)
     base, stage, number = match.groups()
     return base + (f'~{stage}{number}' if stage else '') + '-1'
+
+
+def dependencies_for_build(build_info: dict) -> tuple[str, ...]:
+    """Use the build's glibc as a conservative floor, never below 2.39.
+
+    A build manifest is required rather than inferring compatibility from the
+    packaging host. Accept only a numeric version safe for Debian control data.
+    """
+    libc = build_info.get('libc')
+    if (not isinstance(libc, list) or len(libc) != 2 or libc[0] != 'glibc'
+            or not isinstance(libc[1], str)
+            or not re.fullmatch(r'(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?', libc[1])):
+        raise ValueError('BUILD-INFO.json must declare a valid numeric glibc version')
+    version = tuple(int(part) for part in libc[1].split('.'))
+    if version + (0,) * (3 - len(version)) <= GLIBC_BASELINE + (0,):
+        version = GLIBC_BASELINE
+    minimum = '.'.join(str(part) for part in version)
+    return (f'libc6 (>= {minimum})', *DEPENDENCIES)
 
 
 def validate_app(app: Path) -> None:
@@ -85,8 +104,12 @@ def package(app: Path, output: Path) -> Path:
     provenance = app / 'BUILD-INFO.json'
     if not provenance.is_file():
         raise ValueError('Package the tested portable onedir with BUILD-INFO.json first')
-    if json.loads(provenance.read_text(encoding='utf-8')).get('version') != version:
+    build_info = json.loads(provenance.read_text(encoding='utf-8'))
+    if not isinstance(build_info, dict):
+        raise ValueError('BUILD-INFO.json must be an object with version and glibc metadata')
+    if build_info.get('version') != version:
         raise ValueError('Application build version does not match the package source')
+    dependencies = dependencies_for_build(build_info)
     output.mkdir(parents=True, exist_ok=True)
     destination = output / f'{PACKAGE}_{version_deb}_amd64.deb'
     with tempfile.TemporaryDirectory(prefix='pvs-deb-', dir=output) as temporary:
@@ -122,7 +145,7 @@ def package(app: Path, output: Path) -> Path:
                    'Section: sound\nPriority: optional\n'
                    f'Installed-Size: {(size + 1023)//1024}\n'
                    'Homepage: https://github.com/kaotickj/plagues-voice-studio\n'
-                   f'Depends: {", ".join(DEPENDENCIES)}\n'
+                   f'Depends: {", ".join(dependencies)}\n'
                    'Description: local AI voice production studio\n'
                    ' Native Linux CPU application with narration and optional speech engines.\n'
                    ' Model weights and optional runtimes are configured separately.\n')
