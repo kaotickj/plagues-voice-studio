@@ -43,7 +43,9 @@ def verify(exe: Path):
                 bundled=internal/'plugins'/relative
                 compared['plugins/'+str(relative)]=bundled.is_file() and bundled.read_text(encoding='utf-8')==source.read_text(encoding='utf-8')
     required={'chatterbox_studio.engine','chatterbox_studio.speech_check','chatterbox_studio.tokenizer_assets',
-              'chatterbox_studio.optional_engines','writer_core.runtime','plagued_ai'}
+              'chatterbox_studio.optional_engines','chatterbox_studio.native_vulkan',
+              'chatterbox_studio.text_preparation','chatterbox_studio.engine_lab',
+              'writer_core.runtime','plagued_ai'}
     if not required.issubset(compared):raise RuntimeError('Missing owned modules: '+str(required-set(compared)))
     return dict(status='passed' if all(compared.values()) else 'failed',checks=compared)
 

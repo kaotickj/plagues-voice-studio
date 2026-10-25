@@ -113,6 +113,8 @@ class Engine:
     def _get_model(self, model_id: str, device: str, report: Callable[[str], None]):
         key = (model_id, device)
         if self.model_key != key:
+            # A failed replacement must not leave the previous key cached.
+            self.model_key = None
             self.model = None
             self.builtin_voice = None
             if device == "cuda":

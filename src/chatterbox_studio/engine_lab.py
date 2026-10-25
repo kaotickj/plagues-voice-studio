@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QFrame, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel, QGroupBox,
     QComboBox, QLineEdit, QPushButton, QFileDialog, QPlainTextEdit, QMessageBox,
     QDoubleSpinBox, QScrollArea, QTableWidget, QTableWidgetItem, QAbstractItemView,
-    QHeaderView, QSplitter,
+    QHeaderView, QSplitter, QDialog, QTabWidget,
 )
 
 from .optional_engines import (
@@ -43,13 +43,15 @@ class OptionalEngineWorker(QObject):
         from time import monotonic
         try:
             if self.probe:
-                engine, exe, repo, model_dir = self.probe
+                engine, exe, repo, model_dir, *native = self.probe
+                options = native[0] if native else {}
                 result = execute_probe(engine, exe, repo, cancelled=self.cancel_event,
                                        log=self.message.emit, diagnostic_dir=self.diagnostic_dir,
-                                       model_dir=model_dir)
-                detail = (result['runtime'] + '; available providers: ' + ', '.join(result['providers']) if engine == 'kokoro' else
+                                       model_dir=model_dir, **options)
+                detail = (result['status'] if result.get('backend') == 'native_vulkan' else
+                          result['runtime'] + '; available providers: ' + ', '.join(result['providers']) if engine == 'kokoro' else
                           f'PyTorch {result["torch"]}, CUDA: {result["cuda_available"]}')
-                self.message.emit(f'{ENGINES[engine]["label"]} ready. {detail}')
+                self.message.emit(f'{ENGINES[engine]["label"]}: {detail}')
             for request, exe in self.jobs:
                 if self.cancel_event.is_set():
                     break
@@ -91,7 +93,9 @@ class EngineLab(QWidget):
         headline = QLabel('VOICE ENGINES')
         headline.setObjectName('sectionTitle')
         outer.addWidget(headline)
-        note = QLabel('Chatterbox, Qwen3-TTS and IndexTTS 2.5 are supported speech engines. Kokoro adds six ready-made voices for narration and ad copy. These engines use independent Python runtimes and shared model storage. Run memory-intensive AI jobs one at a time if system memory is limited.')
+        note = QLabel('Qwen3-TTS, IndexTTS 2.5 and Kokoro use independent runtimes and shared model storage. '
+                      'Python remains the default. Native Vulkan is an explicit Linux option for reviewed local runtimes; '
+                      'Index native generation remains unavailable until placement verification is qualified.')
         note.setWordWrap(True)
         outer.addWidget(note)
         scroll = QScrollArea()
@@ -132,6 +136,31 @@ class EngineLab(QWidget):
             b.clicked.connect(lambda checked=False, e=field, d=directory: self._browse(e, d))
             r.addWidget(b)
             rform.addRow(title, r)
+        native = self.config['native']
+        self.native_fields = {}
+        for key, title, directory in (
+            ('native_executable', 'Native speech executable', False),
+            ('native_sha256', 'Reviewed executable SHA256', None),
+            ('qwen_06_model_dir', 'Native Qwen Base 0.6B folder', True),
+            ('qwen_17_model_dir', 'Native Qwen Base 1.7B folder', True),
+            ('index_model_dir', 'Native IndexTTS 2.5 folder', True),
+            ('native_gpu_lock', 'Existing shared GPU lock', False),
+        ):
+            field = QLineEdit(native.get(key, ''))
+            field.setObjectName(key)
+            self.native_fields[key] = field
+            row = QHBoxLayout(); row.addWidget(field, 1)
+            if directory is not None:
+                browse = QPushButton('Browse...')
+                browse.clicked.connect(lambda checked=False, e=field, d=directory: self._browse(e, d))
+                row.addWidget(browse)
+            rform.addRow(title, row)
+        discover = QPushButton('Find retained native preset paths')
+        discover.clicked.connect(self._discover_native_paths)
+        rform.addRow(discover)
+        note = QLabel('Native Vulkan is a separate Linux backend. Select a reviewed audio.cpp runtime and complete local model folders. '
+                      'Finding paths does not save settings, install anything or test the GPU. Python remains the default.')
+        note.setWordWrap(True); rform.addRow(note)
         controls = QHBoxLayout()
         save = QPushButton('Save runtime paths')
         save.clicked.connect(self.save_runtimes)
@@ -163,6 +192,16 @@ class EngineLab(QWidget):
             self.engine.addItem(data['label'], identifier)
         self.engine.currentIndexChanged.connect(self._engine_changed)
         form.addRow('Engine', self.engine)
+        self.backend = QComboBox()
+        self.backend.setObjectName('optional_engine_backend')
+        self.backend.addItem('Python (existing runtime; compatible default)', 'python')
+        self.backend.addItem('Native Vulkan (Linux, explicit GPU)', 'native_vulkan')
+        self.backend.currentIndexChanged.connect(self._backend_changed)
+        form.addRow('Backend', self.backend)
+        self.backend_note = QLabel('')
+        self.backend_note.setWordWrap(True)
+        self.backend_note.setObjectName('native_backend_status')
+        form.addRow(self.backend_note)
         self.model = QComboBox()
         form.addRow('Model', self.model)
         self.language = QComboBox()
@@ -208,6 +247,13 @@ class EngineLab(QWidget):
         from_narration = QPushButton('Copy text from Narration Studio')
         from_narration.clicked.connect(lambda: self.text.setPlainText(self.host.editor.toPlainText()))
         actions.addWidget(from_narration)
+        self.preview_text = QPushButton('Preview render text')
+        self.preview_text.setToolTip('Review the selected engine’s prepared text without generating audio. English AM/PM clocks are expanded; the original text stays unchanged.')
+        self.preview_text.clicked.connect(self._preview_render_text)
+        actions.addWidget(self.preview_text)
+        actions.addStretch()
+        slayout.addLayout(actions)
+        actions = QHBoxLayout()
         self.generate = QPushButton('Generate with selected engine')
         self.generate.setObjectName('primary')
         self.generate.clicked.connect(self.generate_selected)
@@ -280,16 +326,100 @@ class EngineLab(QWidget):
         if path: field.setText(path)
 
     def save_runtimes(self):
-        self.config = {
-            'qwen3': {'python': self.qwen_py.text().strip(), 'repo': ''},
-            'index25': {'python': self.index_py.text().strip(), 'repo': self.index_repo.text().strip()},
-            'kokoro': {'python': self.kokoro_py.text().strip(), 'model_dir': self.kokoro_models.text().strip()},
-        }
+        self.config['qwen3'].update(python=self.qwen_py.text().strip())
+        self.config['index25'].update(python=self.index_py.text().strip(), repo=self.index_repo.text().strip())
+        self.config['kokoro'].update(python=self.kokoro_py.text().strip(), model_dir=self.kokoro_models.text().strip())
+        self.config['native'].update({key: field.text().strip() for key, field in self.native_fields.items()})
+        if self.engine.currentData() in ('qwen3', 'index25'):
+            self.config[self.engine.currentData()]['backend'] = self.backend.currentData()
         try:
             self.registry.save(self.config)
             self.status.setText('Engine runtime paths saved. No installation was performed.')
         except Exception as exc:
             QMessageBox.warning(self, 'Unable to save runtime settings', str(exc))
+
+    def _discover_native_paths(self):
+        from .native_vulkan import discover_native_settings
+        found = discover_native_settings(self.host.storage)
+        if not found:
+            self.status.setText('No retained native preset paths were found here. Choose existing paths manually; check mounted drives.')
+            return
+        for key, value in found.items():
+            if key in self.native_fields and not self.native_fields[key].text().strip():
+                self.native_fields[key].setText(value)
+        self.status.setText('Retained paths suggested in empty fields. Review them, save explicitly, then test paths. GPU generation has not run.')
+
+    def _backend_changed(self, *_):
+        if not hasattr(self, 'device') or not hasattr(self, 'compare'):
+            return
+        eng = self.engine.currentData()
+        if eng == 'kokoro':
+            self.backend.blockSignals(True)
+            self.backend.setCurrentIndex(self.backend.findData('python'))
+            self.backend.blockSignals(False)
+        native = eng in ('qwen3', 'index25') and self.backend.currentData() == 'native_vulkan'
+        self.backend.setEnabled(eng != 'kokoro')
+        same_engine = getattr(self, '_backend_engine', None) == eng
+        was_native = getattr(self, '_native_active', False)
+        if not hasattr(self, '_python_controls'):
+            self._python_controls = {}
+        if native and same_engine and not was_native:
+            self._python_controls[eng] = (self.device.currentData(), self.emotion.currentData(), self.speed.value())
+        current = self.device.currentData()
+        self.device.clear()
+        if native:
+            self.device.addItem('Vulkan GPU 0 (no fallback)', 'vulkan')
+            self.emotion.setCurrentIndex(self.emotion.findData('neutral'))
+            self.speed.setValue(1.0)
+        elif eng == 'kokoro':
+            choices = [('Auto (prefer DirectML GPU)', 'auto'), ('DirectML GPU (Radeon / Intel / NVIDIA)', 'directml'), ('CPU', 'cpu')] if sys.platform == 'win32' else [('Auto (CPU)', 'auto'), ('CPU', 'cpu')]
+            for label, value in choices: self.device.addItem(label, value)
+        else:
+            for label, value in [('CPU (compatible default)', 'cpu'), ('Auto', 'auto'), ('GPU via PyTorch (CUDA / ROCm runtime)', 'cuda')]:
+                self.device.addItem(label, value)
+        selected = self.device.findData(current)
+        if selected >= 0: self.device.setCurrentIndex(selected)
+        if not native and same_engine and was_native and eng in self._python_controls:
+            device, emotion, speed = self._python_controls[eng]
+            for combo, value in ((self.device, device), (self.emotion, emotion)):
+                index = combo.findData(value)
+                if index >= 0: combo.setCurrentIndex(index)
+            self.speed.setValue(speed)
+        self.device.setEnabled(not native)
+        self.emotion.setEnabled(eng == 'index25' and not native)
+        self.speed.setEnabled(eng in ('index25', 'kokoro') and not native)
+        if native:
+            self.emotion.setToolTip('Native emotion controls have not been qualified; Neutral is required.')
+            self.speed.setToolTip('Native duration controls have not been qualified; 1.0 is required.')
+        else:
+            self.emotion.setToolTip('Select the emotion supported by the Python Index adapter.')
+            self.speed.setToolTip('Kokoro speaking speed: >1.0 speaks faster.' if eng == 'kokoro' else
+                                  'IndexTTS duration factor: >1.0 slows the speech.')
+        from .native_vulkan import native_generation_blocker
+        blocker = native_generation_blocker(eng) if native else ''
+        if native and sys.platform != 'linux':
+            blocker = 'Native Vulkan currently supports Linux only. Choose Python on this platform.'
+        self.backend_note.setText(blocker or ('Native Vulkan0: at most 1,000 prepared characters; reference at most 30 seconds. '
+                                            'Exact Qwen transcript or explicitly embedding-only conditioning; no CPU fallback. '
+                                            'GPU generation still requires runtime qualification.' if native else
+                                            'Python uses the separately configured runtime and selected compute device.'))
+        if hasattr(self, 'generate'):
+            self.generate.setEnabled(self.thread is None and not blocker)
+            self.compare.setEnabled(self.thread is None and eng != 'kokoro' and not blocker)
+        self._backend_engine, self._native_active = eng, native
+
+    def _native_request_settings(self, engine, model):
+        values = {key: field.text().strip() for key, field in self.native_fields.items()}
+        key = ('qwen_06_model_dir' if '0.6B' in model else 'qwen_17_model_dir') if engine == 'qwen3' else 'index_model_dir'
+        return {key: values[key] for key in ('native_executable', 'native_sha256', 'native_gpu_lock')} | {'native_model_dir': values[key]}
+
+    def _restore_native_settings(self, engine, model, values):
+        folder_key = ('qwen_06_model_dir' if '0.6B' in model else 'qwen_17_model_dir') if engine == 'qwen3' else 'index_model_dir'
+        for key in ('native_executable', 'native_sha256', 'native_gpu_lock'):
+            if key in values:
+                self.native_fields[key].setText(str(values[key]))
+        if 'native_model_dir' in values:
+            self.native_fields[folder_key].setText(str(values['native_model_dir']))
 
     def _engine_changed(self, *_):
         eng = self.engine.currentData()
@@ -332,6 +462,10 @@ class EngineLab(QWidget):
         self.language.setEnabled(not is_kokoro)
         self.compare.setEnabled(not is_kokoro and self.thread is None)
         self._last_engine = eng
+        self.backend.blockSignals(True)
+        self.backend.setCurrentIndex(self.backend.findData(self.config.get(eng, {}).get('backend', 'python')))
+        self.backend.blockSignals(False)
+        self._backend_changed()
         self.speed.setValue(1.0)
         name = self.character.currentText().strip() if hasattr(self, 'character') else ''
         profile = self.profiles.read().get(name, {})
@@ -344,6 +478,9 @@ class EngineLab(QWidget):
             self.language.setCurrentIndex(self.language.findData(accent))
 
     def _apply_engine_settings(self, chosen: dict):
+        engine = self.engine.currentData()
+        backend = chosen.get('backend', self.config.get(engine, {}).get('backend', 'python'))
+        self.backend.setCurrentIndex(self.backend.findData(backend))
         for combo, value in [
             (self.model, chosen.get('model')),
             (self.language, chosen.get('language')),
@@ -355,6 +492,9 @@ class EngineLab(QWidget):
             if index >= 0: combo.setCurrentIndex(index)
         if 'speed' in chosen:
             self.speed.setValue(float(chosen['speed']))
+        if self.backend.currentData() == 'native_vulkan':
+            self._restore_native_settings(engine, self.model.currentData(), chosen.get('native_settings', {}))
+            self._backend_changed()
         if self.engine.currentData() == 'kokoro':
             self._kokoro_voice_changed()
 
@@ -396,13 +536,16 @@ class EngineLab(QWidget):
             name = self.character.currentText().strip()
             current = self.profiles.read().get(name, {})
             engines = dict(current.get('engines', {}))
-            engines[self.engine.currentData()] = {
+            engines[self.engine.currentData()] = {**engines.get(self.engine.currentData(), {}),
                 'model': self.model.currentData(), 'language': self.language.currentData(),
                 'device': self.device.currentData(), 'emotion': self.emotion.currentData(),
                 'speed': self.speed.value(),
+                'backend': self.backend.currentData(),
                 'preset_voice': self.preset_voice.currentData() if self.engine.currentData() == 'kokoro' else '',
             }
-            profile = {'preferred_engine': self.engine.currentData(),
+            if self.backend.currentData() == 'native_vulkan':
+                engines[self.engine.currentData()]['native_settings'] = self._native_request_settings(self.engine.currentData(), self.model.currentData())
+            profile = {**current, 'preferred_engine': self.engine.currentData(),
                        'voice_id': self.voice.currentData(),
                        'ref_text': self.ref_text.toPlainText(), 'engines': engines}
             self.profiles.save_profile(name, profile)
@@ -419,6 +562,40 @@ class EngineLab(QWidget):
         self.profiles.delete_profile(name)
         self.character.setEditText('')
         self.refresh_profiles()
+
+    def _preview_render_text(self):
+        from .text_preparation import prepare_render_text
+        original = self.text.toPlainText()
+        prepared = prepare_render_text(original, self.language.currentData() or '')
+        previous = getattr(self, '_text_preview_dialog', None)
+        if previous is not None:
+            previous.close()
+            previous.deleteLater()
+        dialog = QDialog(self)
+        dialog.setObjectName('engine_render_preview')
+        dialog.setWindowTitle('Preview render text — no audio generated')
+        dialog.resize(740, 520)
+        layout = QVBoxLayout(dialog)
+        summary = QLabel('Selected engine: ' + self.engine.currentText()
+                         + '. Generate uses the current text and language. English AM/PM clocks are expanded for speech.')
+        summary.setWordWrap(True)
+        layout.addWidget(summary)
+        tabs = QTabWidget()
+        for title, name, text in (
+            ('Render text', 'engine_preview_prepared', prepared),
+            ('Original manuscript', 'engine_preview_original', original),
+        ):
+            field = QPlainTextEdit()
+            field.setObjectName(name)
+            field.setReadOnly(True)
+            field.setPlainText(text)
+            tabs.addTab(field, title)
+        layout.addWidget(tabs)
+        close = QPushButton('Close')
+        close.clicked.connect(dialog.close)
+        layout.addWidget(close)
+        self._text_preview_dialog = dialog
+        dialog.show()
 
     def _make_request(self, engine: str) -> dict:
         # For comparisons, use saved per-engine settings when available.
@@ -457,9 +634,19 @@ class EngineLab(QWidget):
             'preset_voice': preset if engine == 'kokoro' else '',
             'model_dir': self.kokoro_models.text().strip() if engine == 'kokoro' else '',
         }
+        backend = self.backend.currentData() if engine == self.engine.currentData() else saved.get('backend', self.config.get(engine, {}).get('backend', 'python'))
+        result['backend'] = backend
+        if backend == 'native_vulkan':
+            native_settings = self._native_request_settings(engine, model) if engine == self.engine.currentData() else saved.get('native_settings', self._native_request_settings(engine, model))
+            result.update(native_settings, device='vulkan')
         return clean_request(result)
 
     def _start(self, jobs=None, probe=None):
+        from .native_vulkan import native_generation_blocker
+        for request, _ in jobs or []:
+            if request.get('backend') == 'native_vulkan' and native_generation_blocker(request['engine']):
+                QMessageBox.information(self, 'Native engine unavailable', native_generation_blocker(request['engine']))
+                return
         plugins = getattr(self.host, 'plugins', None)
         if plugins is not None and plugins.is_busy:
             QMessageBox.information(self, 'Writer running', 'Finish or cancel the writer before starting a voice-engine operation.')
@@ -499,7 +686,11 @@ class EngineLab(QWidget):
         self.save_runtimes()
         engine = self.engine.currentData()
         entry = self.config[engine]
-        self._start(probe=(engine, entry['python'], entry.get('repo', ''), entry.get('model_dir', '')))
+        options = {}
+        if self.backend.currentData() == 'native_vulkan':
+            options = {'backend': 'native_vulkan', 'model': self.model.currentData(),
+                       'native_settings': self._native_request_settings(engine, self.model.currentData())}
+        self._start(probe=(engine, entry['python'], entry.get('repo', ''), entry.get('model_dir', ''), options))
 
     def generate_selected(self):
         self.save_runtimes()
@@ -565,6 +756,8 @@ class EngineLab(QWidget):
             backend = metadata.get('runtime', {}).get('backend')
             if backend:
                 model_label += ' / ' + ('DirectML' if backend == 'directml' else 'CPU')
+        elif metadata.get('backend') == 'native_vulkan':
+            model_label += ' / Native Vulkan0'
         for col, val in enumerate((ENGINES[engine]['label'], model_label, f'{elapsed:.1f}s', str(output))):
             item = QTableWidgetItem(val)
             if col == 3: item.setData(Qt.ItemDataRole.UserRole, str(output))
@@ -584,6 +777,7 @@ class EngineLab(QWidget):
         self.worker = None
         self.generate.setEnabled(True); self.compare.setEnabled(self.engine.currentData() != 'kokoro'); self.test.setEnabled(True)
         self.cancel.setEnabled(False)
+        self._backend_changed()
 
     def cancel_work(self):
         if self.worker is not None:

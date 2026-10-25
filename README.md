@@ -39,6 +39,12 @@ Chatterbox, Qwen3 or IndexTTS. Run `scripts/setup_kokoro_windows.ps1` once; exis
 shared weights are reused. Add `-DownloadModels` on a fresh machine to explicitly
 download the checksum-verified model/voice pack. See [Kokoro setup](OPTIONAL_ENGINES.md#kokoro-preset-voices).
 
+**Linux acceleration source candidate:** an explicit native Vulkan path for
+Qwen Base has passed software checks, but real synthesis and listening remain
+unqualified. Index native generation stays unavailable pending GPU-placement
+qualification. The installed RC2 Chatterbox bundle remains CPU-only. See the
+[candidate capability limits](OPTIONAL_ENGINES.md#native-vulkan-linux-source-candidate).
+
 This **1.0.0rc2 candidate** retains the experimental 0.3 installation's
 existing installer identity and directory. It stores shared AI assets under
 `%LOCALAPPDATA%\PlaguedAI` and preserves discovery of existing engine runtimes.

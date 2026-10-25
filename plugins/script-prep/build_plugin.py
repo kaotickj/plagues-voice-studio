@@ -15,6 +15,8 @@ def build(destination=None):
         for path in sorted(plugin.iterdir()):
             if path.is_file() and path.suffix in ('.py', '.md', '.json') and path.name != 'build_plugin.py':
                 bundle.write(path, 'plugins/script-prep/' + path.name)
+        bundle.write(plugin.parents[1] / 'src/chatterbox_studio/text_preparation.py',
+                     'plugins/script-prep/time_preparation.py')
         bundle.write(plugin.parents[1] / 'LICENSE', 'plugins/script-prep/LICENSE')
     with zipfile.ZipFile(archive) as bundle:
         if bundle.testzip(): raise RuntimeError('Archive integrity check failed.')

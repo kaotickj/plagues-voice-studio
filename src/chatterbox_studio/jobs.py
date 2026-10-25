@@ -73,7 +73,10 @@ class NarrationJob:
     @property
     def render_text(self) -> str:
         """Reviewed render input, kept separate from the original manuscript."""
-        return self.text if self.prepared_text is None else self.prepared_text
+        from .text_preparation import prepare_render_text
+        source = self.text if self.prepared_text is None else self.prepared_text
+        language = self.language if self.model == 'multilingual-v3' else 'en'
+        return prepare_render_text(source, language)
 
     def effective_settings(self) -> dict:
         """Describe controls the adapter actually uses for this model and profile.

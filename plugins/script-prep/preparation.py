@@ -3,6 +3,14 @@ from dataclasses import dataclass
 from datetime import date
 import re
 
+try:
+    from chatterbox_studio.text_preparation import normalize_english_times
+except ModuleNotFoundError as exc:
+    if exc.name not in ('chatterbox_studio', 'chatterbox_studio.text_preparation'):
+        raise
+    # Portable API-1 archives include the exact shared helper for older hosts.
+    from .time_preparation import normalize_english_times
+
 ONES = 'zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen'.split()
 TENS = 'zero ten twenty thirty forty fifty sixty seventy eighty ninety'.split()
 
@@ -64,12 +72,8 @@ def prepare(text, entries=(), numbers=True, abbreviations=True, pauses=False):
                 lambda m: money(re.match(r'\$(.*)', m.group())), source, 'Price')
             source = replace(r'(?<![\w.-])(\d{1,6}(?:\.\d+)?)\s*%(?!\w)', lambda m: decimal(m[1])+' percent', source, 'Percent')
             source = replace(r'(?<![\w:.])(\d{1,4}(?:\.\d+)?)\s*(FM|AM|MHz)\b', lambda m: decimal(m[1])+' '+({'FM':'F M','AM':'A M','MHz':'megahertz'}[m[2]]), source, 'Frequency')
-            def clock(m):
-                hour, minute = int(m[1]), int(m[2])
-                if not 1 <= hour <= 12 or minute > 59:
-                    return m.group()
-                return number(hour) + ((' oh '+number(minute)) if 0 < minute < 10 else (' '+number(minute)) if minute else '') + ' ' + m[3][0].upper()+' M'
-            source = replace(r'\b(\d{1,2}):(\d{2})\s*([ap])\.?m\.?(?!\w)', clock, source, 'Time', re.I)
+            source = normalize_english_times(source,
+                lambda original, spoken: changes.append(f'Time: {original} → {spoken}'))
             def calendar(m):
                 try:
                     d = date.fromisoformat(m.group())

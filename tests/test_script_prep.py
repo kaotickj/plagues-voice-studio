@@ -1,5 +1,6 @@
 """Real rule behavior, durable dictionaries and plugin review lifecycle."""
 import importlib.util
+import importlib
 import json
 import os
 from pathlib import Path
@@ -19,8 +20,8 @@ from _script_prep_tests.library import Library
     ('$12.50', 'twelve dollars and fifty cents'), ('$1.01', 'one dollar and one cent'),
     ('$0.05', 'zero dollars and five cents'), ('$1,250.00', 'one thousand two hundred fifty dollars'),
     ('25.5%', 'twenty five point five percent'), ('95.77 FM', 'ninety five point seven seven F M'),
-    ('1020 AM', 'one thousand twenty A M'), ('8:05 p.m.', 'eight oh five P M'),
-    ('12:00 AM', 'twelve A M'), ('2026-10-21', 'October twenty first, two thousand twenty six'),
+    ('1020 AM', 'one thousand twenty A M'), ('8:05 p.m.', 'eight oh five p.m.'),
+    ('12:00 AM', 'twelve a.m.'), ('2026-10-21', 'October twenty first, two thousand twenty six'),
     ('2026-02-30', '2026-02-30'), ('Dr. Wright vs. Mr. Jones', 'Doctor Wright versus Mister Jones'),
     ('$1,000,000', '$1,000,000'), ('$12.345', '$12.345'), ('13:99 PM', '13:99 PM'),
     ('$12.50.', 'twelve dollars and fifty cents.'), ('$12.50, please', 'twelve dollars and fifty cents, please'),
@@ -47,6 +48,17 @@ def test_controls_preserve_original_and_optional_pauses():
     assert prepare(source, numbers=False, abbreviations=False).text == source
     assert prepare(source, numbers=False, abbreviations=False, pauses=True).text == 'Dr. Jones, $12.50 at 95.77 FM'
     with pytest.raises(ValueError): prepare('x'*100001)
+
+
+def test_clock_rules_are_shared_reviewable_and_do_not_cascade():
+    from chatterbox_studio.text_preparation import prepare_render_text
+    source = 'Meet at 9:05 a.m. See https://example.test/9:05am.'
+    prepared = prepare(source)
+    assert prepared.text == prepare_render_text(source)
+    assert prepared.changes == ['Time: 9:05 a.m. → nine oh five a.m.']
+    assert prepare(prepared.text).text == prepared.text
+    assert prepare(source, numbers=False).text == source
+    assert prepare('9:05am', [{'term': '9:05am', 'spoken': 'the scheduled time'}]).text == 'the scheduled time'
 
 
 def test_atomic_profiles_validation_and_corruption(tmp_path):
@@ -91,7 +103,7 @@ def test_gui_menu_handoff_and_review_invalidation(tmp_path):
     manager.close_all(); host.close(); app.processEvents()
 
 
-def test_plugin_package_contains_only_necessary_files(tmp_path):
+def test_plugin_package_contains_only_necessary_files(tmp_path, monkeypatch):
     module_spec = importlib.util.spec_from_file_location('_prep_builder', FOLDER/'build_plugin.py')
     builder = importlib.util.module_from_spec(module_spec); module_spec.loader.exec_module(builder)
     archive = builder.build(tmp_path)
@@ -99,4 +111,16 @@ def test_plugin_package_contains_only_necessary_files(tmp_path):
         assert bundle.testzip() is None
         assert 'plugins/script-prep/plugin.json' in bundle.namelist()
         assert 'plugins/script-prep/LICENSE' in bundle.namelist()
+        assert bundle.read('plugins/script-prep/time_preparation.py') == (ROOT/'src/chatterbox_studio/text_preparation.py').read_bytes()
         assert not any(name.endswith(('.exe', '.gguf')) or '/artifacts/' in name for name in bundle.namelist())
+        bundle.extractall(tmp_path / 'expanded')
+    # API-1 hosts predating the shared core helper can still load this archive.
+    folder = tmp_path / 'expanded/plugins/script-prep'
+    name = '_script_prep_older_host'
+    archived_spec = importlib.util.spec_from_file_location(name, folder/'__init__.py', submodule_search_locations=[str(folder)])
+    archived = importlib.util.module_from_spec(archived_spec)
+    monkeypatch.setitem(sys.modules, name, archived)
+    monkeypatch.setitem(sys.modules, 'chatterbox_studio.text_preparation', None)
+    archived_spec.loader.exec_module(archived)
+    archived_preparation = importlib.import_module(name + '.preparation')
+    assert archived_preparation.prepare('9:05am').text == 'nine oh five a.m.'
