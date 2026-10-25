@@ -5,6 +5,7 @@ Heavy ML dependencies are intentionally imported only inside a background worker
 from __future__ import annotations
 import os
 import subprocess
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
@@ -13,7 +14,6 @@ import numpy as np
 from .jobs import NarrationJob
 from .paths import bundled_models_dir, user_data_dir
 from .model_downloads import MODELS, has_required_files, installed_model_directory
-from .narration_markup import plan_script
 from .export_metadata import write_export_metadata
 
 
@@ -127,6 +127,8 @@ class Engine:
     def render(self, job: NarrationJob, report: Callable[[str], None],
                progress: Callable[[int, int], None], cancelled: Callable[[], bool]) -> Path:
         job.validate()
+        settings = job.effective_settings()
+        steps = job.render_steps()
         import soundfile as sf
         import torch
         device = resolve_device(job.device)
@@ -138,12 +140,18 @@ class Engine:
         # Prepare once, not per chunk. Do not let the previous job's voice leak into this one.
         if job.voice_path:
             report(f"Preparing voice: {Path(job.voice_path).name}")
-            model.prepare_conditionals(job.voice_path, exaggeration=job.exaggeration)
+            # Reset first so a failed preparation cannot leave another job's
+            # reference active. Each job recomputes its own conditionals.
+            model.conds = self.builtin_voice
+            try:
+                model.prepare_conditionals(job.voice_path, exaggeration=settings["conditioning_exaggeration"])
+            except Exception:
+                model.conds = self.builtin_voice
+                raise
         else:
             model.conds = self.builtin_voice
             if model.conds is None:
                 raise RuntimeError("This model has no built-in voice. Import a reference recording.")
-        steps = plan_script(job.text, job.max_chars, job.pause_ms)
         speech_total = sum(step.kind == "speech" for step in steps)
         speech_index = 0
         target = unique_output_path(Path(job.output_path).expanduser())
@@ -165,12 +173,7 @@ class Engine:
                     speech_index += 1
                     chunk = step.text
                     report(f"Generating segment {speech_index}/{speech_total} ({len(chunk)} characters)")
-                    args = {"temperature": job.temperature}
-                    if job.model == "multilingual-v3":
-                        args.update(language_id=job.language, exaggeration=job.exaggeration,
-                                    cfg_weight=job.cfg_weight)
-                    elif job.model == "english":
-                        args.update(exaggeration=job.exaggeration, cfg_weight=job.cfg_weight)
+                    args = job.generation_kwargs()
                     # Turbo and Nano do not support cfg or exaggeration during generation.
                     with torch.inference_mode():
                         audio = model.generate(chunk, **args)
@@ -205,6 +208,11 @@ class Engine:
             # Use target, not job.output_path, because target can be numbered.
             metadata = {
                 **job.as_json(),
+                "original_text": job.text,
+                "prepared_text": job.render_text,
+                "effective_settings": settings,
+                "generation_kwargs": job.generation_kwargs(),
+                "render_plan": [asdict(step) for step in steps],
                 "engine": "chatterbox",
                 "output_path": str(target),
                 "device_used": device,

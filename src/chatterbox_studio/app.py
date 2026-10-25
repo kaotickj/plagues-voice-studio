@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QFileDialog, QFormLayout,
     QFrame, QGridLayout, QGroupBox, QHBoxLayout, QInputDialog,
     QLabel, QLineEdit, QMainWindow, QMessageBox, QPlainTextEdit,
-    QProgressBar, QPushButton, QSlider, QSpinBox, QSplitter, QStatusBar,
+    QProgressBar, QPushButton, QScrollArea, QSlider, QSpinBox, QSplitter, QStatusBar,
     QTabWidget, QTableWidget, QTableWidgetItem, QTextBrowser, QVBoxLayout,
     QWidget, QHeaderView, QAbstractItemView, QDialog,
 )
@@ -23,7 +23,7 @@ from .settings_migration import copy_legacy_settings
 from .pvs_library import CompatibleVoiceLibrary, new_export_directory, narration_basename
 from .export_browser import ExportBrowser
 from .worker import RenderWorker
-from .narration_markup import plan_script, MarkupError
+from .narration_markup import parse_script, MarkupError
 from .engine_lab import EngineLab
 from .model_manager import ModelManager
 from .help_center import HelpCenter
@@ -106,6 +106,7 @@ class MainWindow(QMainWindow):
         self.playback_file = ""
         self._about_dialog: AboutDialog | None = None
         self._update_dialog: UpdateDialog | None = None
+        self._render_preview_dialog: QDialog | None = None
         self._preferred_voice_id = str(self.settings.value('last_voice', '') or '')
         self.player.playbackStateChanged.connect(self._playback_changed)
         self._build_ui()
@@ -200,12 +201,12 @@ class MainWindow(QMainWindow):
             tag_tools.addWidget(action)
         left_layout.addLayout(tag_tools)
         self.editor = QPlainTextEdit()
+        self.editor.setMinimumHeight(160)
         self.editor.setPlaceholderText(
-            "Paste your script here. Keep natural punctuation for expressive narration.\n\n"
-            "For Turbo and Nano, use supported tags such as [chuckle] or [laugh] where appropriate.\n\n"
+            "Paste your manuscript here. Natural punctuation works for ordinary narration.\n\n"
             "App directives: [pause:0.8s], [emphasis]text[/emphasis], "
             "[rate:0.90]text[/rate], [volume:0.85]text[/volume].\n"
-            "Native tags such as [chuckle] are best suited to Turbo and Nano."
+            "Delivery directions are optional. Preview the render plan before generating."
         )
         font = QFont("Consolas", 11)
         font.setStyleHint(QFont.StyleHint.Monospace)
@@ -241,13 +242,20 @@ class MainWindow(QMainWindow):
         fmtrow = QHBoxLayout()
         fmtrow.addWidget(QLabel("Format"))
         fmtrow.addWidget(self.format)
-        fmtrow.addWidget(QLabel("Segment gap"))
-        fmtrow.addWidget(self.pause)
-        fmtrow.addWidget(QLabel("Max characters"))
-        fmtrow.addWidget(self.chunk)
         exp_layout.addLayout(fmtrow)
+        segment_row = QHBoxLayout()
+        segment_row.addWidget(QLabel("Segment gap"))
+        segment_row.addWidget(self.pause)
+        segment_row.addWidget(QLabel("Max characters"))
+        segment_row.addWidget(self.chunk)
+        exp_layout.addLayout(segment_row)
         left_layout.addWidget(export)
-        splitter.addWidget(left)
+        manuscript_scroll = QScrollArea()
+        manuscript_scroll.setObjectName('narration_manuscript_scroll')
+        manuscript_scroll.setWidgetResizable(True)
+        manuscript_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        manuscript_scroll.setWidget(left)
+        splitter.addWidget(manuscript_scroll)
 
         right = QWidget()
         right_layout = QVBoxLayout(right)
@@ -257,17 +265,23 @@ class MainWindow(QMainWindow):
         self.model = QComboBox()
         for key, description in MODEL_CHOICES.items():
             self.model.addItem(description, key)
+        self.model.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.model.setMinimumContentsLength(12)
         self.model.currentIndexChanged.connect(self._on_model_changed)
         model_form.addRow("Model", self.model)
         self.device = QComboBox()
         self.device.addItem("Auto (CUDA if supported, otherwise CPU)", "auto")
         self.device.addItem("CPU", "cpu")
         self.device.addItem("NVIDIA CUDA", "cuda")
+        self.device.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.device.setMinimumContentsLength(12)
         model_form.addRow("Processor", self.device)
         self.language = QComboBox()
         for key, description in LANGUAGES.items():
             self.language.addItem(f"{description} ({key})", key)
         self.language.setCurrentIndex(list(LANGUAGES).index("en"))
+        self.language.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.language.setMinimumContentsLength(12)
         model_form.addRow("Language", self.language)
         self.model_hint = QLabel("")
         self.model_hint.setWordWrap(True)
@@ -278,6 +292,8 @@ class MainWindow(QMainWindow):
         voice_group = QGroupBox("Voice library")
         voice_layout = QVBoxLayout(voice_group)
         self.voice = QComboBox()
+        self.voice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.voice.setMinimumContentsLength(12)
         voice_layout.addWidget(self.voice)
         self.voice.currentIndexChanged.connect(self._voice_changed)
         add_voice = QPushButton("Import reference...")
@@ -286,7 +302,8 @@ class MainWindow(QMainWindow):
         self.remove_voice.clicked.connect(self._remove_voice)
         self.preview_voice = QPushButton("Listen")
         self.preview_voice.clicked.connect(self._preview_voice)
-        voice_layout.addLayout(row(add_voice, self.preview_voice, self.remove_voice))
+        voice_layout.addWidget(add_voice)
+        voice_layout.addLayout(row(self.preview_voice, self.remove_voice))
         self.voice_hint = QLabel("Use 6–20 seconds of clean speech from a voice you own or have permission to clone.")
         self.voice_hint.setWordWrap(True)
         self.voice_hint.setStyleSheet("color: #a9bba9;")
@@ -301,10 +318,54 @@ class MainWindow(QMainWindow):
         tunes.addWidget(self.exaggeration)
         tunes.addWidget(self.cfg)
         tunes.addWidget(self.temperature)
+        self.generation_profile = QComboBox()
+        self.generation_profile.setObjectName('generation_profile')
+        self.generation_profile.addItem('Current settings', 'custom')
+        self.generation_profile.addItem('Clear Narration', 'clear_narration')
+        self.generation_profile.setAccessibleName('Narration profile')
+        self.generation_profile.setToolTip('Clear Narration uses general-use settings: temperature 0.8, 220-character segments and 180 ms gaps; supported expressiveness and CFG are 0.5. No vocal effects are added.')
+        profile_label = QLabel('&Profile')
+        profile_label.setBuddy(self.generation_profile)
+        self.generation_summary = QLabel('')
+        self.generation_summary.setObjectName('generation_summary')
+        self.generation_summary.setWordWrap(True)
+        self.generation_summary.setAccessibleName('Effective narration settings')
+        tunes.addWidget(self.generation_summary)
+        self.generation_profile.currentIndexChanged.connect(self._on_generation_profile_changed)
+        for control in (self.exaggeration, self.cfg, self.temperature):
+            control.slider.valueChanged.connect(self._update_generation_controls)
+        self.chunk.valueChanged.connect(self._update_generation_controls)
+        self.pause.valueChanged.connect(self._update_generation_controls)
         right_layout.addWidget(tune)
         right_layout.addStretch()
-        splitter.addWidget(right)
+        settings_scroll = QScrollArea()
+        settings_scroll.setObjectName('narration_settings_scroll')
+        settings_scroll.setWidgetResizable(True)
+        settings_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        settings_scroll.setWidget(right)
+        splitter.addWidget(settings_scroll)
         splitter.setSizes([760, 400])
+
+        scope_controls = QHBoxLayout()
+        self.render_scope = QComboBox()
+        self.render_scope.setObjectName('render_scope')
+        self.render_scope.addItem('Full document', 'full_document')
+        self.render_scope.addItem('Selected passage', 'selection')
+        self.render_scope.setAccessibleName('Passage to render')
+        self.render_scope.setToolTip('Generate and queue use this scope. Select complete passages, including any surrounding app directives.')
+        scope_label = QLabel('&Render')
+        scope_label.setBuddy(self.render_scope)
+        self.preview_render = QPushButton('Preview render plan')
+        self.preview_render.setObjectName('preview_render_plan')
+        self.preview_render.setToolTip('Review the exact text, settings and segments without generating audio (Ctrl+Shift+P).')
+        self.preview_render.clicked.connect(self._preview_render_plan)
+        scope_controls.addWidget(scope_label)
+        scope_controls.addWidget(self.render_scope)
+        scope_controls.addWidget(profile_label)
+        scope_controls.addWidget(self.generation_profile)
+        scope_controls.addWidget(self.preview_render)
+        scope_controls.addStretch()
+        narrate_layout.addLayout(scope_controls)
 
         actions = QHBoxLayout()
         self.generate = QPushButton("Generate now")
@@ -389,6 +450,7 @@ class MainWindow(QMainWindow):
             ("Open script", "Ctrl+O", self._load_script),
             ("Save script", "Ctrl+S", self._save_script),
             ("Generate", "Ctrl+Return", self._generate_now),
+            ("Preview render plan", "Ctrl+Shift+P", self._preview_render_plan),
             ("Help center", "F1", self._show_help),
         ]:
             action = QAction(title, self)
@@ -426,8 +488,14 @@ class MainWindow(QMainWindow):
             self._wrap_selection(f"volume:{gain:.2f}")
 
     def _check_tags(self):
+        self._preview_render_plan()
+
+    def _preview_render_plan(self):
+        job = self._snapshot()
+        if job is None:
+            return
         try:
-            steps = plan_script(self.editor.toPlainText(), self.chunk.value(), self.pause.value())
+            steps = job.render_steps()
         except MarkupError as exc:
             QMessageBox.warning(self, "Narration markup error", str(exc))
             return
@@ -440,12 +508,41 @@ class MainWindow(QMainWindow):
             else:
                 preview.append(f"{i}. SPEAK rate={step.rate:g} volume={step.volume:g} "
                                f"emphasis={step.emphasis}: {step.text}")
-        dialog = QMessageBox(self)
-        dialog.setWindowTitle("Narration markup verified")
-        dialog.setText(f"Valid script: {spoken} speech segments; {silence / 1000:g} seconds of inserted silence.")
-        dialog.setInformativeText("Open Details to inspect the exact render plan. Model tags are passed through.")
-        dialog.setDetailedText("\n".join(preview))
-        dialog.exec()
+        if self._render_preview_dialog is not None:
+            self._render_preview_dialog.close()
+            self._render_preview_dialog.deleteLater()
+        dialog = QDialog(self)
+        dialog.setObjectName('render_plan_preview')
+        dialog.setWindowTitle('Preview render plan — no audio generated')
+        dialog.resize(780, 620)
+        layout = QVBoxLayout(dialog)
+        scope = 'Selected passage' if job.render_scope == 'selection' else 'Full document'
+        summary = QLabel(f'{scope}: {spoken} speech segments; {silence / 1000:g} seconds of inserted silence. '
+                         'This is a text and settings preview. Generate uses the current editor and controls.')
+        summary.setWordWrap(True)
+        layout.addWidget(summary)
+        tabs = QTabWidget()
+        for title, name, text in (
+            ('Render text', 'render_preview_text', job.render_text),
+            ('Render plan', 'render_preview_steps', '\n'.join(preview)),
+            ('Original manuscript', 'render_preview_original', job.text),
+            ('Effective settings', 'render_preview_settings',
+             f'Profile: {job.profile}\nModel: {job.model}\nVoice ID: {job.voice_id or "built-in"}\n'
+             + '\n'.join(f'{key}: {value}' for key, value in job.effective_settings().items())),
+        ):
+            view = QPlainTextEdit()
+            view.setObjectName(name)
+            view.setAccessibleName(title)
+            view.setReadOnly(True)
+            view.setPlainText(text)
+            tabs.addTab(view, title)
+        layout.addWidget(tabs)
+        close = QPushButton('Close')
+        close.clicked.connect(dialog.close)
+        layout.addWidget(close)
+        self._render_preview_dialog = dialog
+        dialog.show()
+        dialog.raise_()
 
     def _on_text_changed(self):
         text = self.editor.toPlainText() if hasattr(self, 'editor') else ''
@@ -471,15 +568,64 @@ class MainWindow(QMainWindow):
         multilingual = key == "multilingual-v3"
         standard = key in ("english", "multilingual-v3")
         self.language.setEnabled(multilingual)
-        self.cfg.setVisible(standard)
-        self.exaggeration.setVisible(standard)
         self.model_hint.setText(
             'Turbo requires a voice reference. Nano can use its available built-in voice. '
             'Both can interpret supported vocal-event tags; CFG / expressiveness controls do not apply.' if not standard else
             'Multilingual V3 offers language selection and generation controls; Turbo vocal tags may be spoken literally.' if multilingual else
             'Original English offers expressiveness and CFG controls; Turbo vocal tags are not natively supported.'
         )
+        self._update_generation_controls()
         self._update_tag_compatibility()
+
+    def _generation_values(self):
+        return dict(profile=self.generation_profile.currentData(),
+                    max_chars=self.chunk.value(), pause_ms=self.pause.value(),
+                    exaggeration=self.exaggeration.value(), cfg_weight=self.cfg.value(),
+                    temperature=self.temperature.value())
+
+    def _on_generation_profile_changed(self):
+        previous = getattr(self, '_shown_generation_profile', 'custom')
+        current = self.generation_profile.currentData()
+        if previous != current:
+            if previous == 'custom':
+                self._custom_generation_values = self._generation_values()
+            if current == 'clear_narration':
+                settings = NarrationJob(text='', model=self.model.currentData(), device='cpu',
+                    language='en', voice_path='', output_path='preview.wav',
+                    profile=current).effective_settings()
+            else:
+                settings = getattr(self, '_custom_generation_values', self._generation_values())
+            self.chunk.setValue(settings['max_chars'])
+            self.pause.setValue(settings['pause_ms'])
+            self.temperature.slider.setValue(round(settings['temperature'] * 100))
+            self.exaggeration.slider.setValue(round(settings.get('conditioning_exaggeration', settings.get('exaggeration', .5)) * 100))
+            self.cfg.slider.setValue(round((settings.get('cfg_weight') if settings.get('cfg_weight') is not None else .5) * 100))
+        self._shown_generation_profile = current
+        self._update_generation_controls()
+
+    def _update_generation_controls(self, *_):
+        if not hasattr(self, 'generation_profile'):
+            return
+        custom = self.generation_profile.currentData() == 'custom'
+        standard = self.model.currentData() in ('english', 'multilingual-v3')
+        self.cfg.setEnabled(custom and standard)
+        self.exaggeration.setEnabled(custom and standard)
+        self.temperature.setEnabled(custom)
+        self.chunk.setEnabled(custom)
+        self.pause.setEnabled(custom)
+        self.cfg.setToolTip('CFG generation control is unavailable for Turbo and Nano.' if not standard else
+                            'Choose Current settings to edit CFG.' if not custom else '')
+        self.exaggeration.setToolTip('Expressiveness generation control is unavailable for Turbo and Nano.' if not standard else
+                                     'Choose Current settings to edit expressiveness.' if not custom else '')
+        settings = NarrationJob(text='', model=self.model.currentData(), device='cpu',
+            language='en', voice_path='', output_path='preview.wav', **self._generation_values()).effective_settings()
+        capability = (f'Expressiveness {settings["exaggeration"]:.2f}; CFG {settings["cfg_weight"]:.2f}. '
+                      if standard else 'Expressiveness and CFG generation controls are unavailable for this model. ')
+        profile = ('Clear Narration uses the documented general-use settings. Choose Current settings to edit. '
+                   if not custom else 'Current settings keep your chosen values. ')
+        self.generation_summary.setText(profile + capability
+            + f'Temperature {settings["temperature"]:.2f}; up to {settings["max_chars"]} characters per segment; '
+              f'{settings["pause_ms"]} ms segment gap. No vocal effects are added; explicit manuscript tags are preserved.')
 
     def _refresh_voices(self, select_id: str = ""):
         current = select_id or (self.voice.currentData() if self.voice.count() else self._preferred_voice_id)
@@ -490,6 +636,9 @@ class MainWindow(QMainWindow):
             for item in self.voices.list_voices():
                 self.voice.addItem(f"{item['name']}  ({item['duration']}s)", item['id'])
             idx = self.voice.findData(current)
+            if idx < 0 and current:
+                self.voice.addItem('Unavailable reference — select another voice', current)
+                idx = self.voice.count() - 1
             self.voice.setCurrentIndex(max(idx, 0))
         finally:
             self.voice.blockSignals(False)
@@ -501,7 +650,7 @@ class MainWindow(QMainWindow):
         selected = self.voice.currentData() or ''
         self._preferred_voice_id = selected
         self.settings.setValue('last_voice', selected)
-        has_voice = bool(selected)
+        has_voice = bool(selected and self.voices.resolve(selected))
         self.remove_voice.setEnabled(has_voice and not str(selected).startswith(('legacy:', 'stable:')))
         self.preview_voice.setEnabled(has_voice)
 
@@ -547,6 +696,7 @@ class MainWindow(QMainWindow):
         except ValueError as exc:
             QMessageBox.information(self, "Read-only legacy voice", str(exc))
             return
+        self.voice.setCurrentIndex(0)
         self._refresh_voices()
 
     def _default_output(self):
@@ -625,14 +775,44 @@ class MainWindow(QMainWindow):
         output_path = Path(output).expanduser()
         if not output_path.is_absolute():
             output_path = Path.home() / output_path
+        voice_id = self.voice.currentData() or ''
+        voice_path = self.voices.resolve(voice_id)
+        if voice_id and not voice_path:
+            QMessageBox.warning(self, 'Check narration settings',
+                                'The selected reference voice is no longer available. Select or import a reference again.')
+            return None
+        original = self.editor.toPlainText()
+        prepared = None
+        scope = self.render_scope.currentData()
+        if scope == 'selection':
+            cursor = self.editor.textCursor()
+            if not cursor.hasSelection() or not cursor.selectedText().strip():
+                QMessageBox.warning(self, 'Select a passage',
+                                    'Select the passage in the manuscript, or choose Full document.')
+                return None
+            # Qt cursor positions count UTF-16 units; Python indices count
+            # Unicode code points. Keep selections after emoji in the right place.
+            utf16 = original.encode('utf-16-le')
+            start, end = (len(utf16[:position * 2].decode('utf-16-le'))
+                          for position in (cursor.selectionStart(), cursor.selectionEnd()))
+            try:
+                for match in re.finditer(r'\[[^\[\]\r\n]*\]', original):
+                    if any(match.start() < boundary < match.end() for boundary in (start, end)):
+                        raise MarkupError('Selection starts or ends inside a tag.')
+                for boundary in (start, end):
+                    parse_script(original[:boundary] + ' selection boundary')
+            except MarkupError:
+                QMessageBox.warning(self, 'Select complete directions',
+                    'Include the complete opening and closing app directives around the selected passage. '
+                    'A selection cannot begin or end inside a tag or styled passage.')
+                return None
+            prepared = cursor.selectedText().replace('\u2029', '\n').replace('\u2028', '\n')
         job = NarrationJob.new(
-            text=self.editor.toPlainText(), model=self.model.currentData(),
+            text=original, model=self.model.currentData(),
             device=self.device.currentData(), language=self.language.currentData(),
-            voice_path=self.voices.resolve(self.voice.currentData() or ""),
+            voice_path=voice_path, voice_id=voice_id,
             output_path=str(output_path), format=self.format.currentData(),
-            max_chars=self.chunk.value(), pause_ms=self.pause.value(),
-            exaggeration=self.exaggeration.value(), cfg_weight=self.cfg.value(),
-            temperature=self.temperature.value(),
+            prepared_text=prepared, render_scope=scope, **self._generation_values(),
         )
         try:
             job.validate()
@@ -830,6 +1010,12 @@ class MainWindow(QMainWindow):
             self.format.setCurrentIndex(i)
         self.pause.setValue(int(self.settings.value("pause_ms", 180)))
         self.chunk.setValue(int(self.settings.value("max_chars", 220)))
+        for name, control, default in (
+                ('exaggeration', self.exaggeration, .5), ('cfg_weight', self.cfg, .5),
+                ('temperature', self.temperature, .8)):
+            control.slider.setValue(round(float(self.settings.value('narration/custom_' + name, default)) * 100))
+        profile = self.generation_profile.findData(self.settings.value('narration/profile', 'custom'))
+        self.generation_profile.setCurrentIndex(max(profile, 0))
 
     def _build_bethesda_tab(self):
         # The production converter depends on Windows FaceFX/xWMA tooling.
@@ -861,8 +1047,13 @@ class MainWindow(QMainWindow):
             return
         self.settings.setValue("model", self.model.currentData())
         self.settings.setValue("format", self.format.currentData())
-        self.settings.setValue("pause_ms", self.pause.value())
-        self.settings.setValue("max_chars", self.chunk.value())
+        custom_values = (getattr(self, '_custom_generation_values', self._generation_values())
+                         if self.generation_profile.currentData() != 'custom' else self._generation_values())
+        self.settings.setValue("pause_ms", custom_values['pause_ms'])
+        self.settings.setValue("max_chars", custom_values['max_chars'])
+        self.settings.setValue('narration/profile', self.generation_profile.currentData())
+        for name in ('exaggeration', 'cfg_weight', 'temperature'):
+            self.settings.setValue('narration/custom_' + name, custom_values[name])
         if self.bethesda_tab is not None:
             self.bethesda_tab._save_tools()
         self.player.stop()

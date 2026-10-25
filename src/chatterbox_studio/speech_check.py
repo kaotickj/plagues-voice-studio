@@ -35,7 +35,9 @@ def run(request_path: Path, report_path: Path) -> int:
                     from .engine import Engine
                     from .jobs import NarrationJob
                     torch.set_num_threads(6);torch.manual_seed(731)
-                    allowed=('text','model','device','language','voice_path','output_path','pause_ms','max_chars')
+                    allowed=('text','model','device','language','voice_path','output_path',
+                             'pause_ms','max_chars','exaggeration','cfg_weight','temperature',
+                             'profile','voice_id','prepared_text','render_scope')
                     job=NarrationJob.new(**{k:v for k,v in request.items() if k in allowed})
                     audio=Engine().render(job,lambda s:print(s,flush=True),lambda *a:None,lambda:False)
                 else:
@@ -53,6 +55,13 @@ def run(request_path: Path, report_path: Path) -> int:
                 metadata=json.loads(sidecar.read_text(encoding='utf-8'))
                 if metadata.get('text',metadata.get('output_text'))!=request['text']:
                     raise RuntimeError('Saved output transcript does not match the generated script')
+                if request['engine']=='chatterbox':
+                    if metadata.get('prepared_text',metadata.get('text'))!=job.render_text:
+                        raise RuntimeError('Saved render input does not match the requested passage')
+                    if metadata.get('effective_settings')!=job.effective_settings():
+                        raise RuntimeError('Saved effective settings do not match the requested profile')
+                    report.update(profile=job.profile,render_scope=job.render_scope,
+                                  prepared_text=job.render_text,effective_settings=job.effective_settings())
                 report.update(status='passed',audio=str(audio),sample_rate=rate,seconds=len(samples)/rate,
                               rms=rms,metadata=str(sidecar),runtime=metadata.get('runtime',{}))
             except Exception:

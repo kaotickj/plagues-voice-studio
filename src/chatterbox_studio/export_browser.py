@@ -6,7 +6,7 @@ from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QLabel, QComboBox, QTreeWidget, QTreeWidgetItem, QFileDialog, QMessageBox,
-    QPlainTextEdit, QSplitter)
+    QPlainTextEdit, QSplitter, QTabWidget)
 from .pvs_library import old_export_directories, new_export_directory
 from .export_metadata import read_export_script
 
@@ -54,17 +54,24 @@ class ExportBrowser(QWidget):
         preview_panel = QWidget()
         preview_layout = QVBoxLayout(preview_panel)
         preview_layout.setContentsMargins(0, 4, 0, 0)
-        preview_layout.addWidget(QLabel('Script preview (read-only, including speech tags)'))
+        preview_layout.addWidget(QLabel('Saved text (read-only, including speech tags)'))
+        self.text_views = QTabWidget()
         self.script_preview = QPlainTextEdit()
         self.script_preview.setReadOnly(True)
-        self.script_preview.setPlaceholderText('Select an audio export to see the original script.')
+        self.script_preview.setAccessibleName('Saved render input')
+        self.script_preview.setPlaceholderText('Select an audio export to see its render input.')
         self.script_preview.setMinimumHeight(110)
-        preview_layout.addWidget(self.script_preview, 1)
+        self.text_views.addTab(self.script_preview, 'Render input')
+        self.original_preview = QPlainTextEdit()
+        self.original_preview.setReadOnly(True)
+        self.original_preview.setAccessibleName('Saved original manuscript')
+        self.text_views.addTab(self.original_preview, 'Original manuscript')
+        preview_layout.addWidget(self.text_views, 1)
         preview_footer = QHBoxLayout()
         self.preview_status = QLabel('Select a recording to view its saved text.')
         self.preview_status.setWordWrap(True)
         preview_footer.addWidget(self.preview_status, 1)
-        self.copy_script = QPushButton('Copy script')
+        self.copy_script = QPushButton('Copy render input')
         self.copy_script.setEnabled(False)
         self.copy_script.clicked.connect(self._copy_script)
         preview_footer.addWidget(self.copy_script)
@@ -139,6 +146,7 @@ class ExportBrowser(QWidget):
 
     def _clear_preview(self):
         self.script_preview.clear()
+        self.original_preview.clear()
         self.preview_status.setText('Select a recording to view its saved text.')
         self.copy_script.setEnabled(False)
 
@@ -148,7 +156,9 @@ class ExportBrowser(QWidget):
             self._clear_preview()
             return
         script, status = read_export_script(audio)
+        original, _ = read_export_script(audio, original=True)
         self.script_preview.setPlainText(script if script is not None else '')
+        self.original_preview.setPlainText(original if original is not None else '')
         self.preview_status.setText(status)
         self.copy_script.setEnabled(script is not None)
 
