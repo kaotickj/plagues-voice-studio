@@ -31,6 +31,14 @@ TOPICS: tuple[tuple[str, str, str], ...] = (
 <h3>Qwen3-TTS voice cloning</h3><p>For Qwen3-TTS, open the <b>Voice Engines</b> tab, configure the separate Qwen Python environment, choose your reference voice and model, and generate speech. The generated WAV joins Export Library and can be sent to Bethesda Voice Export. IndexTTS 2.5 is also supported through Voice Engines and uses its own installed runtime and checkpoints.</p>
 <h3>Offline models</h3><p>Models bundled during a <b>FullOffline</b> build are available without downloads. Otherwise the program may download model weights on first use. The build option and the model chosen in the GUI are separate.</p>
 '''),
+    ('Clear Narration and passage previews', 'narration profile current settings clear preview render plan selected passage manuscript prepared text keyboard Ctrl Shift P', '''
+<h2>Clear Narration and passage previews</h2>
+<p>In <b>Narration Studio</b>, <b>Current settings</b> is the default profile and keeps your chosen controls. <b>Clear Narration</b> is optional: select it from <b>Profile</b> for a fixed general-use starting point. It uses temperature <b>0.8</b>, up to <b>220 characters</b> per segment and a <b>180 ms</b> segment gap. Original English and Multilingual V3 also use expressiveness <b>0.5</b> and CFG <b>0.5</b>. Turbo and Nano do not support those two generation controls; they remain visibly unavailable. Choose <b>Current settings</b> again to restore and edit your custom values.</p>
+<p>The profile adds no vocal effects. Explicit manuscript tags are preserved, so remove unwanted tags yourself and check that your model supports them. These settings provide a reproducible starting point; they do not establish better audio quality.</p>
+<p>Choose <b>Render → Full document</b> for the whole manuscript or <b>Selected passage</b> for the text highlighted in the editor. Include complete opening and closing app directives around a selected passage. Generate and Batch Queue use this scope. A selected passage produces a <b>separate export</b>; it does not splice into or replace an existing recording.</p>
+<p><b>Preview render plan</b> (<b>Ctrl+Shift+P</b>) shows the render text, exact segments and pauses, original manuscript and effective settings. It generates <b>no audio</b>. <b>Check tags</b> opens the same preview. Generate snapshots the current editor and controls, so preview again after changing them.</p>
+<p>The original manuscript and prepared render input are saved separately in the recording's matching JSON metadata. A passage render keeps the full original manuscript while its render input contains only the selected passage. Export Library lets you inspect both.</p>
+'''),
     ('Models and voices', 'nano turbo original english multilingual tags reference expressive clone', '''
 <h2>Models and voices</h2>
 <table width="100%" cellspacing="0" cellpadding="7">
@@ -56,12 +64,13 @@ TOPICS: tuple[tuple[str, str, str], ...] = (
 <p>Maximum exact pause: 10 seconds. Rate: 0.50 to 2.00, volume: 0.00 to 2.00. App emphasis adds gain; it does not guarantee the model changes its performance.</p>
 <h3>Chatterbox vocal-event tags</h3>
 <p>Tags such as <code>[laugh]</code>, <code>[chuckle]</code>, and <code>[sigh]</code> are passed to the speech model. They are best suited to Turbo or Nano. Original English and Multilingual V3 do not have the same native tag support and may read them as words.</p>
-<p>Use <b>Check tags</b> to validate app-level syntax and inspect how the script will be split. Non-native vocal tags are not a guaranteed effect.</p>
+<p>Use <b>Check tags</b> or <b>Preview render plan</b> (<b>Ctrl+Shift+P</b>) to validate app-level syntax and inspect the current render scope, text and segment plan without generating audio. Non-native vocal tags are not a guaranteed effect.</p>
 '''),
     ('Export Library', 'recordings browse play wav mp3 older file folders playback script preview json text copy', '''
 <h2>Export Library</h2>
 <p>Choose a folder to browse and play earlier renders. Double-click a recording or use <b>Play selected</b>.</p>
-<p>Select a recording to preview its original script in the read-only <b>Script preview</b> pane, then choose <b>Copy script</b> to reuse it. The text comes from the matching <code>.json</code> file; Qwen3-TTS and IndexTTS save JSON metadata with their recordings. Chatterbox script metadata is available in builds that include its matching sidecar-export update. Older or imported audio without this metadata shows an explanatory message. Vocal tags, punctuation and paragraph breaks are preserved.</p><p>Use <b>Add folder</b> to include another export directory. Older exported audio is not moved, edited, or deleted. Supported playback formats depend on codecs available to Qt Multimedia on your computer.</p>
+<p>Select a recording to inspect its saved text in the read-only <b>Render input</b> and <b>Original manuscript</b> tabs. <b>Render input</b> shows the prepared text used for that recording; <b>Copy render input</b> copies that text for reuse. <b>Original manuscript</b> keeps the full source text. For a selected-passage export, the render input contains the selected passage while the original manuscript contains the full document.</p>
+<p>The text comes from the recording's matching <code>.json</code> file. Older sidecars that contain only one script show that script in both tabs. Older or imported audio without saved text shows an explanatory message. Vocal tags, punctuation and paragraph breaks are preserved.</p><p>Use <b>Add folder</b> to include another export directory. Older exported audio is not moved, edited, or deleted. Supported playback formats depend on codecs available to Qt Multimedia on your computer.</p>
 <p><b>On Windows</b>, <b>Use selected for Bethesda export</b> loads the file path into the game-audio converter; it does not alter the recording itself. Linux builds omit Bethesda production controls and retain ordinary audio export.</p>
 <p>New exports are automatically named from the selected voice and a timestamp, unless you explicitly enter a filename. Existing files are not silently overwritten.</p>
 '''),
@@ -241,7 +250,7 @@ class HelpCenter(QWidget):
         self.topic_list.setAccessibleName('Help topics')
         self.topic_list.currentRowChanged.connect(self._select)
         side.addWidget(self.topic_list, 1)
-        shortcuts = QLabel('Ctrl+F focuses search.\nUse Up/Down to browse topics.')
+        shortcuts = QLabel('Search by keyword.\nUse Up/Down to browse topics.')
         shortcuts.setObjectName('mutedText')
         shortcuts.setWordWrap(True)
         side.addWidget(shortcuts)
