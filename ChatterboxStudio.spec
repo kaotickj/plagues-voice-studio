@@ -91,6 +91,9 @@ analysis = Analysis(
     hiddenimports=hidden,
     hookspath=[],
     hooksconfig={},
+    # Librosa's cached Numba functions need a real source-file path. Code
+    # loaded only from PYZ has no cache locator in the pinned Numba runtime.
+    module_collection_mode={'librosa': 'py'},
     excludes=excluded,
     noarchive=False,
 )
