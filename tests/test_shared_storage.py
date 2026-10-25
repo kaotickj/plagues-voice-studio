@@ -151,6 +151,14 @@ def test_vulkan_capture_layer_filter_is_scoped_to_child_and_preserves_user_filte
     sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'plugins'))
     from writer_core.runtime import WriterRuntime
     from writer_core.settings import default_settings
+    probes=[]
+    class PortProbe:
+        def __enter__(self):return self
+        def __exit__(self,*args):return False
+        def bind(self,address):probes.append(address)
+        def getsockname(self):return ('127.0.0.1',49152)
+    # This unit case inspects the owned child's environment, not live sockets.
+    monkeypatch.setattr('writer_core.runtime.socket.socket',lambda *args:PortProbe())
     monkeypatch.setenv('VK_LOADER_LAYERS_DISABLE','user-custom-layer')
     settings=dict(default_settings(),backend='Vulkan')
     runtime=WriterRuntime(settings,tmp_path)
@@ -158,8 +166,11 @@ def test_vulkan_capture_layer_filter_is_scoped_to_child_and_preserves_user_filte
         runtime._start(tmp_path/'llama-server.exe',tmp_path/'writer.gguf')
     child=start.call_args.kwargs['env']
     if os.name=='nt':assert child['VK_LOADER_LAYERS_DISABLE']=='user-custom-layer,VK_LAYER_RENDERDOC_Capture'
+    else:assert child['VK_LOADER_LAYERS_DISABLE']=='user-custom-layer'
     assert os.environ['VK_LOADER_LAYERS_DISABLE']=='user-custom-layer'
     settings['backend']='CPU';runtime=WriterRuntime(settings,tmp_path)
     with patch('writer_core.runtime.subprocess.Popen') as start:
         runtime._start(tmp_path/'llama-server.exe',tmp_path/'writer.gguf')
     assert start.call_args.kwargs['env']['VK_LOADER_LAYERS_DISABLE']=='user-custom-layer'
+    assert os.environ['VK_LOADER_LAYERS_DISABLE']=='user-custom-layer'
+    assert probes==[('127.0.0.1',0),('127.0.0.1',0)]
