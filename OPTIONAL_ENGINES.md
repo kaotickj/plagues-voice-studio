@@ -1,5 +1,11 @@
 # Speech engines: Qwen3-TTS, IndexTTS 2.5 and Kokoro
 
+**October 26 RC4 update:** use the [detailed Windows/Linux IndexTTS guide](INDEXTTS_INSTALLATION.md)
+for the current pinned 2.5 setup. The isolated Linux runtime, model hashes,
+adapter import, offline frontend and short Linux GPU speech passed;
+the short sample was accepted by the creator. Historical Windows generation below is not a fresh
+RC4 Windows installation test. Native Vulkan Index remains unqualified/disabled.
+
 **Baseline:** Plague's Voice Studio v0.2.4 remains unchanged. The separate v0.3.0 build retains the four Chatterbox models in **Narration Studio** and supports both Qwen3-TTS and IndexTTS 2.5 through **Voice Engines**. Real speech generation with both has been confirmed on the creator's Windows machine. Keep independent engine runtimes out of `.venv-build` and the PyInstaller distribution folder.
 
 ## Engine status and requirements
