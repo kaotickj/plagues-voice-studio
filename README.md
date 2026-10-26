@@ -1,13 +1,13 @@
-# Plague's Voice Studio v1.0.0rc2
+# Plague's Voice Studio v1.0.0rc4 — local candidate
 
-**Release candidate:** RC2 adds optional Natural Narration and a reviewable manuscript-to-export workflow. It is a prerelease, not a claim that every model, voice or platform has passed manual acceptance. See [RC2 notes](RELEASE_NOTES_1.0.0rc2.md), [release evidence and limits](RELEASE_READINESS.md), and the [wiki](https://github.com/kaotickj/plagues-voice-studio/wiki).
+**Current local candidate:** RC4 at `2746de5dd41a87bd0eec6f596f95b7cde3399973` is installed on the creator's Debian machine. Original English Chatterbox has completed AMD ROCm GPU speech, including reference conditioning and the vocoder. The creator accepted the Plague audition and verified settings persistence; current manual acceptance remains conditional on IndexTTS installation. Other Chatterbox variants and optional-engine GPU synthesis are not thereby qualified. See [release evidence and limits](RELEASE_READINESS.md), [detailed Windows/Linux IndexTTS setup](INDEXTTS_INSTALLATION.md), and the [wiki](https://github.com/kaotickj/plagues-voice-studio/wiki).
 
-Download installers and portable packages from the [RC2 release](https://github.com/kaotickj/plagues-voice-studio/releases/tag/v1.0.0rc2), with their SHA-256 manifests. Platform binaries are published after their release checks pass; queued builds and GitHub's automatic source archives are not installer downloads. Historical [RC1 notes](RELEASE_NOTES_1.0.0rc1.md) describe that earlier candidate.
+**Publication is held.** Matching Windows and Linux installers, checksums and release jobs for RC4 are not yet complete. Use the [official Releases page](https://github.com/kaotickj/plagues-voice-studio/releases) to inspect actual published assets; this local candidate is not a claim of a public RC4 release. The package table below describes intended RC4 outputs, not completed uploads. Historical [RC2](RELEASE_NOTES_1.0.0rc2.md) and [RC1 notes](RELEASE_NOTES_1.0.0rc1.md) retain their earlier evidence.
 
 | Platform | Installer | First launch |
 | --- | --- | --- |
-| Windows x64 | `PlaguesVoiceStudio-Setup-1.0.0rc2.exe` | Run the installer, then launch Plague's Voice Studio. Existing application identity and data paths are retained. |
-| Debian 13 amd64 | `plagues-voice-studio_1.0.0~rc2-1_amd64.deb` | Check the checksum, then use `sudo apt install ./plagues-voice-studio_*_amd64.deb` and launch `plagues-voice-studio`. GitHub may replace the filename's tilde with a dot; the internal version remains `1.0.0~rc2-1`. |
+| Windows x64 | `PlaguesVoiceStudio-Setup-1.0.0rc4.exe` | Run the installer, then launch Plague's Voice Studio. Existing application identity and data paths are retained. |
+| Debian 13 amd64 | `plagues-voice-studio_1.0.0~rc4-1_amd64.deb` | Check the checksum, then use `sudo apt install ./plagues-voice-studio_*_amd64.deb` and launch `plagues-voice-studio`. GitHub may replace the filename's tilde with a dot; the internal version remains `1.0.0~rc4-1`. |
 
 Windows ZIP and Linux `.tar.gz` portable editions are also provided. Keep each extracted directory intact. Check the Linux package's `BUILD-INFO.json` and [Linux guide](LINUX.md) for its glibc baseline and system dependencies. Model weights and optional Qwen/Index/Kokoro runtimes are configured separately; the installers do not include them.
 The [separate DJ Writer 0.9.3 Vulkan update](https://github.com/kaotickj/plagues-voice-studio/releases/tag/dj-writer-v0.9.3) also provides installer and portable packages.
@@ -39,7 +39,18 @@ Chatterbox, Qwen3 or IndexTTS. Run `scripts/setup_kokoro_windows.ps1` once; exis
 shared weights are reused. Add `-DownloadModels` on a fresh machine to explicitly
 download the checksum-verified model/voice pack. See [Kokoro setup](OPTIONAL_ENGINES.md#kokoro-preset-voices).
 
-This **1.0.0rc2 candidate** retains the experimental 0.3 installation's
+**Linux acceleration:** RC4 offers an explicit external **AMD ROCm** Chatterbox
+runtime with separate Python and overlay paths; the frozen bundle's Torch is
+still CPU-only. Original English GPU speech was measured through its vocoder.
+This is not Chatterbox Vulkan. Optional native Vulkan menus are separate routes:
+Qwen Base has software checks but no qualified real synthesis here, and Index
+native generation remains disabled. The isolated Index 2.5 Linux runtime and
+verified weights are installed; imports and the offline text frontend passed,
+and one short reference-conditioned GPU render passed through the vocoder;
+the short sample was accepted by the creator. See [Index setup](INDEXTTS_INSTALLATION.md) and
+the [capability limits](OPTIONAL_ENGINES.md#native-vulkan-linux-source-candidate).
+
+This **1.0.0rc4 candidate** retains the experimental 0.3 installation's
 existing installer identity and directory. It stores shared AI assets under
 `%LOCALAPPDATA%\PlaguedAI` and preserves discovery of existing engine runtimes.
 The separate v0.2.4 installation remains independent.

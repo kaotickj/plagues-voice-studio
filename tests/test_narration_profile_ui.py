@@ -232,3 +232,50 @@ def test_preview_is_available_from_keyboard(windows):
     assert window._render_preview_dialog is not None
     assert window._render_preview_dialog.isVisible()
     assert window.thread is None and not window.queue
+
+
+def test_clock_preview_preserves_manuscript_and_matches_narration_input(windows):
+    from PyQt6.QtWidgets import QPlainTextEdit
+    window = windows()
+    original = 'Meet at 9:05 a.m. Return at 12:00pm.'
+    window.editor.setPlainText(original)
+    window._preview_render_plan()
+    preview = window._render_preview_dialog
+    assert preview.findChild(QPlainTextEdit, 'render_preview_original').toPlainText() == original
+    assert preview.findChild(QPlainTextEdit, 'render_preview_text').toPlainText() == window._snapshot().render_text
+    assert window.editor.toPlainText() == original
+    assert window.thread is None and not window.queue
+
+
+def test_optional_clock_preview_uses_selected_language_without_generating(windows, tmp_path):
+    from PyQt6.QtCore import QCoreApplication, QEvent
+    from PyQt6.QtWidgets import QPlainTextEdit
+    window = windows()
+    lab = window.engine_lab
+    original = 'Meet at 9:05am.'
+    lab.text.setPlainText(original)
+    lab.engine.setCurrentIndex(lab.engine.findData('qwen3'))
+    lab.language.setCurrentIndex(lab.language.findData('English'))
+    lab.preview_text.click()
+    preview = lab._text_preview_dialog
+    assert preview.findChild(QPlainTextEdit, 'engine_preview_original').toPlainText() == original
+    prepared = preview.findChild(QPlainTextEdit, 'engine_preview_prepared').toPlainText()
+    assert prepared == 'Meet at nine oh five a.m.'
+    reference = tmp_path / 'reference.wav'
+    reference.touch()
+    window.voices.resolve = lambda _: str(reference)
+    assert lab._make_request('qwen3')['text'] == prepared
+    lab.language.setCurrentIndex(lab.language.findData('French'))
+    lab.preview_text.click()
+    assert lab._text_preview_dialog.findChild(QPlainTextEdit, 'engine_preview_prepared').toPlainText() == original
+    assert lab._make_request('qwen3')['text'] == original
+    # Exercise deferred destruction between previews, without recreating the
+    # QApplication or touching any audio device/runtime.
+    for _ in range(10):
+        lab.preview_text.click()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        assert lab._text_preview_dialog.findChild(QPlainTextEdit, 'engine_preview_prepared').toPlainText() == original
+    assert lab.text.toPlainText() == original
+    assert lab.thread is None and window.thread is None
+    # Preview creates no recording; the sole WAV is our empty reference fixture.
+    assert list(tmp_path.rglob('*.wav')) == [reference]

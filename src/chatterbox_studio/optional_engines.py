@@ -17,6 +17,8 @@ from datetime import datetime
 import time
 from uuid import uuid4
 
+from .text_preparation import prepare_render_text
+
 ENGINES = {
     'qwen3': {
         'label': 'Qwen3-TTS',
@@ -117,7 +119,10 @@ def clean_request(request: dict) -> dict:
     engine = str(request.get('engine', ''))
     if engine not in ENGINES:
         raise EngineError('Unknown engine')
-    text = str(request.get('text', ''))
+    # Keep the manuscript through repeated validation (UI, then execution).
+    # The isolated runner receives only the explicitly prepared render input.
+    original_text = str(request.get('original_text', request.get('text', '')))
+    text = original_text
     if not 1 <= len(text.strip()) <= 5000:
         raise EngineError('Provide 1–5,000 characters of text per optional-engine generation.')
     model = str(request.get('model', ''))
@@ -126,6 +131,9 @@ def clean_request(request: dict) -> dict:
     language = str(request.get('language', ''))
     if language not in ENGINES[engine]['languages']:
         raise EngineError('Unsupported language for selected engine')
+    text = prepare_render_text(original_text, language)
+    if len(text) > 5000:
+        raise EngineError('Prepared text exceeds 5,000 characters; split it into smaller passages.')
     ref_path = Path(str(request.get('voice_path', ''))).expanduser()
     preset = str(request.get('preset_voice', ''))
     model_dir = str(request.get('model_dir', ''))
@@ -149,18 +157,35 @@ def clean_request(request: dict) -> dict:
     if not 0.5 <= speed <= 2.0:
         raise EngineError('Speed must be from 0.5 to 2.0.')
     device = str(request.get('device', 'cpu'))
-    if device not in ('cpu', 'auto', 'cuda', 'directml'):
+    backend = str(request.get('backend', 'python'))
+    if backend not in ('python', 'native_vulkan'):
+        raise EngineError('Choose Python or Native Vulkan explicitly.')
+    if device not in ('cpu', 'auto', 'cuda', 'directml', 'vulkan'):
         raise EngineError('Invalid processing device.')
+    if backend == 'python' and device == 'vulkan':
+        raise EngineError('Vulkan requires the separate Native Vulkan backend.')
+    if backend == 'native_vulkan':
+        from .native_vulkan import validate_native_controls, NativeVulkanError
+        try:
+            if engine not in ('qwen3', 'index25'):
+                raise NativeVulkanError('Native Vulkan supports Qwen Base and IndexTTS 2.5 only.')
+            validate_native_controls({**request, 'text': text, 'device': device,
+                                      'ref_text': str(request.get('ref_text', ''))})
+        except NativeVulkanError as exc:
+            raise EngineError(str(exc)) from exc
     if engine == 'kokoro' and device == 'cuda':
         raise EngineError('Kokoro uses CPU, Auto or DirectML GPU. Select DirectML for Radeon.')
     if engine != 'kokoro' and device == 'directml':
         raise EngineError('DirectML is currently supported by Kokoro only.')
     return {
         'engine': engine, 'model': model, 'text': text, 'language': language,
+        'original_text': original_text, 'prepared_text': text,
         'voice_path': '' if engine == 'kokoro' else str(ref_path.resolve()), 'output_path': str(out_path.absolute()),
         'ref_text': str(request.get('ref_text', ''))[:4000],
         'emotion': str(request.get('emotion', 'neutral')),
-        'speed': speed, 'device': device,
+        'speed': speed, 'device': device, 'backend': backend,
+        **{key: str(request.get(key, '')) for key in
+           ('native_executable', 'native_sha256', 'native_model_dir', 'native_gpu_lock')},
         'repo': str(request.get('repo', '')),
         'preset_voice': preset if engine == 'kokoro' else '',
         'model_dir': str(Path(model_dir).expanduser().resolve()) if engine == 'kokoro' else '',
@@ -184,6 +209,11 @@ class EngineRegistry:
 
     def read(self) -> dict:
         defaults = {'qwen3': {'python': '', 'repo': ''}, 'index25': {'python': '', 'repo': ''}}
+        for entry in defaults.values():
+            entry['backend'] = 'python'
+        defaults['native'] = {key: '' for key in ('native_executable', 'native_sha256',
+                              'qwen_06_model_dir', 'qwen_17_model_dir', 'index_model_dir')}
+        defaults['native']['native_gpu_lock'] = '/run/lock/gnb-ai-gpu.lock' if sys.platform == 'linux' else ''
         from plagued_ai import root
         folder = root() / 'runtimes' / 'python'
         suffix = 'Scripts/python.exe' if sys.platform == 'win32' else 'bin/python'
@@ -200,15 +230,18 @@ class EngineRegistry:
             for engine in defaults:
                 e = data.get(engine, {})
                 if isinstance(e, dict):
-                    defaults[engine] = {k: str(e.get(k, value)) for k, value in defaults[engine].items()}
-            return defaults
+                    defaults[engine] = {**e, **{k: str(e.get(k, value)) for k, value in defaults[engine].items()}}
+            return {**data, **defaults}
         except (OSError, ValueError) as exc:
             raise EngineError(f'Engine configuration could not be read: {exc}') from exc
 
     def save(self, data: dict) -> None:
-        defaults = self.read()
-        clean = {engine: {key: str(data.get(engine, {}).get(key, value))
-                          for key, value in defaults[engine].items()} for engine in ENGINES}
+        clean = self.read()
+        for key, value in data.items():
+            if isinstance(value, dict) and isinstance(clean.get(key), dict):
+                clean[key] = {**clean[key], **value}
+            else:
+                clean[key] = value
         atomic_json_write(self.path, clean)
 
 
@@ -429,7 +462,21 @@ def _stop_process(proc: subprocess.Popen) -> None:
 
 def execute_probe(engine: str, python_exe: str, repo: str = '', timeout: int = 120,
                   cancelled: Event | None = None, log=None,
-                  diagnostic_dir: Path | None = None, model_dir: str = '') -> dict:
+                  diagnostic_dir: Path | None = None, model_dir: str = '',
+                  backend: str = 'python', native_settings: dict | None = None,
+                  model: str = '') -> dict:
+    if backend == 'native_vulkan':
+        from .native_vulkan import validate_native_configuration, native_generation_blocker, NativeVulkanError
+        if cancelled is not None and cancelled.is_set():
+            raise EngineCancelled('Cancelled')
+        try:
+            config = validate_native_configuration(engine, model, native_settings or {})
+        except NativeVulkanError as exc:
+            raise EngineError(str(exc)) from exc
+        return {'ready': True, 'backend': backend, 'configuration': config,
+                'generation_supported': not bool(native_generation_blocker(engine)),
+                'status': 'Paths and runtime identity checked; GPU synthesis remains untested. '
+                          + native_generation_blocker(engine)}
     check_configuration(engine, python_exe, repo, model_dir)
     if cancelled is not None and cancelled.is_set():
         raise EngineCancelled('Cancelled')
@@ -475,6 +522,17 @@ def execute_generation(request: dict, python_exe: str, cancelled: Event | None =
     """Single-shot optional engine, live diagnostics and controlled cancellation."""
     request = clean_request(request)
     engine = request['engine']
+    if request['backend'] == 'native_vulkan':
+        from .native_vulkan import execute_native_generation, NativeVulkanError, NativeVulkanCancelled
+        start = time.monotonic()
+        try:
+            output, runtime = execute_native_generation(request, cancelled, log, timeout_seconds,
+                                                        diagnostic_dir)
+        except NativeVulkanCancelled as exc:
+            raise EngineCancelled(str(exc)) from exc
+        except (NativeVulkanError, OSError) as exc:
+            raise EngineError(str(exc)) from exc
+        return output
     check_configuration(engine, python_exe, request.get('repo', ''), request.get('model_dir', ''))
     output = Path(request['output_path'])
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -518,7 +576,8 @@ def execute_generation(request: dict, python_exe: str, cancelled: Event | None =
             raise EngineError('Engine returned success but did not create a valid-sized WAV file.')
         atomic_json_write(output.with_suffix('.json'), {
             'engine': engine, 'model': request['model'], 'language': request['language'],
-            'text': request['text'],
+            'text': request['original_text'],
+            'original_text': request['original_text'], 'prepared_text': request['prepared_text'],
             'voice_path': request['voice_path'], 'ref_text': request['ref_text'],
             'emotion': request['emotion'], 'speed': request['speed'], 'device': request['device'],
             'preset_voice': request['preset_voice'], 'model_dir': request['model_dir'],

@@ -1,5 +1,28 @@
 # Plague's Voice Studio release readiness
 
+## Current local RC4 checkpoint — October 26, 2026
+
+Application revision: `2746de5dd41a87bd0eec6f596f95b7cde3399973`.
+RC4 is locally installed; publication remains held. The RC2 evidence retained
+below is historical and does not qualify RC4 platform artifacts.
+
+| Gate | Current evidence / remaining boundary |
+| --- | --- |
+| Debian RC4 install and rollback | Qualified local package installed; exact RC3 rollback retained. No all-platform claim. |
+| Original English Chatterbox AMD GPU | Completed real speech, reference conditioning and vocoder device evidence. Other variants unqualified. |
+| Human acceptance | Plague audition accepted; actual app close/reopen settings persistence passed. General manual experience accepted pending Index installation. |
+| IndexTTS Linux | Isolated Python3.11.17/Torch2.8.0+rocm6.4 installed; dependency check, installed-adapter import, verified 2.5 weights and offline text frontend passed. Model load and one 4.23-second reference-conditioned GPU render passed, with observed GPU vocoder execution; short-sample listening accepted by the creator. |
+| Qwen/native Vulkan | Qwen Python import ready; real Qwen speech and native Vulkan generation remain unqualified. Index native generation disabled. |
+| Documentation | Reviewed README/wiki drafts accepted. Updating stale RC2 wording and adding detailed pinned Windows/Linux Index instructions; no claim of tested fresh Windows setup. |
+| Release binaries / CI | Matching final Windows installer/required Windows workflow, locally built and qualified Linux DEB/portable, checksums and asset uploads still pending. One local Linux build and one Windows workflow are explicitly approved; additional builds/runs require approval. No routine or doc-only Actions triggered. |
+
+The standalone DJ Writer failure was identified by the creator as an unavailable
+model on the disconnected Windows drive; no unresolved transport defect is
+inferred from that report. No source-volume remount or model copy is part of
+this release checkpoint.
+
+## Historical RC2 evidence
+
 Updated October 25, 2026. Target: **v1.0.0rc2**, a release candidate for Windows x64 and Linux amd64.
 
 ## RC2 evidence and release gates

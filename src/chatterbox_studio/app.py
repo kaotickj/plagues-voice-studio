@@ -108,10 +108,16 @@ class MainWindow(QMainWindow):
         self._update_dialog: UpdateDialog | None = None
         self._render_preview_dialog: QDialog | None = None
         self._preferred_voice_id = str(self.settings.value('last_voice', '') or '')
+        self._processor_settings_ready = False
         self.player.playbackStateChanged.connect(self._playback_changed)
         self._build_ui()
         self.plugins = PluginManager(self)
         self._restore_settings()
+        self._processor_settings_ready = True
+        self.model.currentIndexChanged.connect(self._save_processor_settings)
+        self.device.currentIndexChanged.connect(self._save_processor_settings)
+        self.rocm_python.editingFinished.connect(self._save_processor_settings)
+        self.rocm_overlay.editingFinished.connect(self._save_processor_settings)
         self._refresh_voices()
         if self.bethesda_tab is not None:
             self.bethesda_tab.reapply_selected_voice()
@@ -270,12 +276,31 @@ class MainWindow(QMainWindow):
         self.model.currentIndexChanged.connect(self._on_model_changed)
         model_form.addRow("Model", self.model)
         self.device = QComboBox()
-        self.device.addItem("Auto (CUDA if supported, otherwise CPU)", "auto")
+        self.device.addItem("Auto (host PyTorch; CPU if unavailable)", "auto")
         self.device.addItem("CPU", "cpu")
-        self.device.addItem("NVIDIA CUDA", "cuda")
+        self.device.addItem("Host PyTorch GPU (CUDA / ROCm)", "cuda")
+        self.device.addItem("AMD ROCm — external Chatterbox (experimental, Linux)", "rocm")
+        if sys.platform != 'linux':
+            self.device.model().item(self.device.findData('rocm')).setEnabled(False)
         self.device.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.device.setMinimumContentsLength(12)
         model_form.addRow("Processor", self.device)
+        self.rocm_python = QLineEdit()
+        self.rocm_python.setObjectName('chatterbox_rocm_python')
+        choose_python = QPushButton('Browse…')
+        choose_python.clicked.connect(self._choose_rocm_python)
+        model_form.addRow('ROCm Python', row(self.rocm_python, choose_python))
+        self.rocm_overlay = QLineEdit()
+        self.rocm_overlay.setObjectName('chatterbox_rocm_overlay')
+        choose_overlay = QPushButton('Browse…')
+        choose_overlay.clicked.connect(self._choose_rocm_overlay)
+        model_form.addRow('Chatterbox overlay', row(self.rocm_overlay, choose_overlay))
+        note = QLabel('Experimental ROCm uses this Chatterbox model on AMD HIP, with existing local weights only. '
+                      'Runtime imports or GPU model loading do not establish completed speech quality or stability. '
+                      'Maximum 1,000 prepared characters / 300 seconds. Failure never switches to CPU; select CPU explicitly. '
+                      'Core Chatterbox Vulkan is not supported.')
+        note.setWordWrap(True)
+        model_form.addRow(note)
         self.language = QComboBox()
         for key, description in LANGUAGES.items():
             self.language.addItem(f"{description} ({key})", key)
@@ -827,6 +852,7 @@ class MainWindow(QMainWindow):
         job = NarrationJob.new(
             text=original, model=self.model.currentData(),
             device=self.device.currentData(), language=self.language.currentData(),
+            rocm_python=self.rocm_python.text().strip(), rocm_overlay=self.rocm_overlay.text().strip(),
             voice_path=voice_path, voice_id=voice_id,
             output_path=str(output_path), format=self.format.currentData(),
             prepared_text=prepared, render_scope=scope, **self._generation_values(),
@@ -1021,6 +1047,13 @@ class MainWindow(QMainWindow):
         i = self.model.findData(key)
         if i >= 0:
             self.model.setCurrentIndex(i)
+        i = self.device.findData(self.settings.value('device', 'auto'))
+        if i >= 0:
+            self.device.setCurrentIndex(i)
+        from .rocm import known_runtime_defaults
+        defaults = known_runtime_defaults()
+        self.rocm_python.setText(str(self.settings.value('rocm/python', defaults['python']) or ''))
+        self.rocm_overlay.setText(str(self.settings.value('rocm/overlay', defaults['overlay']) or ''))
         fmt = self.settings.value("format", "wav")
         i = self.format.findData(fmt)
         if i >= 0:
@@ -1033,6 +1066,27 @@ class MainWindow(QMainWindow):
             control.slider.setValue(round(float(self.settings.value('narration/custom_' + name, default)) * 100))
         profile = self.generation_profile.findData(self.settings.value('narration/profile', 'custom'))
         self.generation_profile.setCurrentIndex(max(profile, 0))
+
+    def _choose_rocm_python(self):
+        path, _ = QFileDialog.getOpenFileName(self, 'Choose existing external ROCm Python')
+        if path:
+            self.rocm_python.setText(path)
+            self._save_processor_settings()
+
+    def _choose_rocm_overlay(self):
+        path = QFileDialog.getExistingDirectory(self, 'Choose approved Chatterbox overlay')
+        if path:
+            self.rocm_overlay.setText(path)
+            self._save_processor_settings()
+
+    def _save_processor_settings(self, *_):
+        if not self._processor_settings_ready:
+            return
+        self.settings.setValue('model', self.model.currentData())
+        self.settings.setValue('device', self.device.currentData())
+        self.settings.setValue('rocm/python', self.rocm_python.text().strip())
+        self.settings.setValue('rocm/overlay', self.rocm_overlay.text().strip())
+        self.settings.sync()
 
     def _build_bethesda_tab(self):
         # The production converter depends on Windows FaceFX/xWMA tooling.
@@ -1063,6 +1117,7 @@ class MainWindow(QMainWindow):
             event.ignore()
             return
         self.settings.setValue("model", self.model.currentData())
+        self._save_processor_settings()
         self.settings.setValue("format", self.format.currentData())
         custom_values = (getattr(self, '_custom_generation_values', self._generation_values())
                          if self.generation_profile.currentData() != 'custom' else self._generation_values())

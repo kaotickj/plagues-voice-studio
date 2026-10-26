@@ -69,11 +69,17 @@ class NarrationJob:
     voice_id: str = ""
     prepared_text: str | None = None
     render_scope: str = "full_document"
+    rocm_python: str = ""
+    rocm_overlay: str = ""
+    rocm_gpu_lock: str = "/run/lock/gnb-ai-gpu.lock"
 
     @property
     def render_text(self) -> str:
         """Reviewed render input, kept separate from the original manuscript."""
-        return self.text if self.prepared_text is None else self.prepared_text
+        from .text_preparation import prepare_render_text
+        source = self.text if self.prepared_text is None else self.prepared_text
+        language = self.language if self.model == 'multilingual-v3' else 'en'
+        return prepare_render_text(source, language)
 
     def effective_settings(self) -> dict:
         """Describe controls the adapter actually uses for this model and profile.
@@ -122,8 +128,13 @@ class NarrationJob:
             raise ValueError("Enter some narration text to render")
         if self.render_scope == "selection" and self.prepared_text is None:
             raise ValueError("A selection render needs its reviewed passage")
-        if self.device not in ("auto", "cpu", "cuda"):
+        if self.device not in ("auto", "cpu", "cuda", "rocm"):
             raise ValueError("Unknown processing device")
+        if self.device == 'rocm':
+            if len(self.render_text) > 1000:
+                raise ValueError('External ROCm supports at most 1,000 prepared characters; select a shorter passage')
+            if not self.rocm_python or not self.rocm_overlay:
+                raise ValueError('Choose the external ROCm Python and approved Chatterbox overlay')
         if self.model == "multilingual-v3" and self.language not in LANGUAGES:
             raise ValueError("Unsupported language")
         if self.model == "turbo" and not self.voice_path:

@@ -82,11 +82,13 @@ native Wayland plugin is unavailable; this uses XWayland.
    smallest first test). Models are downloaded on demand, not in the archive.
 2. Add a reference recording, generate a short line using **CPU**, play it and
    export its WAV. The bundled PyTorch is CPU-only; selecting CUDA does not
-   install a CUDA runtime. Native Vulkan speech experiments are not integrated.
+   install a GPU runtime. The separate native Vulkan source candidate described
+   below has not passed real synthesis acceptance or replaced the installed app.
    Original English also offers opt-in Natural Narration (CFG 0.3); its limited
    listening preference is not a promise that every voice or passage improves.
 3. Open **Plugins → Promotional Writer** and **Pronunciation & Script Prep**.
-   The branded standalone DJ Writer is a separate application.
+   The branded standalone DJ Writer is a separate application. Existing custom
+   Vulkan speech plugins remain separate from the bundled Chatterbox runtime.
 4. Close/reopen Studio and confirm that saved voices, paths and exports remain.
 
 Shared models/voices use `$XDG_DATA_HOME/PlaguedAI` (normally
@@ -97,7 +99,7 @@ reused; configure their actual Linux paths instead of copying Windows settings.
 
 ## Optional runtimes
 
-Qwen3, IndexTTS and Kokoro use **separate native Linux Python environments**.
+The Python paths for Qwen3, IndexTTS and Kokoro use **separate Linux environments**.
 Configure their `bin/python` and model/repository paths in Voice Engines, then
 use **Test selected engine** before generation. The Windows PowerShell setup
 scripts do not install Linux runtimes. Fresh optional-engine setup and real
@@ -105,6 +107,20 @@ Linux speech inference remain acceptance work; a passing startup check alone
 does not establish them. Kokoro offers CPU on Linux; DirectML is Windows-only.
 Writer's verified downloader currently supplies a Linux CPU llama.cpp runtime;
 automatic Linux writer Vulkan setup is not included.
+
+The source candidate also offers an explicit native Vulkan backend for Qwen Base
+through an independently supplied audio.cpp executable. It preserves the Python
+backend and existing plugin presets; it does not install runtimes or models.
+Software checks cover reference isolation, cancellation, settings and rejection
+of missing or software GPU evidence. Real native synthesis, memory/latency and
+listening acceptance remain unrun. Index can validate paths but cannot generate
+through this native backend until its placement evidence is qualified. See
+[native capability limits](OPTIONAL_ENGINES.md#native-vulkan-linux-source-candidate).
+
+PyTorch ROCm uses the `torch.cuda` API too. A compatible AMD runtime is therefore
+different from the CPU-only bundled Torch, even though both may show CUDA-named
+controls. This candidate has no qualified Chatterbox ROCm environment; selecting
+a GPU label alone does not establish accelerated execution.
 
 Full Bethesda LIP/XWM/FUZ production is supported on Windows only. Linux builds
 exclude its tab, production UI module and handoff actions; ordinary WAV/MP3
@@ -150,3 +166,20 @@ FFmpeg executable. `BUILD-INFO.json` records the source commit and build host.
 
 Platform packaging references: [PyInstaller Linux compatibility](https://pyinstaller.org/en/stable/usage.html#making-gnu-linux-apps-forward-compatible)
 and [symlink preservation](https://pyinstaller.org/en/stable/common-issues-and-pitfalls.html#requirements-imposed-by-symbolic-links-in-frozen-application).
+
+## Local RC4 AMD Chatterbox candidate
+
+The local RC4 candidate adds **Processor → AMD ROCm — external Chatterbox** in
+Narration Studio, with **ROCm Python** and **Chatterbox overlay** fields. These
+point to a separately qualified existing HIP runtime. Selecting the model or
+Processor saves it automatically; leave either path field to save its value.
+The frozen CPU runtime remains available as an explicit choice. No runtime,
+driver or weights are installed automatically by selecting ROCm, and this route
+never falls back silently to CPU. Chatterbox uses ROCm/HIP here, not Vulkan.
+
+Reference-conditioned Original English completed real synthesis on the local
+Debian 13 RX 7600 XT using PyTorch 2.10.0+rocm7.1 and scoped native-GPU
+convolution/DFT compatibility code. This is experimental evidence for that
+configuration, not certification for every offered model or AMD system.
+Other variants and optional Vulkan speech engines retain separate qualification
+requirements. Preserve the approved runtime/overlay when cleaning build outputs.

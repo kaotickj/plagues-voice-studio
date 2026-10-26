@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QTabWidget, QTextBrowser, QVBoxLayout, QWidget,
 )
 from . import __version__
-from .paths import bundled_models_dir
+from .paths import bundled_models_dir, canonical_data_dir
 
 
 def _assets(name: str) -> Path:
@@ -24,13 +24,15 @@ def _assets(name: str) -> Path:
 
 def diagnostics_text() -> str:
     """Unprivileged local diagnostic info, nothing identifying or secret."""
+    from .model_downloads import MODELS, has_required_files, installed_model_directory
     installed = bundled_models_dir()
     models = ('nano', 'turbo', 'english', 'multilingual-v3')
     state = []
     for model in models:
-        folder = installed / model
-        has_weight = folder.is_dir() and any(folder.glob('*.safetensors'))
-        state.append(f'  {model}: {"weights present" if has_weight else "not bundled / cache may be available"}')
+        folder = installed_model_directory(canonical_data_dir(), MODELS[model])
+        if folder is None and has_required_files(installed / model, MODELS[model]):
+            folder = installed / model
+        state.append(f'  {model}: {"installed local weights at " + str(folder) if folder else "complete local weights not found"}')
     return '\n'.join([
         "Plague's Voice Studio", f'Version: {__version__}',
         f'Platform: {platform.system()} {platform.release()}',
@@ -38,8 +40,10 @@ def diagnostics_text() -> str:
         f'Frozen executable: {bool(getattr(sys, "frozen", False))}',
         'Speech engines: Chatterbox, Qwen3-TTS, IndexTTS 2.5 and Kokoro.',
         'Qwen3, IndexTTS and Kokoro use separate Python runtimes; no external engine packages bundled.',
-        'Bundled model checks:', *state,
-        'Note: cached models are not enumerated. Do not include personal voice files in bug reports.',
+        'Existing shared/legacy/bundled Chatterbox model checks:', *state,
+        'Core Chatterbox supports Torch CPU/GPU and explicit external AMD ROCm; core Vulkan is unsupported.',
+        'External ROCm uses its own approved Python/overlay and must prove HIP GPU execution for each recording.',
+        'Note: arbitrary Hub caches are not enumerated. Do not include personal voice files in bug reports.',
     ])
 
 

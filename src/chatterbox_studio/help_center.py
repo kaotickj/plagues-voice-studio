@@ -113,6 +113,13 @@ an integrated or tested conversion route.</p>
 <p><b>OS error 1455:</b> Windows has insufficient available virtual memory (RAM plus paging file) for the model load. Close memory-intensive applications and check your system-managed paging file and disk space.</p>
 <p><b>A Python traceback when opening a dialog:</b> rebuild the executable after source edits. An old desktop shortcut may still point to an older version.</p>
 <p><b>First generation seems slow:</b> first use may load or download model weights and initialize PyTorch. CPU inference can be significantly slower than GPU inference.</p><p><b>Out-of-memory or native crashes when running DJ Writer too:</b> large writing and speech models can compete for RAM and Windows paging resources. Finish or close the DJ Writer before running IndexTTS or Qwen3, especially on CPU. If a native process exits with <code>3221225477</code> (<code>0xC0000005</code>), inspect its diagnostic log and Windows Event Viewer; resource contention is one possible cause, not a guaranteed explanation.</p>
+<p><b>Linux AMD Chatterbox:</b> choose <b>Processor → AMD ROCm — external Chatterbox</b>,
+then set <b>ROCm Python</b> and <b>Chatterbox overlay</b> to an existing qualified runtime.
+These fields save when you leave the field; model and Processor selections save automatically.
+This experimental route uses HIP, not Vulkan, and fails explicitly if GPU generation cannot run.
+CPU remains an explicit choice. Existing native Vulkan plugins are separate workflows.
+Local reference-conditioned Original English synthesis has been verified on RX 7600 XT;
+other model variants still require their own qualification.</p>
 <p><b>Windows AMD GPU:</b> this build does not automatically enable AMD acceleration. Auto selects CUDA only where supported; otherwise it uses CPU.</p>
 <p><b>Qwen3-TTS runtime:</b> install it in its own Python environment and use <b>Test selected engine</b> to verify imports. Loading cached model weights and CPU speech generation can take time. Generation progress, errors, and saved logs appear in the engine diagnostics panel.</p>
 <p><b>SoX warning:</b> if SoX is already installed but not found, run <code>sox --version</code> in a new terminal and ensure the directory containing <code>sox.exe</code> is on PATH. The warning is not always fatal to generation.</p>

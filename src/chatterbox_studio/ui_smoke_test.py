@@ -297,6 +297,29 @@ def run(report_path: Path | None = None, *, no_audio: bool = False) -> int:
                 QTimer.singleShot(400, app.quit)
                 if app.exec() != 0:
                     raise RuntimeError('Qt application event loop failed.')
+                window.model.setCurrentIndex(window.model.findData('english'))
+                window.device.setCurrentIndex(window.device.findData('rocm'))
+                from .rocm import known_runtime_defaults
+                gpu_defaults = known_runtime_defaults()
+                window.rocm_python.setText(gpu_defaults['python'] or '/private-test/python')
+                window.rocm_overlay.setText(gpu_defaults['overlay'] or '/private-test/overlay')
+                window.rocm_python.editingFinished.emit()
+                window.rocm_overlay.editingFinished.emit()
+                expected_runtime = (window.rocm_python.text(), window.rocm_overlay.text())
+                report['plugin_menu'] = [{'id': action.data(), 'label': action.text()}
+                                         for action in window.plugins.menu.actions() if action.data()]
+                report['native_vulkan_choice_present'] = window.engine_lab.backend.findData('native_vulkan') >= 0
+                window.close()
+                reopened = MainWindow()
+                try:
+                    if (reopened.model.currentData() != 'english' or reopened.device.currentData() != 'rocm'
+                            or (reopened.rocm_python.text(), reopened.rocm_overlay.text()) != expected_runtime):
+                        raise RuntimeError('GPU Processor/runtime/model settings did not survive window recreation.')
+                    report['gpu_controls'] = {'processor': reopened.device.currentText(),
+                        'python_field': 'ROCm Python', 'overlay_field': 'Chatterbox overlay',
+                        'saved_and_reloaded': True, 'settings_scope': 'isolated test profile'}
+                finally:
+                    reopened.close()
                 window.player.stop()
                 window.deleteLater()
             finally:

@@ -202,6 +202,17 @@ def test_export_records_exact_prepared_plan_and_effective_settings(tmp_path, sof
     assert [step["text"] for step in metadata["render_plan"] if step["kind"] == "speech"] == [call[0] for call in model.calls]
 
 
+def test_clock_export_and_adapter_preserve_manuscript(tmp_path, software_engine):
+    model = ConditioningModel()
+    engine = software_engine(model_loader=lambda *_: model)
+    candidate = job(text='Meet at 9:05 a.m.', output_path=str(tmp_path / 'clock.wav'))
+    result = render(engine, candidate)
+    metadata = json.loads(result.with_suffix('.json').read_text())
+    assert metadata['original_text'] == metadata['text'] == candidate.text == 'Meet at 9:05 a.m.'
+    assert metadata['prepared_text'] == candidate.render_text == 'Meet at nine oh five a.m.'
+    assert [call[0] for call in model.calls] == [candidate.render_text]
+
+
 @pytest.mark.parametrize("use_reference", [False, True], ids=["built-in", "authorized-reference"])
 def test_natural_profile_adapter_and_sidecar_preserve_conditioning_and_text(tmp_path, software_engine, use_reference):
     model = ConditioningModel()

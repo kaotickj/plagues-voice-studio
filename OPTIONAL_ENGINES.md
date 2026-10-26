@@ -1,5 +1,11 @@
 # Speech engines: Qwen3-TTS, IndexTTS 2.5 and Kokoro
 
+**October 26 RC4 update:** use the [detailed Windows/Linux IndexTTS guide](INDEXTTS_INSTALLATION.md)
+for the current pinned 2.5 setup. The isolated Linux runtime, model hashes,
+adapter import, offline frontend and short Linux GPU speech passed;
+the short sample was accepted by the creator. Historical Windows generation below is not a fresh
+RC4 Windows installation test. Native Vulkan Index remains unqualified/disabled.
+
 **Baseline:** Plague's Voice Studio v0.2.4 remains unchanged. The separate v0.3.0 build retains the four Chatterbox models in **Narration Studio** and supports both Qwen3-TTS and IndexTTS 2.5 through **Voice Engines**. Real speech generation with both has been confirmed on the creator's Windows machine. Keep independent engine runtimes out of `.venv-build` and the PyInstaller distribution folder.
 
 ## Engine status and requirements
@@ -160,8 +166,43 @@ these assets; the standard slim installer keeps them in the shared model store.
 
 The October 20 all-model Radeon retest and backend limitations are recorded in
 [GPU_MODEL_AUDIT.md](GPU_MODEL_AUDIT.md). Kokoro DirectML is integrated; successful
-native Vulkan Qwen/Index probes remain separate from their CPU/CUDA Python
-adapters in the current Studio UI.
+historical native Vulkan Qwen/Index probes are separate from the Python adapters
+and do not qualify the Linux source candidate below.
+
+## Native Vulkan (Linux source candidate)
+
+This uninstalled source candidate adds an explicit **Native Vulkan** choice for
+Qwen Base 0.6B/1.7B. It uses an independently supplied audio.cpp executable,
+reviewed executable hash, compatible model folder and existing coordination lock.
+It does not install or redistribute that runtime, download weights, select this
+backend automatically, or fall back to Python/CPU after a Vulkan failure.
+
+Use an authorized reference excerpt of at most 30 seconds. Qwen uses the exact
+matching transcript when supplied; otherwise it records embedding-only
+conditioning. References are never silently shortened, and the original remains
+unchanged. Engine paths, character profiles, original/prepared text and effective
+backend provenance are retained separately. Discovery suggests retained local
+paths only on request; saving them is explicit. Persona-plugin pronunciation and
+pacing overrides are not imported into ordinary narration.
+
+Successful output requires a consistent physical device-0 declaration and the
+required Qwen model-buffer placement on Vulkan0. Software ICDs, missing identity,
+conflicting device reports and required CPU buffers fail visibly. This verifies
+the reported weight buffers; preprocessing or other operations may still use CPU.
+Provenance labels the device identity as a runtime declaration, not an independent
+hardware probe. Source tests use private fixtures and do not demonstrate audio
+quality, real GPU execution or performance.
+
+**IndexTTS 2.5:** compatible native paths can be checked, but Generate is disabled
+until actual placement markers and runtime behavior are qualified. Raw Python
+checkpoints cannot substitute for converted native tensors. Native emotion and
+duration controls remain unavailable. Python Index behavior is retained.
+
+Chatterbox does not use this adapter. Its bundled Torch remains CPU-only; a
+separate ROCm compatibility experiment is still required. Nano/Turbo do not have
+a validated equivalent native reference-cloning route. The existing Kokoro ONNX
+assets also do not match audio.cpp's separate GGUF format. No Linux Vulkan
+support is implied for those engines.
 
 IndexTTS and Qwen3 can compete with a running language-model writer for memory and Windows paging resources. A previous `0xC0000005` IndexTTS crash was resolved on the creator's machine after DJ Writer was closed. If generation becomes unstable, finish one AI workload before starting another. This is a practical resource workaround, not a diagnosis for every Windows access violation.
 
