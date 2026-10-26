@@ -15,9 +15,15 @@ datas = [
     (str(project / 'BINARY_LICENSE.md'), '.'),
     (str(project / 'LICENSES' / 'GPL-3.0.txt'), 'LICENSES'),
     (str(project / 'optional_engine_runner.py'), '.'),
+    (str(project / 'chatterbox_rocm_runner.py'), '.'),
     (str(project / 'OPTIONAL_ENGINES.md'), '.'),
     (str(project / 'scripts' / 'setup_kokoro_windows.ps1'), 'scripts'),
 ]
+# Python3.13 cannot import this frozen Python3.12 PYZ. Ship exact owned sources
+# for the isolated ROCm child; it imports no host bundled binary extensions.
+for package in ('chatterbox_studio', 'plagued_ai'):
+    for source in (project / 'src' / package).rglob('*.py'):
+        datas.append((str(source), str(Path('rocm_source') / source.relative_to(project / 'src').parent)))
 if sys.platform == 'linux':
     datas.append((str(project / 'LINUX.md'), '.'))
 # Ship generic plugins, never the branded DJ standalone or its builds.

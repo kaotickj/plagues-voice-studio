@@ -40,22 +40,29 @@ def unique_output_path(path: Path) -> Path:
     raise RuntimeError("Too many exports use this filename")
 
 
-def load_model(model_id: str, device: str):
-    """Load included offline weights when present, otherwise Hugging Face cache/download."""
-    from plagued_ai import huggingface_home
-    cache = huggingface_home()/'hub'
-    os.environ['HF_HOME'] = str(huggingface_home())
-    os.environ['HF_HUB_CACHE'] = str(cache)
-    import huggingface_hub.constants
-    huggingface_hub.constants.HF_HUB_CACHE = str(cache)
-    huggingface_hub.constants.HUGGINGFACE_HUB_CACHE = str(cache)
-    # Prefer validated per-user downloads; frozen app files remain read-only.
+def local_model_path(model_id: str) -> Path | None:
+    """Discover complete existing weights without importing a model runtime."""
     spec = MODELS[model_id]
     user_path = installed_model_directory(user_data_dir(), spec)
-    bundled_path = bundled_models_dir() / model_id
-    path = user_path if user_path is not None else bundled_path
-    if not has_required_files(path, spec):
+    path = user_path if user_path is not None else bundled_models_dir() / model_id
+    return path if has_required_files(path, spec) else None
+
+
+def load_model(model_id: str, device: str, *, local_only=False, model_path=None):
+    """Load included offline weights when present, otherwise Hugging Face cache/download."""
+    if not local_only:
+        from plagued_ai import huggingface_home
+        cache = huggingface_home()/'hub'
+        os.environ['HF_HOME'] = str(huggingface_home())
+        os.environ['HF_HUB_CACHE'] = str(cache)
+        import huggingface_hub.constants
+        huggingface_hub.constants.HF_HUB_CACHE = str(cache)
+        huggingface_hub.constants.HUGGINGFACE_HUB_CACHE = str(cache)
+    path = Path(model_path) if model_path is not None else local_model_path(model_id)
+    if path is not None and not has_required_files(path, MODELS[model_id]):
         path = None
+    if local_only and path is None:
+        raise RuntimeError('Complete local Chatterbox weights are required; external ROCm never downloads models')
     if model_id in ("nano", "turbo"):
         from chatterbox.tts_turbo import ChatterboxTurboTTS
         if path is not None:
@@ -77,7 +84,7 @@ def load_model(model_id: str, device: str):
 
 
 def apply_local_effects(audio: np.ndarray, sample_rate: int, rate: float = 1.0,
-                        volume: float = 1.0, emphasis: bool = False) -> np.ndarray:
+                        volume: float = 1.0, emphasis: bool = False, peak_limit: float | None = None) -> np.ndarray:
     """Apply post-synthesis effects. Rate uses FFmpeg atempo to preserve pitch.
 
     Emphasis is a modest gain lift, not a promise of natural TTS prosody.
@@ -99,13 +106,21 @@ def apply_local_effects(audio: np.ndarray, sample_rate: int, rate: float = 1.0,
     gain = volume * (1.15 if emphasis else 1.0)
     if gain != 1.0:
         result = result * gain
+    if peak_limit is not None:
+        if not 0 < peak_limit < 1:
+            raise ValueError("Output peak limit must be between zero and one")
+        peak = float(np.max(np.abs(result))) if result.size else 0.0
+        if peak > peak_limit:
+            result = result * (peak_limit / peak)
     return np.clip(result, -1.0, 1.0)
 
 
 class Engine:
     """Caches one model at a time to avoid accumulating VRAM use."""
-    def __init__(self, model_loader=load_model):
+    def __init__(self, model_loader=load_model, *, local_only=False, output_peak_limit=None):
         self.model_loader = model_loader
+        self.local_only = local_only
+        self.output_peak_limit = output_peak_limit
         self.model = None
         self.model_key: tuple[str, str] | None = None
         self.builtin_voice = None
@@ -120,7 +135,8 @@ class Engine:
             if device == "cuda":
                 import torch
                 torch.cuda.empty_cache()
-            report(f"Loading {model_id} on {device} (first use may download weights)...")
+            source_note = 'existing local weights only' if self.local_only else 'first use may download weights'
+            report(f"Loading {model_id} on {device} ({source_note})...")
             self.model = self.model_loader(model_id, device)
             self.model_key = key
             self.builtin_voice = getattr(self.model, "conds", None)
@@ -129,6 +145,9 @@ class Engine:
     def render(self, job: NarrationJob, report: Callable[[str], None],
                progress: Callable[[int, int], None], cancelled: Callable[[], bool]) -> Path:
         job.validate()
+        if job.device == 'rocm':
+            from .rocm import render_external
+            return render_external(job, report, progress, cancelled)
         settings = job.effective_settings()
         steps = job.render_steps()
         import soundfile as sf
@@ -185,7 +204,7 @@ class Engine:
                     if audio.size == 0 or not np.all(np.isfinite(audio)):
                         raise RuntimeError(f"Model returned invalid audio for segment {speech_index}")
                     audio = apply_local_effects(audio, int(model.sr), step.rate,
-                                                step.volume, step.emphasis)
+                                                step.volume, step.emphasis, peak_limit=self.output_peak_limit)
                     file.write(audio)
                     progress(speech_index, speech_total)
                     if cancelled():
@@ -219,6 +238,7 @@ class Engine:
                 "output_path": str(target),
                 "device_used": device,
                 "sample_rate": int(model.sr),
+                "output_peak_limit": self.output_peak_limit,
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
             sidecar = write_export_metadata(target, metadata)

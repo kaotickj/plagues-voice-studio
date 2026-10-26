@@ -36,6 +36,12 @@ def verify(exe: Path):
     compared['launcher']=normalized(marshal.loads(archive.extract('launcher')))==normalized(launcher)
     internal=exe.parent/'_internal'
     compared['optional_engine_runner.py']=(internal/'optional_engine_runner.py').read_text(encoding='utf-8')==(ROOT/'optional_engine_runner.py').read_text(encoding='utf-8')
+    compared['chatterbox_rocm_runner.py']=(internal/'chatterbox_rocm_runner.py').read_text(encoding='utf-8')==(ROOT/'chatterbox_rocm_runner.py').read_text(encoding='utf-8')
+    for package in ('chatterbox_studio','plagued_ai'):
+        for source in (ROOT/'src'/package).rglob('*.py'):
+            relative=source.relative_to(ROOT/'src')
+            bundled=internal/'rocm_source'/relative
+            compared['rocm_source/'+str(relative)]=bundled.is_file() and bundled.read_bytes()==source.read_bytes()
     for folder in ('promotional-writer','script-prep'):
         for source in (ROOT/'plugins'/folder).rglob('*'):
             if source.is_file() and source.suffix in ('.py','.json','.svg') and source.name!='build_plugin.py':
@@ -45,8 +51,13 @@ def verify(exe: Path):
     required={'chatterbox_studio.engine','chatterbox_studio.speech_check','chatterbox_studio.tokenizer_assets',
               'chatterbox_studio.optional_engines','chatterbox_studio.native_vulkan',
               'chatterbox_studio.text_preparation','chatterbox_studio.engine_lab',
+              'chatterbox_studio.rocm',
               'writer_core.runtime','plagued_ai'}
     if not required.issubset(compared):raise RuntimeError('Missing owned modules: '+str(required-set(compared)))
+    required_plain={'rocm_source/chatterbox_studio/'+name+'.py' for name in
+                    ('engine','jobs','rocm','rocm_child','rocm_fft','rocm_reference_fft')}
+    if not required_plain.issubset(compared):
+        raise RuntimeError('Missing required external ROCm sources: '+str(required_plain-set(compared)))
     return dict(status='passed' if all(compared.values()) else 'failed',checks=compared)
 
 

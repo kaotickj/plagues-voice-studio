@@ -166,3 +166,20 @@ FFmpeg executable. `BUILD-INFO.json` records the source commit and build host.
 
 Platform packaging references: [PyInstaller Linux compatibility](https://pyinstaller.org/en/stable/usage.html#making-gnu-linux-apps-forward-compatible)
 and [symlink preservation](https://pyinstaller.org/en/stable/common-issues-and-pitfalls.html#requirements-imposed-by-symbolic-links-in-frozen-application).
+
+## Local RC4 AMD Chatterbox candidate
+
+The local RC4 candidate adds **Processor → AMD ROCm — external Chatterbox** in
+Narration Studio, with **ROCm Python** and **Chatterbox overlay** fields. These
+point to a separately qualified existing HIP runtime. Selecting the model or
+Processor saves it automatically; leave either path field to save its value.
+The frozen CPU runtime remains available as an explicit choice. No runtime,
+driver or weights are installed automatically by selecting ROCm, and this route
+never falls back silently to CPU. Chatterbox uses ROCm/HIP here, not Vulkan.
+
+Reference-conditioned Original English completed real synthesis on the local
+Debian 13 RX 7600 XT using PyTorch 2.10.0+rocm7.1 and scoped native-GPU
+convolution/DFT compatibility code. This is experimental evidence for that
+configuration, not certification for every offered model or AMD system.
+Other variants and optional Vulkan speech engines retain separate qualification
+requirements. Preserve the approved runtime/overlay when cleaning build outputs.
