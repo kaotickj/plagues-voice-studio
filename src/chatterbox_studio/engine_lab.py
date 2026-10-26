@@ -155,12 +155,19 @@ class EngineLab(QWidget):
                 browse.clicked.connect(lambda checked=False, e=field, d=directory: self._browse(e, d))
                 row.addWidget(browse)
             rform.addRow(title, row)
+            rform.setRowVisible(row, sys.platform == 'linux')
+            field.setEnabled(sys.platform == 'linux')
         discover = QPushButton('Find retained native preset paths')
         discover.clicked.connect(self._discover_native_paths)
         rform.addRow(discover)
+        rform.setRowVisible(discover, sys.platform == 'linux')
+        discover.setEnabled(sys.platform == 'linux')
         note = QLabel('Native Vulkan is a separate Linux backend. Select a reviewed audio.cpp runtime and complete local model folders. '
                       'Finding paths does not save settings, install anything or test the GPU. Python remains the default.')
         note.setWordWrap(True); rform.addRow(note)
+        if sys.platform != 'linux':
+            note.setText('Native speech Vulkan is available on Linux only. Use the separate Python runtimes on this platform; '
+                         'saved Linux runtime paths are retained.')
         controls = QHBoxLayout()
         save = QPushButton('Save runtime paths')
         save.clicked.connect(self.save_runtimes)
@@ -196,6 +203,7 @@ class EngineLab(QWidget):
         self.backend.setObjectName('optional_engine_backend')
         self.backend.addItem('Python (existing runtime; compatible default)', 'python')
         self.backend.addItem('Native Vulkan (Linux, explicit GPU)', 'native_vulkan')
+        self.backend.model().item(self.backend.findData('native_vulkan')).setEnabled(sys.platform == 'linux')
         self.backend.currentIndexChanged.connect(self._backend_changed)
         form.addRow('Backend', self.backend)
         self.backend_note = QLabel('')

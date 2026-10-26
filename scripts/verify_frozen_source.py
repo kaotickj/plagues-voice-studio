@@ -41,13 +41,13 @@ def verify(exe: Path):
         for source in (ROOT/'src'/package).rglob('*.py'):
             relative=source.relative_to(ROOT/'src')
             bundled=internal/'rocm_source'/relative
-            compared['rocm_source/'+str(relative)]=bundled.is_file() and bundled.read_bytes()==source.read_bytes()
+            compared['rocm_source/'+relative.as_posix()]=bundled.is_file() and bundled.read_bytes()==source.read_bytes()
     for folder in ('promotional-writer','script-prep'):
         for source in (ROOT/'plugins'/folder).rglob('*'):
             if source.is_file() and source.suffix in ('.py','.json','.svg') and source.name!='build_plugin.py':
                 relative=source.relative_to(ROOT/'plugins')
                 bundled=internal/'plugins'/relative
-                compared['plugins/'+str(relative)]=bundled.is_file() and bundled.read_text(encoding='utf-8')==source.read_text(encoding='utf-8')
+                compared['plugins/'+relative.as_posix()]=bundled.is_file() and bundled.read_text(encoding='utf-8')==source.read_text(encoding='utf-8')
     required={'chatterbox_studio.engine','chatterbox_studio.speech_check','chatterbox_studio.tokenizer_assets',
               'chatterbox_studio.optional_engines','chatterbox_studio.native_vulkan',
               'chatterbox_studio.text_preparation','chatterbox_studio.engine_lab',

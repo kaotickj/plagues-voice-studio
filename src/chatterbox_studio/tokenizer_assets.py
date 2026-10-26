@@ -30,8 +30,13 @@ def pkuseg_directory(storage: Path) -> Path:
 
 
 def pkuseg_ready(folder: Path) -> bool:
-    return all((folder/name).is_file() and (folder/name).stat().st_size == size
-               for name, (size, _) in PKUSEG_FILES.items())
+    try:
+        return all((folder/name).is_file() and (folder/name).stat().st_size == size
+                   for name, (size, _) in PKUSEG_FILES.items())
+    except OSError:
+        # Discovery must tolerate unavailable mounts and inaccessible legacy
+        # assets. Explicit installation still reports its own write errors.
+        return False
 
 
 def installed_pkuseg(storage: Path) -> Path | None:

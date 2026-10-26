@@ -1,6 +1,7 @@
 """Tokenizer setup integrity and offline constructor isolation without model downloads."""
 import hashlib
 import json
+from pathlib import Path
 import sys
 from threading import Event
 import types
@@ -32,6 +33,47 @@ def test_verified_install_and_reuse(tmp_path,monkeypatch):
     assert json.loads((target/'source.json').read_text())['archive_sha256']==ta.PKUSEG_SHA256
     archive.unlink()
     assert ta.install_pkuseg(target,Event(),lambda *_:None,archive=archive)==target
+
+
+@pytest.mark.parametrize('probe', ['is_file', 'stat'])
+@pytest.mark.parametrize('error', [OSError(448, 'Unavailable mount'), PermissionError('Access denied')])
+def test_discovery_skips_inaccessible_tokenizer_and_uses_next_candidate(tmp_path, monkeypatch, probe, error):
+    unavailable = tmp_path / 'unavailable'
+    bundle = tmp_path / 'bundle'
+    available = bundle / 'tokenizers' / 'pkuseg' / 'spacy_ontonotes'
+    available.mkdir(parents=True)
+    unavailable.mkdir()
+    monkeypatch.setattr(ta, 'PKUSEG_FILES', {'features.msgpack': (1, 'unused')})
+    (available / 'features.msgpack').write_bytes(b'x')
+    (unavailable / 'features.msgpack').write_bytes(b'x')
+    monkeypatch.setattr(ta, 'pkuseg_directory', lambda storage: unavailable)
+    monkeypatch.setattr(ta, 'bundled_models_dir', lambda: bundle)
+    original = getattr(Path, probe)
+
+    def inaccessible(path, *args, **kwargs):
+        if path.parent == unavailable:
+            raise error
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, probe, inaccessible)
+    assert not ta.pkuseg_ready(unavailable)
+    assert ta.installed_pkuseg(tmp_path) == available
+    assert (available / 'features.msgpack').read_bytes() == b'x'
+
+
+def test_explicit_tokenizer_install_propagates_destination_write_error(tmp_path, monkeypatch):
+    target = tmp_path / 'blocked' / 'installed'
+    original = Path.mkdir
+
+    def denied(path, *args, **kwargs):
+        if path == target.parent:
+            raise PermissionError('Destination is not writable')
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, 'mkdir', denied)
+    monkeypatch.setattr(ta.urllib.request, 'urlopen', lambda *a, **kw: pytest.fail('Unexpected download'))
+    with pytest.raises(PermissionError, match='Destination is not writable'):
+        ta.install_pkuseg(target, Event(), lambda *_: None)
 
 
 def test_checksum_failure_does_not_publish(tmp_path,monkeypatch):

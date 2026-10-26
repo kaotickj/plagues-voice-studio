@@ -105,6 +105,11 @@ def test_close_without_production_tab_preserves_saved_tool_settings(
     window.model_manager = SimpleNamespace(is_busy=model_busy)
     window.settings = QSettings(str(tmp_path / 'settings.ini'), QSettings.Format.IniFormat)
     window.settings.setValue('bethesda/facefx', 'preserved Windows tool path')
+    # Match the initialized processor controls; closing persists them too.
+    window._processor_settings_ready = True
+    window.device = SimpleNamespace(currentData=lambda: 'cpu')
+    window.rocm_python = SimpleNamespace(text=lambda: 'saved ROCm Python')
+    window.rocm_overlay = SimpleNamespace(text=lambda: 'saved ROCm overlay')
     window.model = window.format = SimpleNamespace(currentData=lambda: 'saved setting')
     window.pause = window.chunk = SimpleNamespace(value=lambda: 100)
     window.generation_profile = SimpleNamespace(currentData=lambda: 'custom')
@@ -125,6 +130,9 @@ def test_close_without_production_tab_preserves_saved_tool_settings(
     else:
         assert event.isAccepted()
         assert window.settings.value('bethesda/facefx') == 'preserved Windows tool path'
+        assert window.settings.value('device') == 'cpu'
+        assert window.settings.value('rocm/python') == 'saved ROCm Python'
+        assert window.settings.value('rocm/overlay') == 'saved ROCm overlay'
         assert window.settings.value('narration/profile') == 'custom'
         assert window.settings.value('narration/custom_exaggeration') == .5
         assert window.settings.value('narration/custom_cfg_weight') == .5

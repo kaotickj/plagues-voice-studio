@@ -61,58 +61,81 @@ def user_model_directory(storage: Path, key: str) -> Path:
     return Path(storage) / 'models' / key
 
 
-def legacy_model_directory(storage: Path, key: str) -> Path | None:
+def legacy_model_directory(storage: Path, key: str, *, errors: list[str] | None = None) -> Path | None:
     """Old model weights are reused read-only when running from canonical storage."""
     if Path(storage) != canonical_data_dir():
         return None
     path = legacy_v030_dir() / "models" / key
-    return path if path.is_dir() else None
+    try:
+        return path if path.is_dir() else None
+    except OSError as exc:
+        _record_access_error(path, exc, errors)
+        return None
 
 
-def installed_model_directory(storage: Path, model: ModelChoice) -> Path | None:
+def installed_model_directory(storage: Path, model: ModelChoice, *, errors: list[str] | None = None) -> Path | None:
     """Choose complete current or legacy weights; never use partial downloads."""
     current = user_model_directory(storage, model.key)
-    if has_required_files(current, model):
+    if has_required_files(current, model, errors=errors):
         return current
     for previous in (Path(storage)/'models'/model.key, previous_studio_dir()/'models'/model.key):
-        if Path(storage) == canonical_data_dir() and has_required_files(previous, model):
+        if Path(storage) == canonical_data_dir() and has_required_files(previous, model, errors=errors):
             return previous
-    legacy = legacy_model_directory(storage, model.key)
-    if legacy is not None and has_required_files(legacy, model):
+    legacy = legacy_model_directory(storage, model.key, errors=errors)
+    if legacy is not None and has_required_files(legacy, model, errors=errors):
         return legacy
     return None
 
 
-def _nonempty_file(path: Path) -> bool:
-    return path.is_file() and path.stat().st_size > 0
+def _record_access_error(path: Path, exc: OSError, errors: list[str] | None) -> None:
+    # Never resolve, repair or traverse around an OS-denied mount/reparse point.
+    if errors is not None:
+        message = f'{path}: {exc}'
+        if message not in errors:
+            errors.append(message)
 
 
-def _has_gpt2_tokenizer(folder: Path) -> bool:
+def _nonempty_file(path: Path, *, errors: list[str] | None = None) -> bool:
+    try:
+        return path.is_file() and path.stat().st_size > 0
+    except OSError as exc:
+        _record_access_error(path, exc, errors)
+        return False
+
+
+def _has_gpt2_tokenizer(folder: Path, *, errors: list[str] | None = None) -> bool:
     # The pinned backend supports both self-contained fast JSON and GPT-2's
     # vocabulary/merges representation. Config alone cannot tokenize speech.
-    return (_nonempty_file(folder / 'tokenizer.json') or
-            (_nonempty_file(folder / 'vocab.json') and _nonempty_file(folder / 'merges.txt')))
+    return (_nonempty_file(folder / 'tokenizer.json', errors=errors) or
+            (_nonempty_file(folder / 'vocab.json', errors=errors) and _nonempty_file(folder / 'merges.txt', errors=errors)))
 
 
-def has_required_files(folder: Path, model: ModelChoice) -> bool:
-    return (bool(model.required) and all(_nonempty_file(folder / name) for name in model.required)
-            and (model.key not in ('nano', 'turbo') or _has_gpt2_tokenizer(folder)))
+def has_required_files(folder: Path, model: ModelChoice, *, errors: list[str] | None = None) -> bool:
+    return (bool(model.required) and all(_nonempty_file(folder / name, errors=errors) for name in model.required)
+            and (model.key not in ('nano', 'turbo') or _has_gpt2_tokenizer(folder, errors=errors)))
 
 
 def chatterbox_status(storage: Path, model: ModelChoice) -> str:
     if model.family != 'chatterbox':
         raise ValueError('Chatterbox status requires a Chatterbox model')
-    selected = installed_model_directory(storage, model)
-    if model.key == 'multilingual-v3' and (selected is not None or has_required_files(bundled_models_dir()/model.key, model)):
+    errors: list[str] = []
+    selected = installed_model_directory(storage, model, errors=errors)
+    if model.key == 'multilingual-v3' and (selected is not None or has_required_files(bundled_models_dir()/model.key, model, errors=errors)):
         from .tokenizer_assets import installed_pkuseg
-        if installed_pkuseg(storage) is None:
+        try:
+            tokenizer = installed_pkuseg(storage)
+        except OSError as exc:
+            return f'Tokenizer location unavailable: {exc}'
+        if tokenizer is None:
             return 'Tokenizer download required (select Download to repair)'
     if selected is not None:
         return ('Installed (previous v0.3 data)' if
-                selected == legacy_model_directory(storage, model.key)
+                Path(storage) == canonical_data_dir() and selected == legacy_v030_dir() / 'models' / model.key
                 else 'Installed (user data)')
-    if has_required_files(bundled_models_dir() / model.key, model):
+    if has_required_files(bundled_models_dir() / model.key, model, errors=errors):
         return 'Included with application'
+    if errors:
+        return 'Model location unavailable: ' + '; '.join(errors)
     return 'Download available'
 
 
@@ -120,9 +143,14 @@ def qwen_python(storage: Path) -> str:
     from .optional_engines import is_interpreter
     try:
         saved = EngineRegistry(storage).read()['qwen3']['python']
-    except EngineError:
+    except (EngineError, OSError):
         saved = ''
-    if is_interpreter(saved):
+    def available(candidate):
+        try:
+            return is_interpreter(candidate)
+        except OSError:
+            return False
+    if available(saved):
         return saved
     py_path = ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
     folders = [Path(storage) / 'engines' / 'qwen3']
@@ -130,7 +158,7 @@ def qwen_python(storage: Path) -> str:
         folders.append(legacy_v030_dir() / 'engines' / 'qwen3')
     for folder in folders:
         candidate = folder / py_path
-        if is_interpreter(str(candidate)):
+        if available(str(candidate)):
             return str(candidate)
     return ''
 
@@ -146,8 +174,9 @@ def download_chatterbox(model: ModelChoice, storage: Path, cancelled: Event, log
     target = user_model_directory(storage, model.key)
     if cancelled.is_set():
         raise EngineCancelled('Cancelled')
-    installed = installed_model_directory(storage, model)
-    if model.key == 'multilingual-v3' and installed is None and has_required_files(bundled_models_dir()/model.key, model):
+    errors: list[str] = []
+    installed = installed_model_directory(storage, model, errors=errors)
+    if model.key == 'multilingual-v3' and installed is None and has_required_files(bundled_models_dir()/model.key, model, errors=errors):
         installed = bundled_models_dir()/model.key
     if installed is not None:
         if model.key == 'multilingual-v3':
@@ -155,6 +184,8 @@ def download_chatterbox(model: ModelChoice, storage: Path, cancelled: Event, log
             ensure_multilingual_assets(storage, cancelled, log)
         log(f'This Chatterbox model is already available at {installed}. No download needed.')
         return installed
+    if errors:
+        raise EngineError('Model location unavailable; no download started: ' + '; '.join(errors))
     if has_required_files(target, model):
         log('This Chatterbox model is already downloaded.')
         return target
@@ -241,7 +272,11 @@ else:
 def qwen_command(python_exe: str, model: ModelChoice, operation: str) -> list[str]:
     if model.family != 'qwen3' or operation not in ('check', 'download'):
         raise ValueError('Invalid Qwen model operation')
-    if not Path(python_exe).is_file():
+    try:
+        available = Path(python_exe).is_file()
+    except OSError as exc:
+        raise EngineError(f'Qwen Python is unavailable at {python_exe}: {exc}') from exc
+    if not available:
         raise EngineError('Qwen Python is not configured. Set it under Voice Engines first.')
     return [python_exe, '-I', '-u', '-c', _QWEN_SCRIPT, model.repo, operation]
 

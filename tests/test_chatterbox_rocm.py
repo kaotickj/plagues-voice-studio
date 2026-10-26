@@ -6,12 +6,19 @@ from pathlib import Path
 import sys
 import subprocess
 import textwrap
+from types import SimpleNamespace
 
 import pytest
 
 from chatterbox_studio.engine import Engine, GenerationCancelled, load_model
 from chatterbox_studio.jobs import NarrationJob
 from chatterbox_studio import rocm
+
+
+# These integration tests exercise Linux flock, process groups, /proc and prctl.
+# Keep portable protocol and unsupported-platform guards active on every OS.
+linux_process_test = pytest.mark.skipif(
+    sys.platform != 'linux', reason='External ROCm process supervision requires Linux')
 
 
 def job(tmp_path, **changes):
@@ -36,6 +43,19 @@ def test_external_dispatch_precedes_host_torch_import(tmp_path, monkeypatch):
     candidate = job(tmp_path)
     assert Engine().render(candidate, lambda _: None, lambda *_: None, lambda: False) == expected
     assert received == [candidate]
+
+
+@pytest.mark.parametrize('platform', ['win32', 'darwin'])
+def test_unsupported_platform_refuses_rocm_before_runtime_or_process_access(tmp_path, monkeypatch, platform):
+    from chatterbox_studio import engine
+    candidate = job(tmp_path)
+    # Substitute only rocm's sys reference, not the interpreter-wide platform.
+    monkeypatch.setattr(rocm, 'sys', SimpleNamespace(platform=platform))
+    monkeypatch.setattr(engine, 'local_model_path', lambda _: pytest.fail('Unsupported platform inspected weights'))
+    monkeypatch.setattr(rocm.subprocess, 'Popen', lambda *_args, **_kwargs: pytest.fail('Unsupported platform spawned a child'))
+    with pytest.raises(RuntimeError, match='supported on Linux only'):
+        Engine().render(candidate, lambda _: None, lambda *_: None, lambda: False)
+    assert not list(tmp_path.iterdir())
 
 
 def test_job_roundtrip_and_legacy_settings_remain_exact(tmp_path):
@@ -105,6 +125,7 @@ def protocol(tmp_path, monkeypatch):
     return configure, lock
 
 
+@linux_process_test
 def test_supervisor_preserves_exact_selection_profile_and_sidecar(tmp_path, protocol):
     _, lock = protocol
     candidate = job(tmp_path, rocm_gpu_lock=str(lock), text='Entire original manuscript.',
@@ -122,6 +143,7 @@ def test_supervisor_preserves_exact_selection_profile_and_sidecar(tmp_path, prot
 
 
 @pytest.mark.parametrize('mode', ['cpu', 'crash'])
+@linux_process_test
 def test_failure_or_cpu_claim_never_publishes_audio(tmp_path, protocol, mode):
     configure, lock = protocol; configure(mode)
     with pytest.raises(RuntimeError, match='failed|prove'):
@@ -130,6 +152,7 @@ def test_failure_or_cpu_claim_never_publishes_audio(tmp_path, protocol, mode):
     assert list((tmp_path / '.pvs-rocm-diagnostics').glob('*/process.log'))
 
 
+@linux_process_test
 def test_midrun_sidecar_collision_preserves_foreign_file(tmp_path, protocol):
     configure, lock = protocol; configure('collision')
     with pytest.raises(FileExistsError):
@@ -144,6 +167,7 @@ def test_cancel_never_starts_external_process(tmp_path, monkeypatch):
         Engine().render(job(tmp_path), lambda _: None, lambda *_: None, lambda: True)
 
 
+@linux_process_test
 def test_deadline_stops_child_and_releases_owned_gpu_lock(tmp_path, protocol, monkeypatch):
     import fcntl
     import os
@@ -157,6 +181,7 @@ def test_deadline_stops_child_and_releases_owned_gpu_lock(tmp_path, protocol, mo
     assert not (tmp_path / 'output.wav').exists()
 
 
+@linux_process_test
 def test_bootstrap_disables_core_dumps_before_plain_source_child_import(tmp_path):
     source = tmp_path / 'sources' / 'chatterbox_studio'; source.mkdir(parents=True)
     (source / '__init__.py').write_text('')
@@ -175,6 +200,7 @@ def test_bootstrap_disables_core_dumps_before_plain_source_child_import(tmp_path
     assert saved['parent_death_signal'] == signal.SIGTERM
 
 
+@linux_process_test
 def test_postspawn_diagnostic_failure_still_stops_child_and_releases_lock(tmp_path, protocol, monkeypatch):
     import fcntl
     configure, lock = protocol; configure('hang')
@@ -244,6 +270,7 @@ def test_reference_fft_glue_records_live_counters_after_prepare(monkeypatch, fai
     assert records[-1]['counters']['stft_replaced'] == 2
 
 
+@linux_process_test
 def test_bootstrap_parent_identity_mismatch_stops_before_model_import(tmp_path):
     request, response = tmp_path / 'request.json', tmp_path / 'response.json'
     request.write_text(json.dumps(dict(source_root='/not/imported', overlay='/not/imported', parent_pid=os.getpid()+1)))

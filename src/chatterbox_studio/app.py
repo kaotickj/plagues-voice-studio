@@ -42,6 +42,20 @@ def row(*widgets):
     return layout
 
 
+def host_processor_labels():
+    """Describe this interpreter's compiled backend without loading a model."""
+    try:
+        import torch
+        backend = 'AMD ROCm' if torch.version.hip else 'NVIDIA CUDA' if torch.version.cuda else ''
+    except (ImportError, OSError):
+        backend = ''
+    if backend:
+        return ('Auto (host GPU if available; otherwise CPU)',
+                f'Host {backend} (requires available GPU)', True)
+    return ('Auto (CPU; host PyTorch has no GPU backend)',
+            'Host GPU unavailable (CPU-only PyTorch)', False)
+
+
 class FloatControl(QWidget):
     def __init__(self, text: str, value: float, min_value: int, max_value: int):
         super().__init__()
@@ -276,9 +290,11 @@ class MainWindow(QMainWindow):
         self.model.currentIndexChanged.connect(self._on_model_changed)
         model_form.addRow("Model", self.model)
         self.device = QComboBox()
-        self.device.addItem("Auto (host PyTorch; CPU if unavailable)", "auto")
+        auto_label, gpu_label, gpu_enabled = host_processor_labels()
+        self.device.addItem(auto_label, "auto")
         self.device.addItem("CPU", "cpu")
-        self.device.addItem("Host PyTorch GPU (CUDA / ROCm)", "cuda")
+        self.device.addItem(gpu_label, "cuda")
+        self.device.model().item(self.device.findData('cuda')).setEnabled(gpu_enabled)
         self.device.addItem("AMD ROCm — external Chatterbox (experimental, Linux)", "rocm")
         if sys.platform != 'linux':
             self.device.model().item(self.device.findData('rocm')).setEnabled(False)
@@ -289,18 +305,24 @@ class MainWindow(QMainWindow):
         self.rocm_python.setObjectName('chatterbox_rocm_python')
         choose_python = QPushButton('Browse…')
         choose_python.clicked.connect(self._choose_rocm_python)
-        model_form.addRow('ROCm Python', row(self.rocm_python, choose_python))
+        python_row = row(self.rocm_python, choose_python)
+        model_form.addRow('ROCm Python', python_row)
         self.rocm_overlay = QLineEdit()
         self.rocm_overlay.setObjectName('chatterbox_rocm_overlay')
         choose_overlay = QPushButton('Browse…')
         choose_overlay.clicked.connect(self._choose_rocm_overlay)
-        model_form.addRow('Chatterbox overlay', row(self.rocm_overlay, choose_overlay))
+        overlay_row = row(self.rocm_overlay, choose_overlay)
+        model_form.addRow('Chatterbox overlay', overlay_row)
         note = QLabel('Experimental ROCm uses this Chatterbox model on AMD HIP, with existing local weights only. '
                       'Runtime imports or GPU model loading do not establish completed speech quality or stability. '
                       'Maximum 1,000 prepared characters / 300 seconds. Failure never switches to CPU; select CPU explicitly. '
                       'Core Chatterbox Vulkan is not supported.')
         note.setWordWrap(True)
         model_form.addRow(note)
+        self._rocm_form = model_form
+        self._rocm_rows = (python_row, overlay_row, note)
+        self.device.currentIndexChanged.connect(self._update_rocm_controls)
+        self._update_rocm_controls()
         self.language = QComboBox()
         for key, description in LANGUAGES.items():
             self.language.addItem(f"{description} ({key})", key)
@@ -1066,6 +1088,13 @@ class MainWindow(QMainWindow):
             control.slider.setValue(round(float(self.settings.value('narration/custom_' + name, default)) * 100))
         profile = self.generation_profile.findData(self.settings.value('narration/profile', 'custom'))
         self.generation_profile.setCurrentIndex(max(profile, 0))
+
+    def _update_rocm_controls(self, *_):
+        active = sys.platform == 'linux' and self.device.currentData() == 'rocm'
+        for control in self._rocm_rows:
+            self._rocm_form.setRowVisible(control, active)
+        self.rocm_python.setEnabled(active)
+        self.rocm_overlay.setEnabled(active)
 
     def _choose_rocm_python(self):
         path, _ = QFileDialog.getOpenFileName(self, 'Choose existing external ROCm Python')

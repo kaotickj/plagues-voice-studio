@@ -65,7 +65,7 @@ def test_registry_adds_kokoro_without_losing_old_engine_paths(tmp_path, monkeypa
     assert config['kokoro']['python'] == str(python)
     config['kokoro']['model_dir'] = str(tmp_path / 'custom-models')
     registry.save(config)
-    assert registry.read()['index25'] == {'python':'old-python','repo':'old-repo'}
+    assert registry.read()['index25'] == {'python':'old-python','repo':'old-repo','backend':'python'}
     assert registry.read()['kokoro']['model_dir'] == str(tmp_path / 'custom-models')
 
 

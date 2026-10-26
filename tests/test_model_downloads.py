@@ -291,3 +291,121 @@ def test_failed_tokenizer_repair_names_both_supported_representations(tmp_path, 
     message = str(failure.value)
     assert all(name in message for name in ('tokenizer.json', 'vocab.json', 'merges.txt'))
     assert md.chatterbox_status(tmp_path, item) != 'Installed (user data)'
+
+
+def _denied_model_error(kind):
+    if kind == 'permission':
+        return PermissionError(13, 'Permission denied')
+    error = OSError('The mount point is untrusted (WinError 448)')
+    error.winerror = 448
+    return error
+
+
+@pytest.mark.parametrize('kind', ['winerror448', 'permission'])
+def test_denied_legacy_mount_reports_status_without_traversal_or_download(tmp_path, monkeypatch, kind):
+    storage = tmp_path / 'canonical'
+    legacy = tmp_path / 'legacy'
+    blocked = legacy / 'models' / 'nano'
+    monkeypatch.setattr(md, 'canonical_data_dir', lambda: storage)
+    monkeypatch.setattr(md, 'shared_root', lambda: tmp_path / 'shared')
+    monkeypatch.setattr(md, 'previous_studio_dir', lambda: tmp_path / 'previous')
+    monkeypatch.setattr(md, 'legacy_v030_dir', lambda: legacy)
+    monkeypatch.setattr(md, 'bundled_models_dir', lambda: tmp_path / 'bundle')
+    original_is_dir, original_stat = Path.is_dir, Path.stat
+    def is_dir(path):
+        if path == blocked:
+            raise _denied_model_error(kind)
+        return original_is_dir(path)
+    def stat(path, *args, **kwargs):
+        if blocked in path.parents:
+            pytest.fail('Discovery traversed an OS-denied legacy model directory')
+        return original_stat(path, *args, **kwargs)
+    monkeypatch.setattr(Path, 'is_dir', is_dir)
+    monkeypatch.setattr(Path, 'stat', stat)
+    monkeypatch.setitem(sys.modules, 'huggingface_hub', types.SimpleNamespace(
+        list_repo_files=lambda *_: pytest.fail('Unavailable mount must not trigger replacement downloads')))
+    item = md.MODELS['nano']
+    assert md.installed_model_directory(storage, item) is None
+    status = md.chatterbox_status(storage, item)
+    assert status.startswith('Model location unavailable:')
+    assert str(blocked) in status
+    assert ('448' if kind == 'winerror448' else 'Permission denied') in status
+    with pytest.raises(md.EngineError, match='no download started'):
+        md.download_chatterbox(item, storage, Event(), lambda *_: None)
+    assert not storage.exists()
+    assert not (tmp_path / 'shared').exists()
+
+
+@pytest.mark.parametrize('kind', ['winerror448', 'permission'])
+@pytest.mark.parametrize('location', ['current', 'bundle'])
+def test_inaccessible_model_file_is_not_installed_and_reports_path(tmp_path, monkeypatch, kind, location):
+    item = md.MODELS['nano']
+    bundle = tmp_path / 'bundle'
+    monkeypatch.setattr(md, 'bundled_models_dir', lambda: bundle)
+    folder = md.user_model_directory(tmp_path, item.key) if location == 'current' else bundle / item.key
+    denied = folder / item.required[0]
+    original_stat = Path.stat
+    def stat(path, *args, **kwargs):
+        if path == denied:
+            raise _denied_model_error(kind)
+        return original_stat(path, *args, **kwargs)
+    monkeypatch.setattr(Path, 'stat', stat)
+    assert not md.has_required_files(folder, item)
+    assert str(denied) in md.chatterbox_status(tmp_path, item)
+    assert 'Installed' not in md.chatterbox_status(tmp_path, item)
+
+
+def test_accessible_bundle_still_reused_when_user_model_is_denied(tmp_path, monkeypatch):
+    item = md.MODELS['nano']
+    bundle = tmp_path / 'bundle'
+    folder = bundle / item.key
+    folder.mkdir(parents=True)
+    for name in chatterbox_fixture_files(item):
+        (folder / name).write_bytes(b'fixture')
+    monkeypatch.setattr(md, 'bundled_models_dir', lambda: bundle)
+    denied = md.user_model_directory(tmp_path, item.key) / item.required[0]
+    original_stat = Path.stat
+    def stat(path, *args, **kwargs):
+        if path == denied:
+            raise PermissionError(13, 'Permission denied')
+        return original_stat(path, *args, **kwargs)
+    monkeypatch.setattr(Path, 'stat', stat)
+    assert md.chatterbox_status(tmp_path, item) == 'Included with application'
+
+
+@pytest.mark.parametrize('kind', ['winerror448', 'permission'])
+def test_qwen_command_reports_unavailable_interpreter(tmp_path, monkeypatch, kind):
+    executable = tmp_path / 'python.exe'
+    original_is_file = Path.is_file
+    def is_file(path):
+        if path == executable:
+            raise _denied_model_error(kind)
+        return original_is_file(path)
+    monkeypatch.setattr(Path, 'is_file', is_file)
+    with pytest.raises(md.EngineError, match='Qwen Python is unavailable') as caught:
+        md.qwen_command(str(executable), md.MODELS['qwen-0.6b'], 'check')
+    assert str(executable) in str(caught.value)
+
+
+def test_qwen_discovery_skips_os_denied_interpreters(tmp_path, monkeypatch):
+    from chatterbox_studio import optional_engines
+    monkeypatch.setattr(md.EngineRegistry, 'read', lambda _: {'qwen3': {'python': 'denied-python.exe'}})
+    def denied(_):
+        raise _denied_model_error('winerror448')
+    monkeypatch.setattr(optional_engines, 'is_interpreter', denied)
+    assert md.qwen_python(tmp_path) == ''
+
+
+def test_multilingual_status_reports_denied_tokenizer_location(tmp_path, monkeypatch):
+    from chatterbox_studio import tokenizer_assets
+    item = md.MODELS['multilingual-v3']
+    folder = md.user_model_directory(tmp_path, item.key)
+    folder.mkdir(parents=True)
+    for name in item.required:
+        (folder / name).write_bytes(b'fixture')
+    def denied(_):
+        raise PermissionError(13, 'Permission denied', 'tokenizer-fixture')
+    monkeypatch.setattr(tokenizer_assets, 'installed_pkuseg', denied)
+    status = md.chatterbox_status(tmp_path, item)
+    assert status.startswith('Tokenizer location unavailable:')
+    assert 'tokenizer-fixture' in status

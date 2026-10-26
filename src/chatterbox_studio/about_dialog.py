@@ -41,8 +41,8 @@ def diagnostics_text() -> str:
         'Speech engines: Chatterbox, Qwen3-TTS, IndexTTS 2.5 and Kokoro.',
         'Qwen3, IndexTTS and Kokoro use separate Python runtimes; no external engine packages bundled.',
         'Existing shared/legacy/bundled Chatterbox model checks:', *state,
-        'Core Chatterbox supports Torch CPU/GPU and explicit external AMD ROCm; core Vulkan is unsupported.',
-        'External ROCm uses its own approved Python/overlay and must prove HIP GPU execution for each recording.',
+        'Core Chatterbox uses the host Torch CPU/GPU backend when available, or explicit external AMD ROCm on Linux only; core Vulkan is unsupported.',
+        'External ROCm is Linux-only, uses its own approved Python/overlay and must prove HIP GPU execution for each recording. A CPU-only Torch build does not provide AMD GPU acceleration.',
         'Note: arbitrary Hub caches are not enumerated. Do not include personal voice files in bug reports.',
     ])
 
