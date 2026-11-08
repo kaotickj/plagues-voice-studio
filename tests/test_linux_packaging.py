@@ -4,6 +4,8 @@ import importlib.util
 import os
 from pathlib import Path
 import tarfile
+import sys
+from types import ModuleType, SimpleNamespace
 
 import pytest
 from chatterbox_studio import optional_engines
@@ -12,6 +14,36 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('package_linux_test', ROOT / 'scripts/package_linux.py')
 packager = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(packager)
+
+
+def test_frozen_librosa_uses_source_files_for_numba_cache_locators(monkeypatch):
+    build_main = pytest.importorskip('PyInstaller.building.build_main')
+    hooks = ModuleType('PyInstaller.utils.hooks')
+    hooks.collect_all = lambda *args, **kwargs: ([], [], [])
+    hooks.collect_submodules = lambda *args, **kwargs: []
+    hooks.copy_metadata = lambda *args, **kwargs: []
+    monkeypatch.setitem(sys.modules, hooks.__name__, hooks)
+    monkeypatch.setenv('PVS_SLIM_BUILD', '1')
+    captured = {}
+
+    def analysis(*args, **kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(pure=[], scripts=[], binaries=[], datas=[])
+
+    namespace = dict(SPECPATH=str(ROOT), Analysis=analysis,
+                     PYZ=lambda *args, **kwargs: None,
+                     EXE=lambda *args, **kwargs: None,
+                     COLLECT=lambda *args, **kwargs: None)
+    path = ROOT / 'ChatterboxStudio.spec'
+    exec(compile(path.read_text(encoding='utf-8'), str(path), 'exec'), namespace)
+    modes = captured['module_collection_mode']
+    resolve = build_main._get_module_collection_mode
+    # Use PyInstaller's own inheritance logic: affected lazy-loaded children
+    # must load from source; unrelated ML modules retain normal PYZ packaging.
+    for name in ('librosa', 'librosa.core', 'librosa.core.notation'):
+        assert resolve(modes, name, captured['noarchive']) == build_main._ModuleCollectionMode.PY
+    for name in ('chatterbox', 'numba', 'torch'):
+        assert resolve(modes, name, captured['noarchive']) == build_main._ModuleCollectionMode.PYZ
 
 
 def test_linux_archive_and_checksum(tmp_path):

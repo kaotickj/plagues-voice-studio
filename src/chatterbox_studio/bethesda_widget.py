@@ -523,6 +523,7 @@ class BethesdaExportTab(QWidget):
         if self.thread is not None:
             QMessageBox.information(self, 'Busy', 'A Bethesda export is already running. Wait for it to finish or cancel it.')
             return
+        # External existing-audio conversion is independent of AI/GPU jobs.
         try:
             # Previewing a target never creates project files. Only a real
             # export needs its source/backup directory to be writable.

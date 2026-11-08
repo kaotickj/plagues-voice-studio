@@ -1,5 +1,10 @@
 # Bethesda export release check
 
+Bethesda LIP/XWM/FUZ export is available on Windows and Linux. Linux uses
+user-supplied Windows conversion tools through Wine/Proton; it does not bundle
+those tools. The November integration restores the tab and audio handoffs in
+RC4 while preserving its narration, device and optional-engine developments.
+
 This check covers the desktop application's existing WAV → LIP + XWM → FUZ
 workflow. The application does not create or edit plugin dialogue records.
 
@@ -26,7 +31,11 @@ Skyrim SE after six matching VKD3D DLLs from the installed GE build's default
 prefix were copied into the disposable test prefix. No extra environment
 overrides were needed. Studio does not install/copy that optional runtime setup.
 
-**Final aggregate regression:** Python 3.12.14, **335 passed, 1 skipped** in 16.12 s.
+**Original feature regression:** Python 3.12.14, **335 passed, 1 skipped**.
+**RC4 integration regression:** the merged current-main build with the installed
+lock-free runtime patches preserved passed **765 tests, 1 skipped, and 17
+subtests**. The restored source modules match the installed program byte-for-byte;
+ROCm, device persistence and newer narration controls remain present.
 The real-tool report identifies the tested backend hash; regressions and actual
 conversion are separate checks. No native Windows runtime or in-game acceptance
 is claimed by these Linux tests. The historical October results below remain

@@ -34,11 +34,13 @@ class ModelChoice:
 
 CATALOG: tuple[ModelChoice, ...] = (
     ModelChoice('nano', 'Chatterbox Nano', 'chatterbox', 'ResembleAI/chatterbox-nano',
-                ('ve.safetensors', 't3_nano_v1.safetensors', 's3gen_meanflow.safetensors'),
-                ('*.safetensors', '*.json', '*.txt', '*.pt', '*.model')),
+                ('ve.safetensors', 't3_nano_v1.safetensors', 's3gen_meanflow.safetensors', 'tokenizer_config.json'),
+                ('ve.safetensors', 't3_nano_v1.safetensors', 's3gen_meanflow.safetensors',
+                 '*.json', '*.txt', '*.pt', '*.model')),
     ModelChoice('turbo', 'Chatterbox Turbo', 'chatterbox', 'ResembleAI/chatterbox-turbo',
-                ('ve.safetensors', 't3_turbo_v1.safetensors', 's3gen_meanflow.safetensors'),
-                ('*.safetensors', '*.json', '*.txt', '*.pt', '*.model')),
+                ('ve.safetensors', 't3_turbo_v1.safetensors', 's3gen_meanflow.safetensors', 'tokenizer_config.json'),
+                ('ve.safetensors', 't3_turbo_v1.safetensors', 's3gen_meanflow.safetensors',
+                 '*.json', '*.txt', '*.pt', '*.model')),
     ModelChoice('english', 'Chatterbox Original English', 'chatterbox', 'ResembleAI/chatterbox',
                 ('ve.safetensors', 't3_cfg.safetensors', 's3gen.safetensors', 'tokenizer.json', 'conds.pt'),
                 ('ve.safetensors', 't3_cfg.safetensors', 's3gen.safetensors', 'tokenizer.json', 'conds.pt')),
@@ -81,11 +83,20 @@ def installed_model_directory(storage: Path, model: ModelChoice) -> Path | None:
     return None
 
 
+def _nonempty_file(path: Path) -> bool:
+    return path.is_file() and path.stat().st_size > 0
+
+
+def _has_gpt2_tokenizer(folder: Path) -> bool:
+    # The pinned backend supports both self-contained fast JSON and GPT-2's
+    # vocabulary/merges representation. Config alone cannot tokenize speech.
+    return (_nonempty_file(folder / 'tokenizer.json') or
+            (_nonempty_file(folder / 'vocab.json') and _nonempty_file(folder / 'merges.txt')))
+
+
 def has_required_files(folder: Path, model: ModelChoice) -> bool:
-    return bool(model.required) and all(
-        (folder / filename).is_file() and (folder / filename).stat().st_size > 0
-        for filename in model.required
-    )
+    return (bool(model.required) and all(_nonempty_file(folder / name) for name in model.required)
+            and (model.key not in ('nano', 'turbo') or _has_gpt2_tokenizer(folder)))
 
 
 def chatterbox_status(storage: Path, model: ModelChoice) -> str:
@@ -164,8 +175,10 @@ def download_chatterbox(model: ModelChoice, storage: Path, cancelled: Event, log
     if cancelled.is_set():
         raise EngineCancelled('Cancelled after the current transfer. Partial files may be reused on retry.')
     if not has_required_files(target, model):
-        missing = [f for f in model.required if not (target / f).is_file()]
-        raise EngineError(f'{model.label}: download incomplete, missing {missing}')
+        missing = [f for f in model.required if not _nonempty_file(target / f)]
+        if model.key in ('nano', 'turbo') and not _has_gpt2_tokenizer(target):
+            missing.append('tokenizer.json or both vocab.json and merges.txt')
+        raise EngineError(f'{model.label}: download incomplete, missing/empty {missing}')
     if model.key == 'multilingual-v3':
         from .tokenizer_assets import ensure_multilingual_assets
         ensure_multilingual_assets(storage, cancelled, log)
@@ -184,15 +197,18 @@ import shutil
 repo, operation = sys.argv[1], sys.argv[2]
 # A cached Hub revision is NOT evidence that multi-GB model weights are complete.
 # Verify both speech-tokenizer and primary weight files before claiming readiness.
-required = ("config.json", "model.safetensors",
-            "speech_tokenizer/config.json", "speech_tokenizer/model.safetensors")
+required = ("config.json", "model.safetensors", "tokenizer_config.json",
+            "vocab.json", "merges.txt", "generation_config.json",
+            "preprocessor_config.json", "speech_tokenizer/config.json",
+            "speech_tokenizer/model.safetensors", "speech_tokenizer/preprocessor_config.json")
 
 def verify(path):
     root = Path(path)
     missing = []
     for filename in required:
         item = root / filename
-        if not item.is_file() or item.stat().st_size < 1024:
+        minimum = 1024 if filename.endswith(".safetensors") else 1
+        if not item.is_file() or item.stat().st_size < minimum:
             missing.append(filename)
     if missing:
         raise RuntimeError("Incomplete Qwen model snapshot; missing/empty files: " + ", ".join(missing))

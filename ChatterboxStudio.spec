@@ -15,9 +15,15 @@ datas = [
     (str(project / 'BINARY_LICENSE.md'), '.'),
     (str(project / 'LICENSES' / 'GPL-3.0.txt'), 'LICENSES'),
     (str(project / 'optional_engine_runner.py'), '.'),
+    (str(project / 'chatterbox_rocm_runner.py'), '.'),
     (str(project / 'OPTIONAL_ENGINES.md'), '.'),
     (str(project / 'scripts' / 'setup_kokoro_windows.ps1'), 'scripts'),
 ]
+# Python3.13 cannot import this frozen Python3.12 PYZ. Ship exact owned sources
+# for the isolated ROCm child; it imports no host bundled binary extensions.
+for package in ('chatterbox_studio', 'plagued_ai'):
+    for source in (project / 'src' / package).rglob('*.py'):
+        datas.append((str(source), str(Path('rocm_source') / source.relative_to(project / 'src').parent)))
 if sys.platform == 'linux':
     datas.append((str(project / 'LINUX.md'), '.'))
     datas.append((str(project / 'BETHESDA_LINUX.md'), '.'))
@@ -74,8 +80,17 @@ hidden += collect_submodules('chatterbox')
 hidden += ['writer_core', 'writer_core.downloads', 'writer_core.runtime',
            'writer_core.settings', 'writer_core.setup_dialog', 'PyQt6.QtSvg']
 hidden += ['plagued_ai']
+# Keep portable FUZ/container and project helpers on every platform. Only the
+# production UI is excluded only on unsupported platforms.
+hidden += ['chatterbox_studio.bethesda_export', 'chatterbox_studio.mod_profiles']
 hidden += ['PyQt6.QtMultimedia', 'PyQt6.QtMultimediaWidgets', 'soundfile', 'imageio_ffmpeg',
            'librosa', 'transformers', 'diffusers', 'torch', 'torchaudio', 'safetensors']
+
+excluded = ['gradio', 'gradio_client', 'streamlit', 'tensorflow', 'tensorboard']
+if sys.platform == 'win32' or sys.platform.startswith('linux'):
+    hidden.append('chatterbox_studio.bethesda_widget')
+else:
+    excluded.append('chatterbox_studio.bethesda_widget')
 
 analysis = Analysis(
     [str(project / 'launcher.py')],
@@ -85,7 +100,10 @@ analysis = Analysis(
     hiddenimports=hidden,
     hookspath=[],
     hooksconfig={},
-    excludes=['gradio', 'gradio_client', 'streamlit', 'tensorflow', 'tensorboard'],
+    # Librosa's cached Numba functions need a real source-file path. Code
+    # loaded only from PYZ has no cache locator in the pinned Numba runtime.
+    module_collection_mode={'librosa': 'py'},
+    excludes=excluded,
     noarchive=False,
 )
 pyz = PYZ(analysis.pure)

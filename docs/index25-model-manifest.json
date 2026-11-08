@@ -1,0 +1,150 @@
+{
+  "index_model": {
+    "repo": "IndexTeam/IndexTTS-2.5",
+    "revision": "c39ce5ba981572cb187443877ff559dfb246ce63",
+    "files": [
+      {
+        "file": "LICENSE",
+        "bytes": 10553,
+        "sha256": null,
+        "git_blob_sha1": "b96dffb19fc6e0e048edf010f1cd0d54e8ce103c"
+      },
+      {
+        "file": "README.md",
+        "bytes": 4272,
+        "sha256": null,
+        "git_blob_sha1": "7a58eb771ef86135b363c26ace868810ce1a2acc"
+      },
+      {
+        "file": "codec.pth",
+        "bytes": 607290935,
+        "sha256": "d15cbed16a40f478438c961fb043f68dfa6353bf56c966761315db3433e9722c",
+        "git_blob_sha1": "182ed85fad1ffba7fde3bf0b54e465b07ec16c8d"
+      },
+      {
+        "file": "config.yaml",
+        "bytes": 2860,
+        "sha256": null,
+        "git_blob_sha1": "b3f15b22f394f2327de574e9b5801c1d9654e203"
+      },
+      {
+        "file": "feat1.pt",
+        "bytes": 57170,
+        "sha256": "f219cb447d80216ba615666da2ff8d63ac544eee26657f3a7b278692bf7a67c4",
+        "git_blob_sha1": "3efb1545f32405073471a40277094678d7ef40ac"
+      },
+      {
+        "file": "feat2.pt",
+        "bytes": 374866,
+        "sha256": "9c4292e96dee535aea9a6206e9a0c856dd578dde9212acdb16dd3ada4d12bf80",
+        "git_blob_sha1": "42b51075f698aea46002f1f503962137b5158130"
+      },
+      {
+        "file": "gpt.pth",
+        "bytes": 3259599833,
+        "sha256": "43a8f4c30eccdf201958d3b9713511482c19d56dc20b0b1c4ee1e6b080b19d85",
+        "git_blob_sha1": "c888a2647673d320c05d5ef134d84788b0d7b5d0"
+      },
+      {
+        "file": "multilingual_zh_ja_yue_char_del.tiktoken",
+        "bytes": 907395,
+        "sha256": null,
+        "git_blob_sha1": "ac47fe685d24565030965a94c0d98e00e0331eaa"
+      },
+      {
+        "file": "s2mel.pth",
+        "bytes": 414908601,
+        "sha256": "9b1b0003fc189c94cc349758d7ebc25f903b7eb2de4602879959cc64ce816456",
+        "git_blob_sha1": "956998bc33bfeba8a0b902272be96e821ad6354d"
+      },
+      {
+        "file": "wav2vec2bert_stats.pt",
+        "bytes": 9343,
+        "sha256": "c9c176c2b8850ab2e3ba828bbfa969deaf4566ce55db5f2687b8430b87526ad2",
+        "git_blob_sha1": "1a8ecb924668659f3b1a9c35b02b2f8839fd8c5a"
+      }
+    ],
+    "bytes": 4283165828
+  },
+  "w2v_bert": {
+    "repo": "facebook/w2v-bert-2.0",
+    "revision": "da985ba0987f70aaeb84a80f2851cfac8c697a7b",
+    "files": [
+      {
+        "file": "config.json",
+        "bytes": 1874,
+        "sha256": null,
+        "git_blob_sha1": "a383a594dac18459628cd2837168cd276342a31a"
+      },
+      {
+        "file": "model.safetensors",
+        "bytes": 2322063736,
+        "sha256": "eb890c9660ed6e3414b6812e27257b8ce5454365d5490d3ad581ea60b93be043",
+        "git_blob_sha1": "cb7c6d08fe4cc20b2748c5525de64964d50190fa"
+      },
+      {
+        "file": "preprocessor_config.json",
+        "bytes": 275,
+        "sha256": null,
+        "git_blob_sha1": "5db61951cdf5edab6337fd84ee619500c27aaa3d"
+      },
+      {
+        "file": "README.md",
+        "bytes": 4792,
+        "sha256": null,
+        "git_blob_sha1": "23115b6e9bf0776b4cc3d480fde0a90a2ff33011"
+      }
+    ],
+    "bytes": 2322065885
+  },
+  "campplus": {
+    "repo": "funasr/campplus",
+    "revision": "e4b6ede7ce16997aff4ae69fbca1f0175e2afede",
+    "files": [
+      {
+        "file": "campplus_cn_common.bin",
+        "bytes": 28036335,
+        "sha256": "3388cf5fd3493c9ac9c69851d8e7a8badcfb4f3dc631020c4961371646d5ada8",
+        "git_blob_sha1": "ccc729ec7f373f8d2351be91c9efdc7b21c00384"
+      },
+      {
+        "file": "README.md",
+        "bytes": 2020,
+        "sha256": null,
+        "git_blob_sha1": "10b7ae7912f6c4eae3b67316ed59902963591a58"
+      }
+    ],
+    "bytes": 28036335
+  },
+  "bigvgan": {
+    "repo": "nvidia/bigvgan_v2_22khz_80band_256x",
+    "revision": "633ff708ed5b74903e86ff1298cf4a98e921c513",
+    "files": [
+      {
+        "file": "bigvgan_generator.pt",
+        "bytes": 449228171,
+        "sha256": "e95ba25972d3de0628d99cd156e9315a9c018899bf739988959ebe3544080ced",
+        "git_blob_sha1": "8d615250f07a44490d74033318fd330be67f4a86"
+      },
+      {
+        "file": "config.json",
+        "bytes": 1405,
+        "sha256": null,
+        "git_blob_sha1": "635bd8975629bd6d4b51c409986944a281cfe7be"
+      },
+      {
+        "file": "LICENSE",
+        "bytes": 1076,
+        "sha256": null,
+        "git_blob_sha1": "45b7741b4516c22d7314c5f856b17f713bac91af"
+      },
+      {
+        "file": "README.md",
+        "bytes": 8038,
+        "sha256": null,
+        "git_blob_sha1": "cb0adf5a6815c78cb7993b3b8083427d20e7357d"
+      }
+    ],
+    "bytes": 449229576
+  }
+}

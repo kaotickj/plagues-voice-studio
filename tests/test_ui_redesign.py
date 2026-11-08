@@ -52,8 +52,9 @@ def test_engine_lab_promotes_qwen_without_changing_settings_paths():
     engine = (SRC / 'engine_lab.py').read_text(encoding='utf-8')
     assert 'self.tabs.addTab(self.engine_lab, "Voice Engines")' in app
     assert 'VOICE ENGINES' in engine
-    assert 'Chatterbox, Qwen3-TTS and IndexTTS 2.5 are supported speech engines' in engine
-    assert 'independent Python runtimes' in engine
+    assert 'Qwen3-TTS, IndexTTS 2.5 and Kokoro' in engine
+    assert 'independent runtimes and shared model storage' in engine
+    assert 'Python remains the default.' in engine
     assert 'PlaguesVoiceStudio030Experimental' in app
     assert "self.setObjectName('engine_lab')" in engine
 
@@ -64,7 +65,6 @@ def test_model_manager_is_available_and_preserves_existing_views():
     smoke = (SRC / 'ui_smoke_test.py').read_text(encoding='utf-8')
     engine = (SRC / 'engine.py').read_text(encoding='utf-8')
     assert 'self.tabs.addTab(self.model_manager, "Model Manager")' in app
-    assert 'or self.model_manager.is_busy' in app
     assert "self.setObjectName('model_manager')" in manager
     assert 'Download selected model' in manager
     assert 'Check Qwen cache' in manager

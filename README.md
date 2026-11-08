@@ -1,8 +1,15 @@
-# Plague's Voice Studio v1.0.0rc1
+# Plague's Voice Studio v1.0.0rc4 — local candidate
 
-**Release candidate:** this is a prerelease for acceptance testing. See [RC notes](RELEASE_NOTES_1.0.0rc1.md) and [remaining release gates](RELEASE_READINESS.md).
+**Current local candidate:** RC4 at `2746de5dd41a87bd0eec6f596f95b7cde3399973` is installed on the creator's Debian machine. Original English Chatterbox has completed AMD ROCm GPU speech, including reference conditioning and the vocoder. The creator accepted the Plague audition and verified settings persistence; current manual acceptance remains conditional on IndexTTS installation. Other Chatterbox variants and optional-engine GPU synthesis are not thereby qualified. See [release evidence and limits](RELEASE_READINESS.md), [detailed Windows/Linux IndexTTS setup](INDEXTTS_INSTALLATION.md), and the [wiki](https://github.com/kaotickj/plagues-voice-studio/wiki).
 
-Download the [Voice Studio RC installer or portable ZIP](https://github.com/kaotickj/plagues-voice-studio/releases/tag/v1.0.0rc1), with SHA-256 checksums.
+**Publication is held.** Matching Windows and Linux installers, checksums and release jobs for RC4 are not yet complete. Use the [official Releases page](https://github.com/kaotickj/plagues-voice-studio/releases) to inspect actual published assets; this local candidate is not a claim of a public RC4 release. The package table below describes intended RC4 outputs, not completed uploads. Historical [RC2](RELEASE_NOTES_1.0.0rc2.md) and [RC1 notes](RELEASE_NOTES_1.0.0rc1.md) retain their earlier evidence.
+
+| Platform | Installer | First launch |
+| --- | --- | --- |
+| Windows x64 | `PlaguesVoiceStudio-Setup-1.0.0rc4.exe` | Run the installer, then launch Plague's Voice Studio. Existing application identity and data paths are retained. |
+| Debian 13 amd64 | `plagues-voice-studio_1.0.0~rc4-1_amd64.deb` | Check the checksum, then use `sudo apt install ./plagues-voice-studio_*_amd64.deb` and launch `plagues-voice-studio`. GitHub may replace the filename's tilde with a dot; the internal version remains `1.0.0~rc4-1`. |
+
+Windows ZIP and Linux `.tar.gz` portable editions are also provided. Keep each extracted directory intact. Check the Linux package's `BUILD-INFO.json` and [Linux guide](LINUX.md) for its glibc baseline and system dependencies. Model weights and optional Qwen/Index/Kokoro runtimes are configured separately; the installers do not include them.
 The [separate DJ Writer 0.9.3 Vulkan update](https://github.com/kaotickj/plagues-voice-studio/releases/tag/dj-writer-v0.9.3) also provides installer and portable packages.
 
 **Writer plugin:** source builds now include **Plugins → Promotional Writer** for
@@ -10,7 +17,7 @@ generic ad copy, promotions, announcements and custom writing. It uses a separat
 local writing model and sends reviewed text to Narration Studio. The Goodneighbor
 DJ standalone is not bundled. See [plugin setup and source testing](plugins/promotional-writer/README.md).
 
-**Created by Kaotick Jay.** Local AI voice production for narration, radio, character voices, and Bethesda game dialogue.
+**Created by Kaotick Jay.** Local AI voice production for video narration, communication, storytelling and character dialogue. Optional plugins add specialized workflows.
 
 ## Project roadmap and audio showcase
 
@@ -32,7 +39,18 @@ Chatterbox, Qwen3 or IndexTTS. Run `scripts/setup_kokoro_windows.ps1` once; exis
 shared weights are reused. Add `-DownloadModels` on a fresh machine to explicitly
 download the checksum-verified model/voice pack. See [Kokoro setup](OPTIONAL_ENGINES.md#kokoro-preset-voices).
 
-This **1.0.0rc1 candidate** upgrades the experimental 0.3 installation using its
+**Linux acceleration:** RC4 offers an explicit external **AMD ROCm** Chatterbox
+runtime with separate Python and overlay paths; the frozen bundle's Torch is
+still CPU-only. Original English GPU speech was measured through its vocoder.
+This is not Chatterbox Vulkan. Optional native Vulkan menus are separate routes:
+Qwen Base has software checks but no qualified real synthesis here, and Index
+native generation remains disabled. The isolated Index 2.5 Linux runtime and
+verified weights are installed; imports and the offline text frontend passed,
+and one short reference-conditioned GPU render passed through the vocoder;
+the short sample was accepted by the creator. See [Index setup](INDEXTTS_INSTALLATION.md) and
+the [capability limits](OPTIONAL_ENGINES.md#native-vulkan-linux-source-candidate).
+
+This **1.0.0rc4 candidate** retains the experimental 0.3 installation's
 existing installer identity and directory. It stores shared AI assets under
 `%LOCALAPPDATA%\PlaguedAI` and preserves discovery of existing engine runtimes.
 The separate v0.2.4 installation remains independent.
@@ -40,6 +58,7 @@ The separate v0.2.4 installation remains independent.
 ### What you can do
 
 - Generate Chatterbox speech with Nano, Turbo, Original English, or Multilingual V3, including model-appropriate controls, narration markup, batch jobs, and WAV/MP3 output.
+- Choose optional **Natural Narration (Original English)** for CFG 0.3 with neutral delivery settings. It works with the built-in voice or imported references, preserves custom settings and adds no vocal effects. Two short blind comparisons favored this setting; listen to your own passage before choosing it. Other models and Voice Engines do not use this profile.
 - Generate multilingual reference-voice speech with Qwen3-TTS Base models in a separate Python environment, with WAV output, diagnostic logs, cancellation, and reusable character profiles.
 - Generate preset-voice speech with Kokoro, including US/UK pronunciation,
   speaking speed, character presets and WAV/script metadata.
@@ -54,9 +73,15 @@ Voice Studio includes a **Check for updates** action in the top bar. It queries 
 
 When a newer stable version is available, **View official release** opens the validated GitHub release page so you can review its notes and download the appropriate installer. The application does **not** download, execute, or replace software automatically; model runtimes, scripts, profiles, audio files, and installed voices remain unchanged. The update lookup sends no audio or script data. GitHub receives an ordinary request to its release metadata endpoint. Prereleases (including release candidates) are intentionally not promoted as stable updates.
 
-Local RC installer upgrade, reinstall, repeated startup and data-preservation
-checks pass. Fresh hosted Windows CI remains a publication gate; see
-[release readiness](RELEASE_READINESS.md). Installers are currently unsigned.
+The local Debian RC2 upgrade passed checksum, launcher and user-data preservation checks with a retained rollback package. The creator reports more natural generation and verified restart persistence; this is subjective use feedback, not a measured speed comparison or an all-engine quality guarantee. Windows installer acceptance and the Linux clean install/reinstall/removal jobs separately gate their release artifacts; see [release readiness](RELEASE_READINESS.md). Installers are currently unsigned.
+
+### Narration profiles and passage review
+
+**Current settings** remains the default and preserves your chosen controls. **Clear Narration** is an optional fixed starting point. **Natural Narration (Original English)** uses CFG **0.3**, temperature **0.8**, expressiveness/reference conditioning **0.5**, up to **220 characters** per segment and **180 ms** segment gaps. It applies to built-in and imported Original English voices, adds no vocal effects, and does not change other engines. Select Current settings again to restore custom values. Unsupported models visibly disable Natural Narration.
+
+Use **Preview render plan** (**Ctrl+Shift+P**) to review exact render input, segments and effective settings without generating audio. Full document or Selected passage determines the scope of Generate and Batch Queue. A selected passage produces a separate export; it does not splice existing audio. Export Library keeps **Render input** separate from **Original manuscript**, with effective settings and voice identity in the matching JSON sidecar.
+
+**Existing voice libraries:** references belong to the configured local shared library, which may differ between computers or operating systems. An RC2 investigation found the same five Debian reference records before and after upgrade; older eleven-reference documentation described the Windows setup. No RC2 deletion was established. Missing originals can be re-imported through Add when convenient, without deleting existing records. Kokoro's six presets are a separate list.
 
 ## Live engine diagnostics and isolated runtimes
 
@@ -113,7 +138,7 @@ Read **[OPTIONAL_ENGINES.md](OPTIONAL_ENGINES.md)** before setting up extra mode
 - Chatterbox Nano, Turbo, Original English and Multilingual V3, unchanged Narration Studio generation pipeline.
 - Source text import/export, markup (`[pause]`, `[rate]`, `[volume]`, `[emphasis]`) in Chatterbox narration, WAV/MP3, batch queue.
 - Persistent saved voice references and an Export Library with playback of older recordings, script preview and Copy Script from matching JSON metadata.
-- Bethesda project mappings, WAV/LIP/XWM/FUZ production, and optional direct game/mod installation using locally supplied conversion tools. Game plugin files are never edited.
+- **Windows only:** Bethesda project mappings, LIP/XWM/FUZ production, and optional direct game/mod installation using locally supplied Windows conversion tools. Linux builds omit these production controls and retain ordinary WAV/MP3 export. Game plugin files are never edited.
 - Dark-green branded PyQt6 GUI, searchable Help center, About/Credits/Diagnostics, and Windows frozen runtime & Qt smoke tests.
 
 ## Shared AI library and user data
@@ -151,12 +176,17 @@ powershell -ExecutionPolicy Bypass -File .\\scripts\\build_windows.ps1 -Slim
 
 The slim build fails if accidentally bundled speech weight files are found in its output. No model weights are downloaded just to build the slim installer.
 
-## Linux test build
+## Linux test build and Debian installer
 
 A native x86-64 Linux portable workflow is available for testing on Debian 13,
 built on Ubuntu 24.04. It includes the Studio GUI and generic plugins, with
 CPU PyTorch and model-on-demand setup. Download the tarball/checksums from the
 [Linux build workflow](https://github.com/kaotickj/plagues-voice-studio/actions/workflows/linux-build.yml).
+The same workflow also builds a **Debian 13 amd64 `.deb` installer**, with an
+application-menu entry and declared audio/Qt system dependencies. Download the
+`PlaguesVoiceStudio-Linux-amd64-Installer` artifact and verify its checksums before
+installing. Neither format bundles model weights or optional engine runtimes;
+install/reinstall/removal preserves per-user models, voices and settings.
 See [LINUX.md](LINUX.md) for system packages, extraction, launch and acceptance
 limits. Linux engine inference is being validated separately from Windows.
 For Bethesda tool acquisition, Debian Wine dependencies and per-game export setup,
@@ -190,14 +220,12 @@ It tests install, reinstall, repeated installed startup, uninstall and preservat
 of seeded data/user-plugin files. Production Actions also install the real setup
 on a fresh Windows runner and verify its runtime and GUI before publishing.
 
-Tagged versions such as `v1.0.0rc1` can publish a **prerelease** only after the build
-and installer jobs pass. Main-branch pushes create Actions artifacts, not a public
-release. Published assets include the portable ZIP, setup EXE and SHA-256 manifest.
+Tagged versions such as `v1.0.0rc2` run the Windows release pipeline; authorized manual release runs provide the Linux packages. Ordinary main-branch or documentation pushes do not start an application build. The Windows pipeline retains all installer acceptance gates and prepares a draft; the release is published only after both platforms' tested installer binaries and distinct checksum manifests are attached. Published assets include the Windows portable ZIP/setup EXE and Linux portable tarball/DEB.
 The size gate rejects files at or above 2 GiB and never splits the installer into
 disks. Full-offline editions require separate size/license validation and hosting.
 
 The legacy executable filename and default installation directory retain `030`
-and `Experimental` for upgrade compatibility. The visible version is 1.0.0rc1;
+and `Experimental` for upgrade compatibility. The visible version is 1.0.0rc2;
 AppData and QSettings identities remain permanent and unversioned. No engine
 runtime or large model folder is moved. Actual new-candidate engine inference and
 in-game Bethesda acceptance remain separate manual gates.

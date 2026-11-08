@@ -1,9 +1,55 @@
 # Plague's Voice Studio — Linux test build
 
-Experimental **x86-64** portable build, built on Ubuntu 24.04 (glibc 2.39).
-Debian 13 is the intended first user test target. Older glibc distributions,
+Experimental **x86-64** portable build. The October 25 local qualification
+candidate was built on **Debian 13 (glibc 2.41)**; its results do not establish
+Ubuntu 24.04 compatibility. The release CI workflow uses Ubuntu 24.04 as a
+glibc 2.39 build baseline and validates its own artifacts at each release revision.
+Use the download's BUILD-INFO and release checksums to identify which build you have.
+Debian 13 is the local test target. Older glibc distributions,
 ARM and musl/Alpine are not covered by this build. No Python installation is
 needed to run the portable application.
+
+## Debian installer
+
+The **Plague's Voice Studio Linux package** workflow also produces the
+`PlaguesVoiceStudio-Linux-amd64-Installer` artifact. It contains a `.deb`
+installer and its own `SHA256SUMS.txt`. After downloading and unzipping this
+artifact on Debian 13 x86-64, run:
+
+```sh
+sha256sum -c SHA256SUMS.txt
+sudo apt install ./plagues-voice-studio_*_amd64.deb
+plagues-voice-studio
+```
+
+APT installs the declared audio and Qt/X11 system dependencies. Launch **Plague's
+Voice Studio** from the application menu or use `plagues-voice-studio` in a
+terminal. Run the application as your normal user. Its frozen program files live
+in `/usr/lib/plagues-voice-studio`; no separate Python installation is required.
+
+The installer contains no AI weights or optional engine environments and does
+not download them. It does not configure services or change your existing model
+folders. Install/reinstall replaces only the packaged program files. Removal is:
+
+```sh
+sudo apt remove plagues-voice-studio
+```
+
+Models, recordings, exports and per-user settings remain in their existing
+locations after removal. Native optional runtimes still need to be configured;
+the installer does not make Chatterbox/Qwen/Index inference hardware-independent.
+The `.deb` targets Debian 13 amd64. Other distributions are not established by
+this acceptance job; use the portable build where appropriate.
+
+The CI workflow is designed to build both formats from one tested onedir tree. A fresh
+Debian 13 container installs the `.deb` with dependencies, validates its desktop
+entry, exercises the installed runtime and GUI/plugin startup twice, reinstalls
+it, then removes it while checking seeded model/settings files are preserved.
+Installer and acceptance diagnostics are retained as separate workflow artifacts.
+This describes the workflow's required gates; the release page and Actions run
+record their result for each revision. Local archive
+inspection, source tests and headless startup do not replace a clean install,
+upgrade, removal and desktop-playback acceptance test for the final package.
 
 ## Run on Debian 13
 
@@ -20,7 +66,7 @@ artifact wrapper, then run these commands inside the download directory:
 
 ```sh
 sha256sum -c SHA256SUMS.txt
-tar -xzf PlaguesVoiceStudio-1.0.0rc1-Linux-x86_64-Portable.tar.gz
+tar -xzf PlaguesVoiceStudio-1.0.0rc2-Linux-x86_64-Portable.tar.gz
 cd PlaguesVoiceStudio030Experimental
 ./start-voice-studio.sh
 ```
@@ -36,9 +82,13 @@ native Wayland plugin is unavailable; this uses XWayland.
    smallest first test). Models are downloaded on demand, not in the archive.
 2. Add a reference recording, generate a short line using **CPU**, play it and
    export its WAV. The bundled PyTorch is CPU-only; selecting CUDA does not
-   install a CUDA runtime. Native Vulkan speech experiments are not integrated.
+   install a GPU runtime. The separate native Vulkan source candidate described
+   below has not passed real synthesis acceptance or replaced the installed app.
+   Original English also offers opt-in Natural Narration (CFG 0.3); its limited
+   listening preference is not a promise that every voice or passage improves.
 3. Open **Plugins → Promotional Writer** and **Pronunciation & Script Prep**.
-   The branded standalone DJ Writer is a separate application.
+   The branded standalone DJ Writer is a separate application. Existing custom
+   Vulkan speech plugins remain separate from the bundled Chatterbox runtime.
 4. Close/reopen Studio and confirm that saved voices, paths and exports remain.
 
 Shared models/voices use `$XDG_DATA_HOME/PlaguedAI` (normally
@@ -49,7 +99,7 @@ reused; configure their actual Linux paths instead of copying Windows settings.
 
 ## Optional runtimes
 
-Qwen3, IndexTTS and Kokoro use **separate native Linux Python environments**.
+The Python paths for Qwen3, IndexTTS and Kokoro use **separate Linux environments**.
 Configure their `bin/python` and model/repository paths in Voice Engines, then
 use **Test selected engine** before generation. The Windows PowerShell setup
 scripts do not install Linux runtimes. Fresh optional-engine setup and real
@@ -57,6 +107,21 @@ Linux speech inference remain acceptance work; a passing startup check alone
 does not establish them. Kokoro offers CPU on Linux; DirectML is Windows-only.
 Writer's verified downloader currently supplies a Linux CPU llama.cpp runtime;
 automatic Linux writer Vulkan setup is not included.
+
+The source candidate also offers an explicit native Vulkan backend for Qwen Base
+through an independently supplied audio.cpp executable. It preserves the Python
+backend and existing plugin presets; it does not install runtimes or models.
+Software checks cover reference isolation, cancellation, settings and rejection
+of missing or software GPU evidence. Real native synthesis, memory/latency and
+listening acceptance remain unrun. Index can validate paths but cannot generate
+through this native backend until its placement evidence is qualified. See
+[native capability limits](OPTIONAL_ENGINES.md#native-vulkan-linux-source-candidate).
+
+PyTorch ROCm uses the `torch.cuda` API too. A compatible AMD runtime is therefore
+different from the CPU-only bundled Torch, even though both may show CUDA-named
+controls. This candidate has no qualified Chatterbox ROCm environment; selecting
+a GPU label alone does not establish accelerated execution.
+
 
 ## Bethesda LIP / XWM / FUZ export
 
@@ -91,9 +156,40 @@ tarball and SHA-256 manifest to `artifacts/linux/`. CI additionally extracts
 the tarball on a fresh runner and repeats runtime and X11 GUI/plugin startup.
 No model weights or optional engine environments are bundled.
 
+To build the Debian installer from that already-tested portable onedir:
+
+```sh
+.venv-linux-build/bin/python scripts/package_linux_deb.py \
+  --app dist/linux/PlaguesVoiceStudio030Experimental \
+  --output artifacts/linux-installer
+```
+
+The builder uses `dpkg-deb` (the `dpkg` package on Debian/Ubuntu) and does not
+require root. It preserves library symlinks, records archive ownership as
+root:root and rejects non-amd64 payloads, escaping symlinks, version mismatches
+and accidentally bundled model weights. Prerelease versions use Debian's `~`
+ordering, for example `1.0.0~rc2-1`, so RC2 follows RC1 and the final release upgrades correctly.
+
 The GPL v3 binary notice in `BINARY_LICENSE.md` applies to this GUI build too.
 Linux uses the system FFmpeg package rather than redistributing imageio's
 FFmpeg executable. `BUILD-INFO.json` records the source commit and build host.
 
 Platform packaging references: [PyInstaller Linux compatibility](https://pyinstaller.org/en/stable/usage.html#making-gnu-linux-apps-forward-compatible)
 and [symlink preservation](https://pyinstaller.org/en/stable/common-issues-and-pitfalls.html#requirements-imposed-by-symbolic-links-in-frozen-application).
+
+## Local RC4 AMD Chatterbox candidate
+
+The local RC4 candidate adds **Processor → AMD ROCm — external Chatterbox** in
+Narration Studio, with **ROCm Python** and **Chatterbox overlay** fields. These
+point to a separately qualified existing HIP runtime. Selecting the model or
+Processor saves it automatically; leave either path field to save its value.
+The frozen CPU runtime remains available as an explicit choice. No runtime,
+driver or weights are installed automatically by selecting ROCm, and this route
+never falls back silently to CPU. Chatterbox uses ROCm/HIP here, not Vulkan.
+
+Reference-conditioned Original English completed real synthesis on the local
+Debian 13 RX 7600 XT using PyTorch 2.10.0+rocm7.1 and scoped native-GPU
+convolution/DFT compatibility code. This is experimental evidence for that
+configuration, not certification for every offered model or AMD system.
+Other variants and optional Vulkan speech engines retain separate qualification
+requirements. Preserve the approved runtime/overlay when cleaning build outputs.

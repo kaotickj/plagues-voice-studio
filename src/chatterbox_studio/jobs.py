@@ -19,6 +19,37 @@ LANGUAGES = {
     "sw": "Swahili", "tr": "Turkish", "zh": "Chinese",
 }
 
+NARRATION_PROFILES = {
+    "custom": "Current settings",
+    "clear_narration": "Clear Narration",
+    "natural_narration": "Natural Narration (Original English)",
+}
+
+# A reproducible general-use starting point, not a claim of better audio.
+# Explicit manuscript tags are retained; this profile never adds vocal events.
+_CLEAR_NARRATION = {
+    "max_chars": 220, "pause_ms": 180,
+    "exaggeration": 0.5, "cfg_weight": 0.5, "temperature": 0.8,
+}
+
+# An opt-in setting preferred in a bounded two-voice listening comparison.
+# It changes generation CFG only; reference conditioning remains at 0.5.
+_NATURAL_NARRATION = {**_CLEAR_NARRATION, "cfg_weight": 0.3}
+
+
+def is_narration_profile_supported(profile: str, model: str) -> bool:
+    return (profile in NARRATION_PROFILES and model in MODEL_CHOICES
+            and (profile != "natural_narration" or model == "english"))
+
+
+def _validate_profile_model(profile: str, model: str) -> None:
+    if profile not in NARRATION_PROFILES:
+        raise ValueError("Unknown narration profile")
+    if model not in MODEL_CHOICES:
+        raise ValueError("Unknown Chatterbox model")
+    if not is_narration_profile_supported(profile, model):
+        raise ValueError("Natural Narration is available only for Original English")
+
 @dataclass(frozen=True)
 class NarrationJob:
     text: str
@@ -34,19 +65,82 @@ class NarrationJob:
     cfg_weight: float = 0.5
     temperature: float = 0.8
     job_id: str = ""
+    profile: str = "custom"
+    voice_id: str = ""
+    prepared_text: str | None = None
+    render_scope: str = "full_document"
+    rocm_python: str = ""
+    rocm_overlay: str = ""
+    rocm_gpu_lock: str = "/run/lock/gnb-ai-gpu.lock"
+
+    @property
+    def render_text(self) -> str:
+        """Reviewed render input, kept separate from the original manuscript."""
+        from .text_preparation import prepare_render_text
+        source = self.text if self.prepared_text is None else self.prepared_text
+        language = self.language if self.model == 'multilingual-v3' else 'en'
+        return prepare_render_text(source, language)
+
+    def effective_settings(self) -> dict:
+        """Describe controls the adapter actually uses for this model and profile.
+
+        Turbo/Nano have no generation CFG or exaggeration controls. Reference
+        preparation retains its separate exaggeration argument for compatibility.
+        """
+        _validate_profile_model(self.profile, self.model)
+        values = {key: getattr(self, key) for key in _CLEAR_NARRATION}
+        if self.profile == "clear_narration":
+            values.update(_CLEAR_NARRATION)
+        elif self.profile == "natural_narration":
+            values.update(_NATURAL_NARRATION)
+        values["conditioning_exaggeration"] = values["exaggeration"]
+        if self.model in ("nano", "turbo"):
+            values["exaggeration"] = None
+            values["cfg_weight"] = None
+        return values
+
+    def generation_kwargs(self) -> dict:
+        """Exact keyword arguments passed to model.generate, without metadata."""
+        values = self.effective_settings()
+        args = {"temperature": values["temperature"]}
+        if self.model in ("english", "multilingual-v3"):
+            args.update(exaggeration=values["exaggeration"], cfg_weight=values["cfg_weight"])
+        if self.model == "multilingual-v3":
+            args["language_id"] = self.language
+        return args
+
+    def render_steps(self):
+        """Use one deterministic plan for preview and synthesis."""
+        from .narration_markup import plan_script
+        values = self.effective_settings()
+        return plan_script(self.render_text, values["max_chars"], values["pause_ms"])
 
     def validate(self) -> None:
         from .narration_markup import parse_script
         if not self.text.strip():
             raise ValueError("Enter some narration text")
-        if self.model not in MODEL_CHOICES:
-            raise ValueError("Unknown Chatterbox model")
-        if self.device not in ("auto", "cpu", "cuda"):
+        _validate_profile_model(self.profile, self.model)
+        if self.render_scope not in ("full_document", "selection"):
+            raise ValueError("Unknown narration render scope")
+        if self.prepared_text is not None and not isinstance(self.prepared_text, str):
+            raise ValueError("Prepared narration must be text")
+        if not self.render_text.strip():
+            raise ValueError("Enter some narration text to render")
+        if self.render_scope == "selection" and self.prepared_text is None:
+            raise ValueError("A selection render needs its reviewed passage")
+        if self.device not in ("auto", "cpu", "cuda", "rocm"):
             raise ValueError("Unknown processing device")
+        if self.device == 'rocm':
+            if len(self.render_text) > 1000:
+                raise ValueError('External ROCm supports at most 1,000 prepared characters; select a shorter passage')
+            if not self.rocm_python or not self.rocm_overlay:
+                raise ValueError('Choose the external ROCm Python and approved Chatterbox overlay')
         if self.model == "multilingual-v3" and self.language not in LANGUAGES:
             raise ValueError("Unsupported language")
         if self.model == "turbo" and not self.voice_path:
             raise ValueError("Turbo requires an imported reference voice")
+        if self.voice_id and not self.voice_path:
+            raise ValueError("The selected voice reference is unavailable; choose another voice or the built-in voice")
         if self.voice_path and not Path(self.voice_path).is_file():
             raise ValueError("The selected voice file no longer exists")
         if self.format not in ("wav", "mp3"):
@@ -61,7 +155,9 @@ class NarrationJob:
             raise ValueError("Expressiveness controls must be between 0 and 1")
         if not 0.1 <= self.temperature <= 1.5:
             raise ValueError("Temperature must be 0.1–1.5")
-        parse_script(self.text)
+        # A reviewed selection can come from a larger manuscript. Validate the
+        # actual render input, including rejecting incomplete markup scopes.
+        parse_script(self.render_text)
 
     def as_json(self) -> dict:
         return asdict(self)

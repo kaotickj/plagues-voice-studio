@@ -1,6 +1,8 @@
 """Smoke test actual Qt window construction, without invoking speech synthesis.
 
 Run on Windows via PlaguesVoiceStudio030Experimental.exe --ui-self-test <report.json>.
+Use --ui-self-test-no-audio <report.json> for the same widget checks with
+diagnostic-only inert media objects. That mode does not initialize real audio.
 Exits nonzero and writes exception details if the GUI cannot be initialized.
 """
 from __future__ import annotations
@@ -13,8 +15,114 @@ from pathlib import Path
 from . import __version__
 
 
-def run(report_path: Path | None = None) -> int:
-    report = {"version": __version__, "test": "Qt main-window and About dialog lifecycle", "status": "failed", "errors": []}
+def _no_audio_media_types(player_type):
+    """Media-only stand-ins for an explicitly requested no-audio diagnostic.
+
+    Keep application widgets and their connections intact. Any attempt to load
+    a source or play audio fails, rather than reaching a device or sound server.
+    """
+    class Signal:
+        def __init__(self):
+            self.callbacks = []
+
+        def connect(self, callback):
+            self.callbacks.append(callback)
+
+        def emit(self, value):
+            for callback in self.callbacks:
+                callback(value)
+
+    class NoAudioPlayer:
+        PlaybackState = player_type.PlaybackState
+
+        def __init__(self, parent=None):
+            self.playbackStateChanged = Signal()
+
+        def setAudioOutput(self, output):
+            self.audio_output = output
+
+        def playbackState(self):
+            return self.PlaybackState.StoppedState
+
+        def stop(self):
+            self.playbackStateChanged.emit(self.PlaybackState.StoppedState)
+
+        def setSource(self, *args, **kwargs):
+            raise RuntimeError('No-audio UI diagnostic forbids loading audio sources.')
+
+        def play(self):
+            raise RuntimeError('No-audio UI diagnostic forbids audio playback.')
+
+    class NoAudioOutput:
+        def __init__(self, parent=None):
+            self._volume = 1.0
+
+        def setVolume(self, volume):
+            self._volume = volume
+
+        def volume(self):
+            return self._volume
+
+    return NoAudioPlayer, NoAudioOutput
+
+
+def _check_export_script_preview(browser, sample_dir: Path) -> None:
+    """Exercise the real export widgets without synthesis or audio playback."""
+    from wave import open as open_wave
+    from PyQt6.QtCore import QMimeData, Qt
+    from PyQt6.QtWidgets import QApplication
+    from .export_metadata import write_export_metadata
+
+    sample_dir.mkdir()
+    script = '[narration] The Charles River is quiet.\n\n[whispering] Not for long, sweetheart.'
+    audio_path = sample_dir / 'test_story.wav'
+    with open_wave(str(audio_path), 'wb') as audio:
+        audio.setnchannels(1)
+        audio.setsampwidth(2)
+        audio.setframerate(8000)
+        audio.writeframes(b'\x00\x00' * 800)
+    write_export_metadata(audio_path, {'engine': 'chatterbox', 'model': 'turbo', 'text': script})
+    browser.add_root(sample_dir)
+    matches = browser.list.findItems(audio_path.name, Qt.MatchFlag.MatchExactly, 0)
+    if len(matches) != 1:
+        raise RuntimeError('Generated Chatterbox WAV missing from Export Library.')
+    browser.list.setCurrentItem(matches[0])
+    if browser.script_preview.toPlainText() != script:
+        raise RuntimeError('Export Library failed to display the exact saved script.')
+    if not browser.script_preview.isReadOnly() or not browser.copy_script.isEnabled():
+        raise RuntimeError('Export script preview must be read-only and copyable.')
+    clipboard = QApplication.clipboard()
+    saved_clipboard = QMimeData()
+    current_clipboard = clipboard.mimeData()
+    if current_clipboard is not None:
+        for mime_type in current_clipboard.formats():
+            saved_clipboard.setData(mime_type, current_clipboard.data(mime_type))
+    try:
+        browser.copy_script.click()
+        if clipboard.text() != script:
+            raise RuntimeError('Copy script did not preserve the original tags and whitespace.')
+    finally:
+        clipboard.setMimeData(saved_clipboard)
+    legacy_path = sample_dir / 'older_without_script.wav'
+    legacy_path.write_bytes(audio_path.read_bytes())
+    browser.refresh()
+    matches = browser.list.findItems(legacy_path.name, Qt.MatchFlag.MatchExactly, 0)
+    if len(matches) != 1:
+        raise RuntimeError('Legacy audio not listed in Export Library.')
+    browser.list.setCurrentItem(matches[0])
+    if browser.script_preview.toPlainText() or browser.copy_script.isEnabled():
+        raise RuntimeError('Legacy recording reused a different audio file script.')
+
+
+def run(report_path: Path | None = None, *, no_audio: bool = False) -> int:
+    report = {"version": __version__,
+              "test": "Qt main-window and About dialog lifecycle" + (" (NO AUDIO)" if no_audio else ""),
+              "mode": "no_audio" if no_audio else "standard",
+              "real_audio": not no_audio,
+              "playback": False,
+              "audio_note": ("Real audio is disabled. Inert media objects are used; audio source loading and playback are forbidden."
+                             if no_audio else "Real Qt multimedia objects are initialized. Audio playback is not tested."),
+              "status": "failed", "errors": []}
     try:
         from PyQt6.QtCore import QTimer, QSettings
         from PyQt6.QtWidgets import QApplication, QPushButton, QDialog, QLabel, QLineEdit, QListWidget, QTabWidget, QPlainTextEdit
@@ -35,16 +143,27 @@ def run(report_path: Path | None = None) -> int:
             # on Windows, regardless of setDefaultFormat. Supply explicit file
             # settings so this diagnostic cannot read/write the real registry.
             original_settings = app_module.QSettings
+            original_player = app_module.QMediaPlayer
+            original_audio_output = app_module.QAudioOutput
             def isolated_settings(organization, application):
                 settings = QSettings(str(Path(tmp) / (application + '.ini')), QSettings.Format.IniFormat)
                 settings.setFallbacksEnabled(False)
                 return settings
             app_module.QSettings = isolated_settings
             try:
+                if no_audio:
+                    app_module.QMediaPlayer, app_module.QAudioOutput = _no_audio_media_types(original_player)
                 window = MainWindow()
                 if window.windowIcon().isNull():
                     raise RuntimeError('Application icon was not packaged.')
                 window.show()
+                bethesda_available = sys.platform == 'win32' or sys.platform.startswith('linux')
+                if (window.bethesda_tab is not None) != bethesda_available:
+                    raise RuntimeError('Bethesda production export must match Windows/Linux platform support.')
+                for panel in (window.export_browser, window.engine_lab):
+                    handoff = panel.findChild(QPushButton, 'bethesda_export_handoff')
+                    if (handoff is not None) != bethesda_available:
+                        raise RuntimeError('Bethesda export handoff does not match platform support.')
                 # Load the generic plugin through its actual host menu, without a model job.
                 writer_action = next((action for action in window.plugins.menu.actions()
                                       if action.data() == 'promotional-writer'), None)
@@ -165,6 +284,10 @@ def run(report_path: Path | None = None) -> int:
                 help_search.clear()
                 if help_center.topic_list.count() < 6:
                     raise RuntimeError('Help topic list incomplete.')
+                # Run this in the frozen application as well as the source GUI:
+                # controls existing alone do not establish exact preview/copy.
+                _check_export_script_preview(window.export_browser,
+                                             Path(tmp) / 'script-preview-acceptance')
                 about_button.click()
                 if about_dialog.findChild(QTabWidget, 'about_tabs') is None:
                     raise RuntimeError('About credits and diagnostics tabs missing.')
@@ -174,10 +297,35 @@ def run(report_path: Path | None = None) -> int:
                 QTimer.singleShot(400, app.quit)
                 if app.exec() != 0:
                     raise RuntimeError('Qt application event loop failed.')
+                window.model.setCurrentIndex(window.model.findData('english'))
+                window.device.setCurrentIndex(window.device.findData('rocm'))
+                from .rocm import known_runtime_defaults
+                gpu_defaults = known_runtime_defaults()
+                window.rocm_python.setText(gpu_defaults['python'] or '/private-test/python')
+                window.rocm_overlay.setText(gpu_defaults['overlay'] or '/private-test/overlay')
+                window.rocm_python.editingFinished.emit()
+                window.rocm_overlay.editingFinished.emit()
+                expected_runtime = (window.rocm_python.text(), window.rocm_overlay.text())
+                report['plugin_menu'] = [{'id': action.data(), 'label': action.text()}
+                                         for action in window.plugins.menu.actions() if action.data()]
+                report['native_vulkan_choice_present'] = window.engine_lab.backend.findData('native_vulkan') >= 0
+                window.close()
+                reopened = MainWindow()
+                try:
+                    if (reopened.model.currentData() != 'english' or reopened.device.currentData() != 'rocm'
+                            or (reopened.rocm_python.text(), reopened.rocm_overlay.text()) != expected_runtime):
+                        raise RuntimeError('GPU Processor/runtime/model settings did not survive window recreation.')
+                    report['gpu_controls'] = {'processor': reopened.device.currentText(),
+                        'python_field': 'ROCm Python', 'overlay_field': 'Chatterbox overlay',
+                        'saved_and_reloaded': True, 'settings_scope': 'isolated test profile'}
+                finally:
+                    reopened.close()
                 window.player.stop()
                 window.deleteLater()
             finally:
                 app_module.QSettings = original_settings
+                app_module.QMediaPlayer = original_player
+                app_module.QAudioOutput = original_audio_output
                 if old is None: os.environ.pop('PLAGUES_VOICE_STUDIO_030_HOME', None)
                 else: os.environ['PLAGUES_VOICE_STUDIO_030_HOME'] = old
         report["status"] = "passed"

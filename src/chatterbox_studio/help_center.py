@@ -27,9 +27,18 @@ TOPICS: tuple[tuple[str, str, str], ...] = (
 <li><b>Choose a voice</b>, if that model requires a reference recording.</li>
 <li><b>Write or import</b> your script. Short paragraphs work well for spoken delivery.</li>
 <li><b>Generate now</b> or add multiple jobs to the Batch Queue.</li>
-<li><b>Review</b> the result in Export Library, then send it to Bethesda Voice Export if needed.</li></ol>
+<li><b>Review</b> the result in Export Library. On Windows or Linux, send it to Bethesda Voice Export if needed.</li></ol>
 <h3>Qwen3-TTS voice cloning</h3><p>For Qwen3-TTS, open the <b>Voice Engines</b> tab, configure the separate Qwen Python environment, choose your reference voice and model, and generate speech. The generated WAV joins Export Library and can be sent to Bethesda Voice Export. IndexTTS 2.5 is also supported through Voice Engines and uses its own installed runtime and checkpoints.</p>
 <h3>Offline models</h3><p>Models bundled during a <b>FullOffline</b> build are available without downloads. Otherwise the program may download model weights on first use. The build option and the model chosen in the GUI are separate.</p>
+'''),
+    ('Clear Narration and passage previews', 'narration profile current settings clear natural Original English CFG preview render plan selected passage manuscript prepared text keyboard Ctrl Shift P', '''
+<h2>Clear Narration and passage previews</h2>
+<p>In <b>Narration Studio</b>, <b>Current settings</b> is the default profile and keeps your chosen controls. <b>Clear Narration</b> is optional: select it from <b>Profile</b> for a fixed general-use starting point. It uses temperature <b>0.8</b>, up to <b>220 characters</b> per segment and a <b>180 ms</b> segment gap. Original English and Multilingual V3 also use expressiveness <b>0.5</b> and CFG <b>0.5</b>. Turbo and Nano do not support those two generation controls; they remain visibly unavailable. Choose <b>Current settings</b> again to restore and edit your custom values.</p>
+<p><b>Natural Narration (Original English)</b> is another optional starting point, available only with <b>Original English</b> for both the built-in voice and imported references. It uses <b>CFG 0.3</b>; temperature, expressiveness, reference conditioning, segment length and gaps match Clear Narration. The lower CFG was preferred for naturalness in a short listening comparison with two voices, not established as better for every passage or voice. Preview and listen to your own text. Switching to an unsupported model returns to <b>Current settings</b> and restores your custom controls; Natural Narration remains visibly unavailable there. This profile does not apply to Turbo, Nano, Multilingual V3, Qwen3-TTS or IndexTTS.</p>
+<p>The profile adds no vocal effects. Explicit manuscript tags are preserved, so remove unwanted tags yourself and check that your model supports them. These settings provide a reproducible starting point; they do not establish better audio quality.</p>
+<p>Choose <b>Render → Full document</b> for the whole manuscript or <b>Selected passage</b> for the text highlighted in the editor. Include complete opening and closing app directives around a selected passage. Generate and Batch Queue use this scope. A selected passage produces a <b>separate export</b>; it does not splice into or replace an existing recording.</p>
+<p><b>Preview render plan</b> (<b>Ctrl+Shift+P</b>) shows the render text, exact segments and pauses, original manuscript and effective settings. It generates <b>no audio</b>. <b>Check tags</b> opens the same preview. Generate snapshots the current editor and controls, so preview again after changing them.</p>
+<p>The original manuscript and prepared render input are saved separately in the recording's matching JSON metadata. A passage render keeps the full original manuscript while its render input contains only the selected passage. Export Library lets you inspect both.</p>
 '''),
     ('Models and voices', 'nano turbo original english multilingual tags reference expressive clone', '''
 <h2>Models and voices</h2>
@@ -56,17 +65,26 @@ TOPICS: tuple[tuple[str, str, str], ...] = (
 <p>Maximum exact pause: 10 seconds. Rate: 0.50 to 2.00, volume: 0.00 to 2.00. App emphasis adds gain; it does not guarantee the model changes its performance.</p>
 <h3>Chatterbox vocal-event tags</h3>
 <p>Tags such as <code>[laugh]</code>, <code>[chuckle]</code>, and <code>[sigh]</code> are passed to the speech model. They are best suited to Turbo or Nano. Original English and Multilingual V3 do not have the same native tag support and may read them as words.</p>
-<p>Use <b>Check tags</b> to validate app-level syntax and inspect how the script will be split. Non-native vocal tags are not a guaranteed effect.</p>
+<p>Use <b>Check tags</b> or <b>Preview render plan</b> (<b>Ctrl+Shift+P</b>) to validate app-level syntax and inspect the current render scope, text and segment plan without generating audio. Non-native vocal tags are not a guaranteed effect.</p>
 '''),
     ('Export Library', 'recordings browse play wav mp3 older file folders playback script preview json text copy', '''
 <h2>Export Library</h2>
 <p>Choose a folder to browse and play earlier renders. Double-click a recording or use <b>Play selected</b>.</p>
-<p>Select a recording to preview its original script in the read-only <b>Script preview</b> pane, then choose <b>Copy script</b> to reuse it. The text comes from the matching <code>.json</code> file; Qwen3-TTS and IndexTTS save JSON metadata with their recordings. Chatterbox script metadata is available in builds that include its matching sidecar-export update. Older or imported audio without this metadata shows an explanatory message. Vocal tags, punctuation and paragraph breaks are preserved.</p><p>Use <b>Add folder</b> to include another export directory. Older exported audio is not moved, edited, or deleted. Supported playback formats depend on codecs available to Qt Multimedia on your computer.</p>
-<p><b>Use selected for Bethesda export</b> loads the file path into the game-audio converter; it does not alter the recording itself.</p>
+<p>Select a recording to inspect its saved text in the read-only <b>Render input</b> and <b>Original manuscript</b> tabs. <b>Render input</b> shows the prepared text used for that recording; <b>Copy render input</b> copies that text for reuse. <b>Original manuscript</b> keeps the full source text. For a selected-passage export, the render input contains the selected passage while the original manuscript contains the full document.</p>
+<p>The text comes from the recording's matching <code>.json</code> file. Older sidecars that contain only one script show that script in both tabs. Older or imported audio without saved text shows an explanatory message. Vocal tags, punctuation and paragraph breaks are preserved.</p><p>Use <b>Add folder</b> to include another export directory. Older exported audio is not moved, edited, or deleted. Supported playback formats depend on codecs available to Qt Multimedia on your computer.</p>
+<p><b>On Windows or Linux</b>, <b>Use selected for Bethesda export</b> loads the file path into the game-audio converter; it does not alter the recording itself. Linux conversion uses compatible user-supplied tools through Wine/Proton.</p>
 <p>New exports are automatically named from the selected voice and a timestamp, unless you explicitly enter a filename. Existing files are not silently overwritten.</p>
 '''),
     ('Bethesda voice export', 'fallout skyrim lip xwm fuz game data mo2 mod voice type response facefx', '''
 <h2>Bethesda voice export</h2>
+<p><b>Windows and Linux.</b> Full LIP/XWM/FUZ production requires compatible,
+correctly licensed external tools. Windows runs them natively; Linux can use
+Wine/Proton with LipGenerator or FaceFXWrapper/Fonix and Creation Kit xwmaencode.
+Open <b>Open Linux dependency guide</b> in the export tab for dependencies, runner and prefix
+configuration, and diagnostics. Compatibility depends on the runtime and tools;
+validate the resulting audio and lip sync in the target game.</p>
+<p>Export converts existing audio independently of narration, model and writer
+jobs. Cancel stops the export tools; wait for all active tasks before closing.</p>
 <p>This workflow builds a Fallout 4 / Skyrim-compatible FUZ file and can place it in an exact game or mod folder. <b>The game plugin is not opened or edited.</b></p>
 <ol><li>Save a project with the owning plugin filename and the target <b>Data</b> folder or MO2 mod root.</li>
 <li>Save a Voice Profile pairing a Creation Kit <b>VoiceType EditorID</b> with a Chatterbox voice/model.</li>
@@ -98,6 +116,13 @@ TOPICS: tuple[tuple[str, str, str], ...] = (
 <p><b>OS error 1455:</b> Windows has insufficient available virtual memory (RAM plus paging file) for the model load. Close memory-intensive applications and check your system-managed paging file and disk space.</p>
 <p><b>A Python traceback when opening a dialog:</b> rebuild the executable after source edits. An old desktop shortcut may still point to an older version.</p>
 <p><b>First generation seems slow:</b> first use may load or download model weights and initialize PyTorch. CPU inference can be significantly slower than GPU inference.</p><p><b>Out-of-memory or native crashes when running DJ Writer too:</b> large writing and speech models can compete for RAM and Windows paging resources. Finish or close the DJ Writer before running IndexTTS or Qwen3, especially on CPU. If a native process exits with <code>3221225477</code> (<code>0xC0000005</code>), inspect its diagnostic log and Windows Event Viewer; resource contention is one possible cause, not a guaranteed explanation.</p>
+<p><b>Linux AMD Chatterbox:</b> choose <b>Processor → AMD ROCm — external Chatterbox</b>,
+then set <b>ROCm Python</b> and <b>Chatterbox overlay</b> to an existing qualified runtime.
+These fields save when you leave the field; model and Processor selections save automatically.
+This experimental route uses HIP, not Vulkan, and fails explicitly if GPU generation cannot run.
+CPU remains an explicit choice. Existing native Vulkan plugins are separate workflows.
+Local reference-conditioned Original English synthesis has been verified on RX 7600 XT;
+other model variants still require their own qualification.</p>
 <p><b>Windows AMD GPU:</b> this build does not automatically enable AMD acceleration. Auto selects CUDA only where supported; otherwise it uses CPU.</p>
 <p><b>Qwen3-TTS runtime:</b> install it in its own Python environment and use <b>Test selected engine</b> to verify imports. Loading cached model weights and CPU speech generation can take time. Generation progress, errors, and saved logs appear in the engine diagnostics panel.</p>
 <p><b>SoX warning:</b> if SoX is already installed but not found, run <code>sox --version</code> in a new terminal and ensure the directory containing <code>sox.exe</code> is on PATH. The warning is not always fatal to generation.</p>
@@ -236,7 +261,7 @@ class HelpCenter(QWidget):
         self.topic_list.setAccessibleName('Help topics')
         self.topic_list.currentRowChanged.connect(self._select)
         side.addWidget(self.topic_list, 1)
-        shortcuts = QLabel('Ctrl+F focuses search.\nUse Up/Down to browse topics.')
+        shortcuts = QLabel('Search by keyword.\nUse Up/Down to browse topics.')
         shortcuts.setObjectName('mutedText')
         shortcuts.setWordWrap(True)
         side.addWidget(shortcuts)

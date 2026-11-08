@@ -25,11 +25,13 @@ def write_export_metadata(audio_path: Path, metadata: dict) -> Path:
     return sidecar
 
 
-def read_export_script(audio_path: Path) -> tuple[str | None, str]:
-    """Return (original script, preview status) for a generated audio recording.
+def read_export_script(audio_path: Path, *, original: bool = False) -> tuple[str | None, str]:
+    """Return (render input or original manuscript, preview status).
 
-    The ``text`` value is shown verbatim, including bracketed vocal tags and
-    line breaks. Never substitute reference-audio transcripts or currently
+    New exports keep the prepared render input separate from ``text``, the
+    original manuscript. Older exports use ``text`` for both views. Values are
+    shown verbatim, including bracketed vocal tags and line breaks.
+    Never substitute reference-audio transcripts or currently
     edited script text when an export does not have its own metadata.
     """
     sidecar = Path(audio_path).with_suffix('.json')
@@ -42,6 +44,9 @@ def read_export_script(audio_path: Path) -> tuple[str | None, str]:
     if not isinstance(metadata, dict):
         return None, 'The matching JSON metadata is not an object.'
     script = metadata.get('text')
+    prepared = metadata.get('prepared_text')
+    if not original and isinstance(prepared, str):
+        script = prepared
     if not isinstance(script, str) or not script.strip():
         return None, 'This recording has no saved script in its JSON metadata.'
 
@@ -49,4 +54,9 @@ def read_export_script(audio_path: Path) -> tuple[str | None, str]:
     engine = metadata.get('engine')
     model = metadata.get('model')
     details = [str(v) for v in (engine, model) if isinstance(v, str) and v.strip()]
+    if metadata.get('render_scope') == 'selection':
+        details.append('Original manuscript; recording contains selected passage' if original
+                       else 'Selected passage; original manuscript saved separately')
+    elif isinstance(prepared, str) and prepared != metadata.get('text'):
+        details.append('Original manuscript' if original else 'Prepared render input')
     return script, ' | '.join(details) if details else 'Script loaded from matching JSON metadata.'

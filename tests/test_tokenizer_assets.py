@@ -96,3 +96,58 @@ def test_model_manager_repairs_assets_without_redownloading_weights(tmp_path,mon
     monkeypatch.setattr(ta,'ensure_multilingual_assets',lambda *a,**kw:calls.append(a))
     assert md.download_chatterbox(model,tmp_path,Event(),lambda *_:None)==folder
     assert len(calls)==1
+
+
+def test_model_manager_enables_tokenizer_repair_and_respects_busy_state(tmp_path, monkeypatch):
+    """The documented repair action must be reachable from the actual tab."""
+    from types import SimpleNamespace
+    pytest.importorskip('PyQt6')
+    monkeypatch.setenv('QT_QPA_PLATFORM', 'offscreen')
+    from PyQt6.QtWidgets import QApplication, QWidget
+    from chatterbox_studio import model_manager as mm
+
+    app = QApplication.instance() or QApplication([])
+    model = md.MODELS['multilingual-v3']
+    folder = tmp_path / 'models' / model.key
+    folder.mkdir(parents=True)
+    for name in model.required:
+        (folder / name).write_bytes(b'fixture weight')
+    monkeypatch.setattr(md, 'bundled_models_dir', lambda: tmp_path / 'no-bundle')
+    monkeypatch.setattr(ta, 'installed_pkuseg', lambda storage: None)
+    monkeypatch.setattr(mm, 'qwen_python', lambda storage: '')
+    host = QWidget()
+    host.storage = tmp_path
+    manager = mm.ModelManager(host)
+    try:
+        manager.model.setCurrentIndex(manager.model.findData(model.key))
+        assert 'Tokenizer download required' in manager.status.text()
+        assert manager.download.isEnabled()
+        assert not manager.check.isEnabled()
+
+        # Stop remains cooperative: a requested cancellation does not reopen
+        # Download while the current operation is still draining.
+        event = Event()
+        manager.thread = object()
+        manager.worker = SimpleNamespace(stop=event.set)
+        manager.stop()
+        manager._show_model()
+        assert event.is_set()
+        assert not manager.download.isEnabled()
+
+        manager.thread = None
+        manager.worker = None
+        manager._show_model()
+        assert manager.download.isEnabled()
+        manager._states[model.key] = 'Installed (user data)'
+        manager._show_model()
+        assert not manager.download.isEnabled()
+        manager.model.setCurrentIndex(manager.model.findData('qwen-0.6b'))
+        assert not manager.download.isEnabled()
+        assert not manager.check.isEnabled()
+    finally:
+        manager.thread = None
+        manager.worker = None
+        host.close()
+        manager.deleteLater()
+        host.deleteLater()
+        app.processEvents()

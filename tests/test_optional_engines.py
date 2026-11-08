@@ -56,6 +56,42 @@ def test_request_validation_and_no_overwrite(tmp_path):
         oe.clean_request(r)
 
 
+@pytest.mark.parametrize('engine,language', [('qwen3', 'English'), ('index25', 'EN'),
+                                            ('kokoro', 'English (US)'), ('kokoro', 'English (UK)')])
+def test_english_clock_preparation_preserves_optional_manuscript(tmp_path, engine, language):
+    r = sample(tmp_path, engine)
+    r.update(text='Meet at 9:05 a.m. [direction 10:30pm]', language=language,
+             ref_text='My reference says 9:05am.')
+    if engine == 'kokoro':
+        (tmp_path / 'kokoro-v1.0.int8.onnx').touch()
+        (tmp_path / 'voices-v1.0.bin').touch()
+        r.update(model_dir=str(tmp_path), preset_voice='am_michael' if language.endswith('(US)') else 'bm_george')
+    original = r.copy()
+    request = oe.clean_request(r)
+    assert r == original
+    assert request['original_text'] == r['text']
+    assert request['text'] == request['prepared_text'] == 'Meet at nine oh five a.m. [direction 10:30pm]'
+    assert request['ref_text'] == r['ref_text']
+    assert oe.clean_request(request) == request
+
+
+@pytest.mark.parametrize('engine,language', [('qwen3', 'French'), ('index25', 'ES')])
+def test_optional_language_change_reprepares_original_text(tmp_path, engine, language):
+    r = sample(tmp_path, engine)
+    r['text'] = '9:05am'
+    request = oe.clean_request(r)
+    request['language'] = language
+    request = oe.clean_request(request)
+    assert request['text'] == request['prepared_text'] == request['original_text'] == '9:05am'
+
+
+def test_preparation_cannot_exceed_optional_engine_limit(tmp_path):
+    r = sample(tmp_path)
+    r['text'] = '9:05am ' * 600
+    with pytest.raises(oe.EngineError, match='Prepared text exceeds'):
+        oe.clean_request(r)
+
+
 def test_reject_unknown_engines_and_models(tmp_path):
     r = sample(tmp_path)
     r['engine'] = 'forbidden'
@@ -102,6 +138,29 @@ def test_subprocess_and_json_sidecar_without_ml(tmp_path, monkeypatch):
     assert info['voice_path'] == str((tmp_path / 'voice.wav').resolve())
 
 
+def test_optional_runner_and_sidecar_receive_same_prepared_clock(tmp_path, monkeypatch):
+    runner = fake_runner(tmp_path)
+    # Capture the actual isolated-process input, rather than assuming metadata
+    # proves that the render text reached the adapter.
+    runner.write_text(runner.read_text().replace(
+        "    with wave.open(data['output_path'], 'wb') as wf:",
+        "    Path(data['output_path']+'.request.json').write_text(json.dumps(data))\n"
+        "    with wave.open(data['output_path'], 'wb') as wf:"))
+    monkeypatch.setattr(oe, 'runtime_script_path', lambda: runner)
+    r = sample(tmp_path)
+    r.update(text='Meet at 9:05am.', ref_text='At 9:05am.')
+    rendered = oe.execute_generation(r, sys.executable)
+    received = json.loads(Path(str(rendered) + '.request.json').read_text())
+    sidecar = json.loads(rendered.with_suffix('.json').read_text())
+    assert sidecar['original_text'] == received['original_text'] == r['text']
+    assert sidecar['text'] == r['text']
+    assert received['text'] == sidecar['prepared_text'] == 'Meet at nine oh five a.m.'
+    assert received['ref_text'] == sidecar['ref_text'] == r['ref_text']
+    from chatterbox_studio.export_metadata import read_export_script
+    assert read_export_script(rendered, original=True)[0] == r['text']
+    assert read_export_script(rendered)[0] == received['text']
+
+
 def test_pre_cancel_does_not_launch_engine(tmp_path, monkeypatch):
     monkeypatch.setattr(oe, 'runtime_script_path', lambda: fake_runner(tmp_path))
     event = Event(); event.set()
@@ -112,12 +171,52 @@ def test_pre_cancel_does_not_launch_engine(tmp_path, monkeypatch):
 
 def test_index_requires_repo_and_checkpoints(tmp_path, monkeypatch):
     monkeypatch.setattr(oe, 'runtime_script_path', lambda: fake_runner(tmp_path))
+    monkeypatch.setenv('PLAGUED_AI_HOME', str(tmp_path / 'shared'))
+    monkeypatch.delenv('PLAGUED_INDEX_CHECKPOINTS', raising=False)
     with pytest.raises(oe.EngineError, match='repository'):
         oe.check_configuration('index25', sys.executable, str(tmp_path))
     (tmp_path/'indextts').mkdir()
     (tmp_path/'indextts'/'infer_v2_5.py').write_text('')
     with pytest.raises(oe.EngineError, match='checkpoint'):
         oe.check_configuration('index25', sys.executable, str(tmp_path))
+
+
+def test_index_accepts_shared_setup_models_without_repository_checkpoint_copy(tmp_path, monkeypatch):
+    """Match setup_index_windows.ps1's default model destination without a download."""
+    monkeypatch.setattr(oe, 'runtime_script_path', lambda: fake_runner(tmp_path))
+    monkeypatch.setenv('PLAGUED_AI_HOME', str(tmp_path / 'shared'))
+    monkeypatch.delenv('PLAGUED_INDEX_CHECKPOINTS', raising=False)
+    repo = tmp_path / 'repository'
+    (repo / 'indextts').mkdir(parents=True)
+    (repo / 'indextts' / 'infer_v2_5.py').write_text('# fixture repository')
+    checkpoints = tmp_path / 'shared' / 'models' / 'index-tts' / '2.5'
+    checkpoints.mkdir(parents=True)
+    config = checkpoints / 'config.yaml'
+    config.write_text('# fixture existing setup output')
+    before = config.read_bytes()
+
+    oe.check_configuration('index25', sys.executable, str(repo))
+
+    assert oe._isolated_engine_environment()['PLAGUED_INDEX_CHECKPOINTS'] == str(checkpoints)
+    assert not (repo / 'checkpoints').exists()
+    assert config.read_bytes() == before
+    config.unlink()
+    with pytest.raises(oe.EngineError, match='checkpoint'):
+        oe.check_configuration('index25', sys.executable, str(repo))
+
+
+def test_index_keeps_explicit_repository_checkpoints_authoritative(tmp_path, monkeypatch):
+    monkeypatch.setattr(oe, 'runtime_script_path', lambda: fake_runner(tmp_path))
+    repo = tmp_path / 'repository'
+    (repo / 'indextts').mkdir(parents=True)
+    (repo / 'indextts' / 'infer_v2_5.py').write_text('# fixture repository')
+    (repo / 'checkpoints').mkdir()
+    config = repo / 'checkpoints' / 'config.yaml'
+    config.write_text('# fixture local checkpoints')
+    monkeypatch.setattr(oe, '_isolated_engine_environment',
+                        lambda: pytest.fail('Local checkpoints must not require shared models'))
+    oe.check_configuration('index25', sys.executable, str(repo))
+    assert config.read_text() == '# fixture local checkpoints'
 
 
 def test_source_includes_lab_and_frozen_bundle(tmp_path):

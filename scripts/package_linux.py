@@ -31,7 +31,7 @@ def package(app: Path, output: Path):
     (app / 'BUILD-INFO.json').write_text(json.dumps({
         'version': version, 'commit': commit, 'platform': platform.platform(),
         'python': platform.python_version(), 'libc': platform.libc_ver(),
-        'edition': 'Linux x86-64 experimental, CPU, model-on-demand',
+        'edition': 'Linux x86-64 experimental; CPU Chatterbox; optional native engines unqualified',
     }, indent=2), encoding='utf-8')
     output.mkdir(parents=True, exist_ok=True)
     archive = output / f'PlaguesVoiceStudio-{version}-Linux-x86_64-Portable.tar.gz'

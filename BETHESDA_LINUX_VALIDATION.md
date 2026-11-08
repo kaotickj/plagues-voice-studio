@@ -132,3 +132,20 @@ and observed checks; it does not embed the source dialogue text.
 The command prints its disposable artifact root. Inspect results and remove only
 that generated directory afterward if no longer needed. Never substitute a game
 prefix or a game installation directory for test output.
+
+## RC4 integration and preservation
+
+Before installation, the feature was integrated with current main
+`6d52d85d04406fc5808080d40007b2b44bfd938b`, rather than replacing the installed
+RC4 with the original feature branch's older RC1 baseline. Linux tab, package
+and handoff gates were updated while preserving ROCm/device controls and the
+newer narration features.
+
+The installed RC4 also contained four local runtime patches beyond its recorded
+commit: `speech_check.py`, `rocm.py`, `native_vulkan.py`, and `rocm_child.py`.
+The installed frozen modules were checked against those plain source copies
+(the ROCm child executes externally). The same sources were carried forward
+byte-for-byte, preserving manual GPU scheduling and the absence of artificial
+CPU-thread/RAM/VRAM caps. Cancellation, timeouts, hardware/output validation and
+no-silent-fallback checks remain. Source regression: 765 passed, 1 skipped,
+17 subtests passed on Python 3.12.14 with the pinned release dependencies.

@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QTabWidget, QTextBrowser, QVBoxLayout, QWidget,
 )
 from . import __version__
-from .paths import bundled_models_dir
+from .paths import bundled_models_dir, canonical_data_dir
 
 
 def _assets(name: str) -> Path:
@@ -24,13 +24,15 @@ def _assets(name: str) -> Path:
 
 def diagnostics_text() -> str:
     """Unprivileged local diagnostic info, nothing identifying or secret."""
+    from .model_downloads import MODELS, has_required_files, installed_model_directory
     installed = bundled_models_dir()
     models = ('nano', 'turbo', 'english', 'multilingual-v3')
     state = []
     for model in models:
-        folder = installed / model
-        has_weight = folder.is_dir() and any(folder.glob('*.safetensors'))
-        state.append(f'  {model}: {"weights present" if has_weight else "not bundled / cache may be available"}')
+        folder = installed_model_directory(canonical_data_dir(), MODELS[model])
+        if folder is None and has_required_files(installed / model, MODELS[model]):
+            folder = installed / model
+        state.append(f'  {model}: {"installed local weights at " + str(folder) if folder else "complete local weights not found"}')
     return '\n'.join([
         "Plague's Voice Studio", f'Version: {__version__}',
         f'Platform: {platform.system()} {platform.release()}',
@@ -38,8 +40,10 @@ def diagnostics_text() -> str:
         f'Frozen executable: {bool(getattr(sys, "frozen", False))}',
         'Speech engines: Chatterbox, Qwen3-TTS, IndexTTS 2.5 and Kokoro.',
         'Qwen3, IndexTTS and Kokoro use separate Python runtimes; no external engine packages bundled.',
-        'Bundled model checks:', *state,
-        'Note: cached models are not enumerated. Do not include personal voice files in bug reports.',
+        'Existing shared/legacy/bundled Chatterbox model checks:', *state,
+        'Core Chatterbox supports Torch CPU/GPU and explicit external AMD ROCm; core Vulkan is unsupported.',
+        'External ROCm uses its own approved Python/overlay and must prove HIP GPU execution for each recording.',
+        'Note: arbitrary Hub caches are not enumerated. Do not include personal voice files in bug reports.',
     ])
 
 
@@ -106,9 +110,10 @@ the creator's Windows installation.</p>
 <p><b>Kokoro</b> offers six ready-made English voices, speaking speed controls and
 DirectML GPU or CPU inference using the shared INT8 model. It does not clone reference recordings.
 Your saved reference voices remain available in the cloning engines.</p>
-<p>Browse earlier recordings in Export Library and prepare Fallout 4 / Skyrim
-WAV, LIP, XWM and FUZ voice assets using compatible external utilities you supply.
-Game dialogue plugins are not edited.</p>
+<p>Browse earlier recordings in Export Library. <b>On Windows only</b>, prepare
+Fallout 4 / Skyrim LIP, XWM and FUZ voice assets using compatible external
+utilities you supply. Bethesda production controls are excluded from Linux builds;
+ordinary WAV/MP3 exports remain available. Game dialogue plugins are not edited.</p>
 <h3>Updates</h3><p>Select <b>Check for updates</b> in the main window to compare your version with the official GitHub stable releases. Update checks are optional. Voice Studio does not download or install updates itself and does not upload scripts, recordings or voice profiles.</p><h3>Our approach</h3><p>Local-first voice production, clear engine choices,
 reusable creative workflows, previewable exports and respect for speaker permission.
 An initial model download may require an internet connection.</p>
@@ -137,8 +142,10 @@ separately. <a href="https://github.com/thewh1teagle/kokoro-onnx">Visit kokoro-o
 <a href="https://huggingface.co/hexgrad/Kokoro-82M">Kokoro model card</a>.</p>
 <p><b>Qt/PyQt6:</b> Desktop user interface. PyQt6 has separate
 GPL/commercial licensing requirements.</p>
-<p><b>Bethesda export:</b> Game-specific conversion utilities and
-Creation Kit resources are supplied by the user, never redistributed here.</p>
+<p><b>Bethesda export (Windows / Linux Wine):</b> Game-specific conversion utilities and
+Creation Kit resources are supplied by the user, never redistributed here.
+The supported XWM encoders are Windows programs; on Linux they run through
+a separately configured Wine/Proton environment. See the Linux dependency guide.</p>
 <p>This independent application is not affiliated with or endorsed by Resemble AI,
 Bethesda Game Studios, or their respective publishers.</p>
 <p><b>Voice permissions:</b> Only clone voices with permission. Upstream

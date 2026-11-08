@@ -97,3 +97,11 @@ def test_emphasis_is_volume_boost_not_tts_tag():
     samples = np.full(20, .5, dtype='float32')
     emphasized = apply_local_effects(samples, 8000, emphasis=True)
     assert np.allclose(emphasized, .575)
+
+
+def test_opt_in_output_headroom_preserves_shape_without_clipping():
+    import numpy as np
+    source = np.array([-2., -1., 0., 1., 2.], dtype=np.float32)
+    safe = apply_local_effects(source, 24000, peak_limit=0.891250938)
+    np.testing.assert_allclose(safe, source * (0.891250938 / 2), rtol=1e-6)
+    np.testing.assert_array_equal(apply_local_effects(source, 24000), [-1., -1., 0., 1., 1.])
