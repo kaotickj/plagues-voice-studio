@@ -21,11 +21,22 @@ import re
 import shutil
 import struct
 import subprocess
+import signal
+import time
 import wave
 
 
 class BethesdaExportError(RuntimeError):
     """Actionable failure in export prerequisites or tool execution."""
+
+
+class BethesdaExportCancelled(BethesdaExportError):
+    """The user cancelled before publication; no partial FUZ is installed."""
+
+
+def _check_cancelled(cancelled: Callable[[], bool]) -> None:
+    if cancelled():
+        raise BethesdaExportCancelled("Export cancelled")
 
 
 GAMES = {"fallout4": "Fallout4", "skyrim": "Skyrim", "skyrimse": "Skyrim"}
@@ -112,7 +123,9 @@ def write_fuz(path: Path, xwm: bytes, lip: bytes, *, version: int = 1) -> None:
     if version != 1 or len(lip) > 0xFFFFFFFF:
         raise BethesdaExportError("Invalid FUZ header values")
     path.parent.mkdir(parents=True, exist_ok=True)
-    partial = path.with_name(path.name + ".partial")
+    with NamedTemporaryFile(prefix=path.name + '.', suffix='.partial',
+                            dir=path.parent, delete=False) as staged:
+        partial = Path(staged.name)
     try:
         with partial.open("wb") as fh:
             fh.write(FUZ_MAGIC)
@@ -164,15 +177,83 @@ def _tool(path: str, label: str) -> str:
     raise BethesdaExportError(f"Cannot find {label}: {path}")
 
 
-def _call(args: list[str], action: str) -> None:
+def _stop_process(process: subprocess.Popen) -> None:
+    """Stop only this invocation's process tree, never a shared wineserver."""
+    if os.name == 'nt':
+        if process.poll() is not None:
+            return
+        try:
+            subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
+                           capture_output=True, timeout=10,
+                           creationflags=subprocess.CREATE_NO_WINDOW)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+        if process.poll() is None:
+            process.kill()
+        process.wait(timeout=2)
+        return
+    # A leader can exit on TERM while a child ignores it. Reap the leader, then
+    # kill remaining members of its private session's group regardless of exit.
     try:
-        kwargs = {'creationflags': subprocess.CREATE_NO_WINDOW} if os.name == 'nt' else {}
-        result = subprocess.run(args, capture_output=True, text=True, errors="replace", timeout=240, **kwargs)
-    except (OSError, subprocess.TimeoutExpired) as e:
-        raise BethesdaExportError(f"{action} could not run: {e}") from e
-    if result.returncode:
-        details = (result.stderr or result.stdout or "No error text").strip()
-        raise BethesdaExportError(f"{action} failed (exit {result.returncode}): {details[-1000:]}")
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    try:
+        process.wait(timeout=2)
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    try:
+        process.wait(timeout=2)
+    except subprocess.TimeoutExpired:
+        pass
+
+
+def _call(args: list[str], action: str, *, cwd: Path | None = None,
+          env: dict[str, str] | None = None, timeout: int = 240,
+          cancelled: Callable[[], bool] = lambda: False) -> str:
+    """No shell, bounded diagnostics, cancellable tool process and timeout."""
+    _check_cancelled(cancelled)
+    process = None
+    try:
+        kwargs = ({'creationflags': subprocess.CREATE_NO_WINDOW} if os.name == 'nt'
+                  else {'start_new_session': True})
+        # File-backed capture avoids pipe deadlocks and unbounded RAM usage.
+        with TemporaryDirectory(prefix='pvs_tool_log_') as logs:
+            with (Path(logs) / 'out').open('w+b') as out, (Path(logs) / 'err').open('w+b') as err:
+                process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=out,
+                                           stderr=err, cwd=cwd, env=env, **kwargs)
+                try:
+                    deadline = time.monotonic() + timeout
+                    while process.poll() is None:
+                        _check_cancelled(cancelled)
+                        if time.monotonic() >= deadline:
+                            raise BethesdaExportError(f"{action} timed out after {timeout} seconds")
+                        time.sleep(0.05)
+                    _check_cancelled(cancelled)
+                    def tail(file):
+                        file.seek(0, os.SEEK_END)
+                        file.seek(max(0, file.tell() - 8192))
+                        return file.read().decode('utf-8', errors='replace').strip()
+                    stdout, stderr = tail(out), tail(err)
+                    if process.returncode:
+                        details = '\n'.join(part for part in (stderr, stdout) if part) or 'No error text'
+                        raise BethesdaExportError(f"{action} failed (exit {process.returncode}): {details[-1000:]}")
+                    return stdout
+                except BaseException:
+                    _stop_process(process)
+                    raise
+                finally:
+                    if process.poll() is None:
+                        _stop_process(process)
+    except OSError as exc:
+        raise BethesdaExportError(f"{action} could not run: {exc}") from exc
+    finally:
+        if process is not None and process.poll() is None:
+            _stop_process(process)
 
 
 @dataclass(frozen=True)
@@ -195,6 +276,12 @@ class BethesdaExportSettings:
     overwrite_existing: bool = False
     sidecar_root: str = ""  # separate project files from installed Game Data
 
+    lip_backend: str = "facefxwrapper"  # or official FO4 LipGenerator
+    tool_runner: str = "native"  # direct Windows tools, or Wine on Linux
+    wine_path: str = ""
+    wine_prefix: str = ""  # explicit, already initialized dedicated prefix
+    tool_timeout_seconds: int = 240
+
     def validate(self) -> None:
         if self.game not in GAMES:
             raise BethesdaExportError("Choose Fallout 4, Skyrim, or Skyrim SE")
@@ -211,12 +298,7 @@ class BethesdaExportSettings:
             raise BethesdaExportError("Choose a supported encoder type")
         if self.bitrate_kbps not in (32, 48):
             raise BethesdaExportError("For 44.1 kHz mono speech, select 32 or 48 kbps")
-        if not Path(self.fonix_path).is_file():
-            raise BethesdaExportError("Select FonixData.cdf from your locally installed Creation Kit")
-        _tool(self.facefx_path, "FaceFXWrapper")
-        _tool(self.encoder_path, "xWMA encoder")
-        if self.ffmpeg_path:
-            _tool(self.ffmpeg_path, "FFmpeg")
+        _validate_tools(self)
         if not self.output_root.strip():
             raise BethesdaExportError("Choose an output directory")
         if self.destination_mode not in ("game_data", "mod_root"):
@@ -231,9 +313,107 @@ class BethesdaExportSettings:
             raise BethesdaExportError("Source files directory must exist")
 
 
+def _validate_tools(setting: BethesdaExportSettings) -> None:
+    if setting.lip_backend not in ('facefxwrapper', 'lipgenerator'):
+        raise BethesdaExportError("Choose FaceFXWrapper or official Fallout 4 LipGenerator")
+    if setting.lip_backend == 'lipgenerator' and setting.game != 'fallout4':
+        raise BethesdaExportError("Official LipGenerator is supported here for Fallout 4 only; choose FaceFXWrapper for Skyrim")
+    if not Path(setting.fonix_path).expanduser().is_file():
+        raise BethesdaExportError("Select FonixData.cdf from your locally installed Creation Kit")
+    _tool(setting.facefx_path, 'LIP generator')
+    _tool(setting.encoder_path, 'xWMA encoder')
+    if setting.encoder_type not in ENCODERS:
+        raise BethesdaExportError("Choose a supported encoder type")
+    if setting.tool_runner not in ('native', 'wine'):
+        raise BethesdaExportError("Choose native Windows tools or Wine")
+    if not isinstance(setting.tool_timeout_seconds, int) or not 1 <= setting.tool_timeout_seconds <= 3600:
+        raise BethesdaExportError("Tool timeout must be between 1 and 3600 seconds")
+    if setting.tool_runner == 'wine':
+        if os.name == 'nt':
+            raise BethesdaExportError("Use native tools on Windows; Wine is for Linux")
+        runner = Path(_tool(setting.wine_path, 'Wine executable (or Proton files/bin/wine)'))
+        if not os.access(runner, os.X_OK):
+            raise BethesdaExportError("The selected Wine executable is not executable")
+        if runner.name.casefold() in ('proton', 'proton.exe'):
+            raise BethesdaExportError("Select Proton's files/bin/wine executable, not the proton launcher")
+        prefix = Path(setting.wine_prefix).expanduser()
+        if not setting.wine_prefix or not prefix.is_absolute():
+            raise BethesdaExportError("Select an absolute path to a dedicated, initialized Wine prefix")
+        if not (prefix / 'system.reg').is_file() or not (prefix / 'dosdevices').is_dir():
+            raise BethesdaExportError("Wine prefix is not initialized. Follow BETHESDA_LINUX.md: WINEPREFIX=... wineboot -u")
+    elif os.name != 'nt':
+        for path in (setting.facefx_path, setting.encoder_path):
+            resolved = Path(_tool(path, 'Windows conversion tool'))
+            with resolved.open('rb') as binary:
+                windows_binary = binary.read(2) == b'MZ'
+            if windows_binary:
+                raise BethesdaExportError("Windows conversion tools need the Wine runner on Linux")
+    if setting.ffmpeg_path:
+        _tool(setting.ffmpeg_path, 'FFmpeg')
+
+
+def diagnose_tools(setting: BethesdaExportSettings) -> list[str]:
+    """Read-only setup checks. No prefix initialization, downloads or tool runs."""
+    messages = []
+    try:
+        _validate_tools(setting)
+        messages.append('Tool paths and runner configuration are valid.')
+    except (BethesdaExportError, OSError) as exc:
+        messages.append('Setup needed: ' + str(exc))
+    try:
+        messages.append('FFmpeg: ' + _ffmpeg_path(setting))
+    except BethesdaExportError as exc:
+        messages.append('Setup needed: ' + str(exc))
+    if setting.tool_runner == 'wine':
+        messages.append('Wine uses only the selected prefix. Use a dedicated export prefix, not a game prefix.')
+    messages.append('Path checks do not prove runtime compatibility. Export a short recording into a staging mod folder, then test dialogue and lips in-game.')
+    return messages
+
+
+class _ToolRunner:
+    def __init__(self, setting: BethesdaExportSettings, cancelled: Callable[[], bool]):
+        self.setting = setting
+        self.cancelled = cancelled
+        self.env = None
+        self.wine = None
+        # Ckpid activates FaceFXWrapper's special CK IPC mode and ignores normal
+        # CLI output paths. Never inherit it for this standalone export pipeline.
+        if os.name != 'nt' or any(key.casefold() == 'ckpid' for key in os.environ):
+            self.env = {key: value for key, value in os.environ.items() if key.casefold() != 'ckpid'}
+        if os.name != 'nt':
+            # Frozen Linux builds change search paths for bundled Qt/Python.
+            # Those libraries must not leak into system Wine or native FFmpeg.
+            self.env.pop('LD_LIBRARY_PATH', None)
+            if 'LD_LIBRARY_PATH_ORIG' in os.environ:
+                self.env['LD_LIBRARY_PATH'] = os.environ['LD_LIBRARY_PATH_ORIG']
+        if setting.tool_runner == 'wine':
+            self.wine = _tool(setting.wine_path, 'Wine')
+            self.env.update(WINEPREFIX=str(Path(setting.wine_prefix).expanduser().resolve()), WINEDEBUG='-all')
+            self.env.pop('WINEARCH', None)  # The initialized prefix defines its architecture.
+
+    def call(self, args: list[str], action: str, *, cwd: Path | None = None, windows=False) -> str:
+        if windows and self.wine:
+            args = [self.wine, *args]
+        return _call(args, action, cwd=cwd, env=self.env,
+                     timeout=self.setting.tool_timeout_seconds, cancelled=self.cancelled)
+
+    def path(self, path: Path | str) -> str:
+        resolved = str(Path(path).expanduser().resolve())
+        if not self.wine:
+            return resolved
+        value = self.call([self.wine, 'winepath.exe', '-w', resolved], 'Wine path conversion')
+        if not re.match(r'^(?:[A-Za-z]:\\|\\\\)', value) or '\n' in value or '\r' in value:
+            raise BethesdaExportError('Wine could not map a file path; check the selected prefix drive mappings')
+        return value
+
+
 def _ffmpeg_path(setting: BethesdaExportSettings) -> str:
     if setting.ffmpeg_path:
         return _tool(setting.ffmpeg_path, "FFmpeg")
+    if os.name != 'nt':
+        native = shutil.which('ffmpeg')
+        if native:
+            return native
     try:
         import imageio_ffmpeg
         return imageio_ffmpeg.get_ffmpeg_exe()
@@ -280,15 +460,21 @@ def _check_prepared_wav(path: Path, rate: int) -> None:
         raise BethesdaExportError(f"Audio preparation did not produce a readable PCM WAV: {exc}") from exc
 
 
-def export_dialogue(setting: BethesdaExportSettings, report: Callable[[str], None] = lambda _: None) -> Path:
+def export_dialogue(setting: BethesdaExportSettings, report: Callable[[str], None] = lambda _: None,
+                    cancelled: Callable[[], bool] = lambda: False) -> Path:
     """Prepare dialogue using external tools, then deploy an atomic FUZ file.
 
     No ESP/ESM/ESL is parsed or modified. Caller supplies the precise expected
     response filename. Existing FUZ requires explicit overwrite permission and
     a separate backup; intermediates remain outside the game/mod folder.
     """
+    _check_cancelled(cancelled)
     setting.validate()
+    runner = _ToolRunner(setting, cancelled)
     fuz_path = expected_fuz_path(setting)
+    root = Path(setting.output_root).expanduser().resolve()
+    if not fuz_path.resolve().is_relative_to(root):
+        raise BethesdaExportError('Destination contains a link outside the selected root')
     stem = fuz_path.stem
     plugin, voice = fuz_path.parent.parent.name, fuz_path.parent.name
     if fuz_path.exists() and not setting.overwrite_existing:
@@ -307,27 +493,45 @@ def export_dialogue(setting: BethesdaExportSettings, report: Callable[[str], Non
         lip_file = scratch / (stem + ".lip")
         xwm_file = scratch / (stem + ".xwm")
         report("Resampling for lip sync (16 kHz, 16-bit mono)...")
-        _call([ffmpeg, "-hide_banner", "-loglevel", "error", "-nostdin", "-y", "-i", setting.source_audio,
+        runner.call([ffmpeg, "-hide_banner", "-loglevel", "error", "-nostdin", "-y", "-i", setting.source_audio,
                "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", str(speech_wav)], "LIP audio preparation")
         _check_prepared_wav(speech_wav, 16000)
         report("Generating game-specific LIP animation...")
-        # The documented 6-argument FaceFXWrapper form accepts a pre-resampled WAV.
-        _call([facefx, GAMES[setting.game], "USEnglish", setting.fonix_path,
-               str(speech_wav), str(lip_file), clean_transcript(setting.text)], "FaceFX LIP generation")
+        if setting.lip_backend == 'lipgenerator':
+            # Official FO4 LipGenerator reads FonixData.cdf and writes tmp16khz.wav
+            # in its working directory. Never run it in the user's installation.
+            local_tools = scratch / 'official_tools'
+            local_tools.mkdir()
+            local_exe = local_tools / 'LipGenerator.exe'
+            shutil.copy2(facefx, local_exe)
+            shutil.copy2(Path(setting.fonix_path).expanduser(), local_tools / 'FonixData.cdf')
+            runner.call([runner.path(local_exe), runner.path(speech_wav), clean_transcript(setting.text),
+                         '-OutputFileName:' + runner.path(lip_file)],
+                        'Official Fallout 4 LIP generation', cwd=local_tools, windows=True)
+        else:
+            # Documented six-argument FaceFXWrapper form, with pre-resampled WAV.
+            runner.call([runner.path(facefx), GAMES[setting.game], 'USEnglish',
+                         runner.path(setting.fonix_path), runner.path(speech_wav),
+                         runner.path(lip_file), clean_transcript(setting.text)],
+                        'FaceFX LIP generation', cwd=scratch, windows=True)
         if not lip_file.is_file() or lip_file.stat().st_size == 0:
-            raise BethesdaExportError("FaceFX returned success but did not produce a LIP file")
+            raise BethesdaExportError("LIP generator returned success but did not produce a fresh LIP file")
+        if setting.lip_backend == 'lipgenerator':
+            data = lip_file.read_bytes()
+            if len(data) < 12 or struct.unpack_from('<I', data)[0] != 1:
+                raise BethesdaExportError('Official LipGenerator produced an invalid Fallout 4 LIP header')
 
         report("Resampling engine audio (44.1 kHz, 16-bit mono)...")
-        _call([ffmpeg, "-hide_banner", "-loglevel", "error", "-nostdin", "-y", "-i", setting.source_audio,
+        runner.call([ffmpeg, "-hide_banner", "-loglevel", "error", "-nostdin", "-y", "-i", setting.source_audio,
                "-vn", "-ac", "1", "-ar", "44100", "-c:a", "pcm_s16le", str(encoding_wav)], "XWM audio preparation")
         _check_prepared_wav(encoding_wav, 44100)
         report("Encoding xWMA audio...")
         if setting.encoder_type == "wmaencoders":
-            _call([encoder, str(encoding_wav), str(xwm_file), "--xwma",
-                   "-b", str(setting.bitrate_kbps)], "WMAEncodeRS encoding")
+            runner.call([runner.path(encoder), runner.path(encoding_wav), runner.path(xwm_file), "--xwma",
+                   "-b", str(setting.bitrate_kbps)], "WMAEncodeRS encoding", cwd=scratch, windows=True)
         else:
-            _call([encoder, "-b", str(setting.bitrate_kbps * 1000),
-                   str(encoding_wav), str(xwm_file)], "Creation Kit xwmaencode encoding")
+            runner.call([runner.path(encoder), "-b", str(setting.bitrate_kbps * 1000),
+                   runner.path(encoding_wav), runner.path(xwm_file)], "Creation Kit xwmaencode encoding", cwd=scratch, windows=True)
         if not xwm_file.is_file() or xwm_file.stat().st_size < 12:
             raise BethesdaExportError("Encoder returned success but did not produce XWM audio")
 
@@ -339,12 +543,16 @@ def export_dialogue(setting: BethesdaExportSettings, report: Callable[[str], Non
         version, verified_lip, verified_xwm = read_fuz(candidate)
         if version != 1 or verified_lip != lip_data or verified_xwm != xwm_data:
             raise BethesdaExportError("FUZ round-trip validation failed")
+        _check_cancelled(cancelled)
         if setting.keep_intermediate:
             sidecar_dir.mkdir(parents=True, exist_ok=True)
             shutil.copy2(encoding_wav, sidecar_dir / (stem + ".wav"))
             shutil.copy2(lip_file, sidecar_dir / (stem + ".lip"))
             shutil.copy2(xwm_file, sidecar_dir / (stem + ".xwm"))
             (sidecar_dir / (stem + ".txt")).write_text(clean_transcript(setting.text), encoding="utf-8")
+        _check_cancelled(cancelled)
+        if not fuz_path.resolve().is_relative_to(root):
+            raise BethesdaExportError('Destination contains a link outside the selected root')
         fuz_path.parent.mkdir(parents=True, exist_ok=True)
         if fuz_path.exists():
             if not setting.overwrite_existing:
@@ -361,6 +569,7 @@ def export_dialogue(setting: BethesdaExportSettings, report: Callable[[str], Non
             deploy_tmp = Path(staged.name)
         try:
             shutil.copy2(candidate, deploy_tmp)
+            _check_cancelled(cancelled)
             if setting.overwrite_existing:
                 os.replace(deploy_tmp, fuz_path)
             elif os.name == 'nt':

@@ -6,12 +6,15 @@ All mod metadata comes from the user. Legacy application data remains intact.
 from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
+import sys
+import threading
 from PyQt6.QtCore import QObject, QThread, Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox,
     QFormLayout, QComboBox, QLabel, QLineEdit, QPushButton, QFileDialog,
-    QPlainTextEdit, QMessageBox, QCheckBox, QScrollArea, QInputDialog)
-from .bethesda_export import (BethesdaExportSettings, BethesdaExportError,
-    export_dialogue, expected_fuz_path, clean_transcript, audio_transcript)
+    QPlainTextEdit, QMessageBox, QCheckBox, QScrollArea, QInputDialog, QSpinBox, QDialog, QTextBrowser, QDialogButtonBox)
+from .bethesda_export import (BethesdaExportSettings, BethesdaExportError, BethesdaExportCancelled,
+    export_dialogue, expected_fuz_path, clean_transcript, audio_transcript, diagnose_tools)
 from .mod_profiles import ModProfileStore, ProfileError
 
 
@@ -19,15 +22,18 @@ class ExportTask(QObject):
     message = pyqtSignal(str)
     complete = pyqtSignal(str, str)
 
-    def __init__(self, config):
+    def __init__(self, config, cancel_event):
         super().__init__()
         self.config = config
+        self.cancel_event = cancel_event
 
     @pyqtSlot()
     def run(self):
         try:
-            result = export_dialogue(self.config, self.message.emit)
+            result = export_dialogue(self.config, self.message.emit, cancelled=self.cancel_event.is_set)
             self.complete.emit(str(result), '')
+        except BethesdaExportCancelled:
+            self.complete.emit('', '')
         except Exception as exc:
             self.complete.emit('', str(exc))
 
@@ -41,6 +47,7 @@ class BethesdaExportTab(QWidget):
         self.projects = []
         self.thread = None
         self.worker = None
+        self.cancel_event = threading.Event()
         self._build()
         self._load()
 
@@ -50,7 +57,7 @@ class BethesdaExportTab(QWidget):
 
     def _build(self):
         whole = QVBoxLayout(self)
-        intro = QLabel('Create narration in the main tab or select existing audio, then generate LIP + XWM + FUZ and install the FUZ directly. Plugin editing remains in the Creation Kit. External audio and FaceFX tools must be installed locally.')
+        intro = QLabel('Create narration in the main tab or select existing audio, then generate LIP + XWM + FUZ and install the FUZ directly. Plugin editing remains in the Creation Kit. External conversion tools must be installed locally. Export can run independently of narration synthesis.')
         intro.setWordWrap(True)
         whole.addWidget(intro)
         scroll = QScrollArea()
@@ -120,7 +127,7 @@ class BethesdaExportTab(QWidget):
         latest.clicked.connect(self._last_audio)
         audio_layout.addLayout(_horizontal(self.audio, audio_choose, latest))
         self.transcript = QPlainTextEdit()
-        self.transcript.setPlaceholderText('Exact text spoken by the recording. Used by FaceFX for mouth movements.')
+        self.transcript.setPlaceholderText('Exact text spoken by the recording. Used by the selected lip tool for mouth movements.')
         self.transcript.setMinimumHeight(80)
         audio_layout.addWidget(self.transcript)
         self.audio.textChanged.connect(self._audio_changed)
@@ -135,15 +142,66 @@ class BethesdaExportTab(QWidget):
 
         tool_group = QGroupBox('4. Installed conversion tools')
         tool_form = QFormLayout(tool_group)
+        self.lip_backend = QComboBox()
+        self.lip_backend.addItem('FaceFXWrapper (user supplied)', 'facefxwrapper')
+        self.lip_backend.addItem('Official CK LipGenerator (Fallout 4 only)', 'lipgenerator')
+        tool_form.addRow('Lip generator', self.lip_backend)
+        self.compatibility = QLabel()
+        self.compatibility.setWordWrap(True)
+        tool_form.addRow(self.compatibility)
+        self.tool_runner = QComboBox()
+        self.tool_runner.addItem('Native (Windows executables on Windows)', 'native')
+        self.tool_runner.addItem('Wine / Proton Wine executable', 'wine')
+        tool_form.addRow('Windows tool runner', self.tool_runner)
+        self.wine_path = QLineEdit()
+        self.wine_path.setPlaceholderText('/usr/bin/wine or Proton/files/bin/wine (not the proton script)')
+        self.wine_prefix = QLineEdit()
+        self.wine_prefix.setPlaceholderText('Existing initialized dedicated Wine prefix')
+        self.wine_fields = QWidget()
+        wine_form = QFormLayout(self.wine_fields)
+        wine_form.setContentsMargins(0, 0, 0, 0)
+        for label, edit, kind in [('Wine executable', self.wine_path, 'native'),
+                                  ('Wine prefix', self.wine_prefix, 'folder')]:
+            browse = QPushButton('Browse...')
+            browse.clicked.connect(lambda _=False, e=edit, k=kind: self._browse(e, k))
+            wine_form.addRow(label, _container(_horizontal(edit, browse)))
+        tool_form.addRow(self.wine_fields)
+        self.timeout = QSpinBox()
+        self.timeout.setRange(1, 3600)
+        self.timeout.setValue(240)
+        self.timeout.setSuffix(' seconds per tool')
+        tool_form.addRow('Tool timeout', self.timeout)
+        self.setup_help = QLabel(
+            '1. Install the appropriate Creation Kit yourself through its official distribution. '
+            'For Fallout 4, locate LipGenerator.exe, FonixData.cdf and xwmaencode.exe in that installation. '
+            'Keep the tool runtime files alongside the executables. Select the official lip backend and Creation Kit encoder.\n'
+            '2. For Skyrim / Skyrim SE, supply a legally obtained compatible FaceFXWrapper and encoder; '
+            'FaceFXWrapper is also optional for Fallout 4. Check each tool’s license before sharing it. '
+            'This application does not download or install these tools or assume redistribution rights.\n'
+            '3. On Linux, install Wine using your distribution’s instructions, then initialize a dedicated prefix yourself '
+            '(for example: WINEPREFIX="$HOME/.local/share/pvs-wine" wineboot -u). '
+            'Select Wine and that existing prefix below. For Proton, select its actual files/bin/wine, not the proton launcher, '
+            'and a compatible initialized prefix. Keep this separate from game prefixes.\n'
+            '4. Browse to the installed lip generator, Fonix data and encoder. FFmpeg runs natively, not through Wine. '
+            'Click Check tools and save settings, then test an export and its lip synchronization in game. '
+            'Checks inspect files and configuration only; they do not launch tools, install dependencies or guarantee runtime compatibility.\n'
+            'See BETHESDA_LINUX.md in the application source or release documentation for full Linux dependency and setup instructions.')
+        self.setup_help.setWordWrap(True)
+        self.setup_help.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        tool_form.addRow(self.setup_help)
+        self.guide_button = QPushButton('Open Linux dependency guide')
+        self.guide_button.setVisible(sys.platform.startswith('linux'))
+        self.guide_button.clicked.connect(self._open_linux_guide)
+        tool_form.addRow(self.guide_button)
         self.facefx = QLineEdit()
         self.fonix = QLineEdit()
         self.encoder = QLineEdit()
         self.ffmpeg = QLineEdit()
         for label, edit, kind in [
-            ('FaceFXWrapper executable', self.facefx, 'exe'),
+            ('Lip generator executable', self.facefx, 'exe'),
             ('FonixData.cdf (local CK resource)', self.fonix, 'cdf'),
             ('xWMA encoder executable', self.encoder, 'exe'),
-            ('FFmpeg executable (optional)', self.ffmpeg, 'exe'),
+            ('Native FFmpeg executable (optional)', self.ffmpeg, 'native'),
         ]:
             browse = QPushButton('Browse...')
             browse.clicked.connect(lambda _=False, e=edit, k=kind: self._browse(e, k))
@@ -159,6 +217,17 @@ class BethesdaExportTab(QWidget):
         self.keep = QCheckBox('Keep WAV, XWM, LIP and transcript separately in this application’s project files')
         self.keep.setChecked(True)
         tool_form.addRow(self.keep)
+        self.diagnose_button = QPushButton('Check tools and save settings')
+        self.diagnose_button.clicked.connect(self._diagnose)
+        tool_form.addRow(self.diagnose_button)
+        self.diagnostics = QPlainTextEdit()
+        self.diagnostics.setReadOnly(True)
+        self.diagnostics.setPlaceholderText('Tool checks will appear here. No audio or saved project is needed.')
+        self.diagnostics.setMaximumHeight(150)
+        tool_form.addRow(self.diagnostics)
+        self.tool_runner.currentIndexChanged.connect(self._tool_options_changed)
+        self.lip_backend.currentIndexChanged.connect(self._tool_options_changed)
+        self.game.currentIndexChanged.connect(self._tool_options_changed)
         layout.addWidget(tool_group)
 
         target = QGroupBox('5. Verify destination and install')
@@ -178,21 +247,92 @@ class BethesdaExportTab(QWidget):
         self.run_button = QPushButton('Build LIP + XWM + FUZ and install to destination')
         self.run_button.setObjectName('primary')
         self.run_button.clicked.connect(self._start)
-        whole.addWidget(self.run_button)
+        self.cancel_button = QPushButton('Cancel export')
+        self.cancel_button.setEnabled(False)
+        self.cancel_button.clicked.connect(self._cancel)
+        whole.addLayout(_horizontal(self.run_button, self.cancel_button))
         self.status = QLabel('Ready. You must supply the expected CK dialogue filename.')
         self.status.setWordWrap(True)
         whole.addWidget(self.status)
 
     def _browse(self, edit, kind):
         if kind == 'folder':
-            value = QFileDialog.getExistingDirectory(self, 'Select the actual game Data folder or MO2 mod root', edit.text())
+            value = QFileDialog.getExistingDirectory(self, 'Select folder', edit.text())
         else:
             filt = {'audio': 'Audio files (*.wav *.mp3 *.flac *.ogg);;All files (*)',
                     'exe': 'Executable files (*.exe);;All files (*)',
+                    'native': 'All files (*)',
                     'cdf': 'Fonix files (*.cdf);;All files (*)'}[kind]
             value, _ = QFileDialog.getOpenFileName(self, 'Select conversion file', edit.text(), filt)
         if value:
             edit.setText(value)
+
+    @staticmethod
+    def _linux_guide_path():
+        root = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).resolve().parents[2]
+        return root / 'BETHESDA_LINUX.md'
+
+    def _open_linux_guide(self):
+        path = self._linux_guide_path()
+        try:
+            content = path.read_text(encoding='utf-8')
+        except (OSError, UnicodeError) as exc:
+            QMessageBox.warning(self, 'Linux dependency guide unavailable',
+                f'Could not read the bundled guide at {path}.\n'
+                'Find BETHESDA_LINUX.md in the application source or release documentation.\n'
+                f'{exc}')
+            return
+        dialog = QDialog(self)
+        dialog.setWindowTitle('Linux Bethesda dependency guide')
+        dialog.resize(850, 700)
+        layout = QVBoxLayout(dialog)
+        browser = QTextBrowser(dialog)
+        browser.setOpenExternalLinks(False)
+        browser.setOpenLinks(False)
+        browser.anchorClicked.connect(self._open_guide_link)
+        browser.setMarkdown(content)
+        layout.addWidget(browser)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, parent=dialog)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        dialog.exec()
+
+    @staticmethod
+    def _open_guide_link(url):
+        # Only an explicit click may open a dependency's secure web page.
+        # Relative documentation and local/executable URLs stay disabled.
+        if url.isValid() and url.scheme().lower() == 'https' and url.host():
+            QDesktopServices.openUrl(url)
+
+    def _tool_options_changed(self):
+        self.wine_fields.setVisible(self.tool_runner.currentData() == 'wine')
+        official = self.lip_backend.currentData() == 'lipgenerator'
+        self.facefx.setPlaceholderText('LipGenerator.exe' if official else 'FaceFXWrapper.exe')
+        if official and self.game.currentData() != 'fallout4':
+            note = 'Incompatible selection: official LipGenerator supports Fallout 4 only. Select FaceFXWrapper for Skyrim.'
+        elif official:
+            note = 'Official Creation Kit LipGenerator: Fallout 4 only. Select its installed LipGenerator.exe below.'
+        else:
+            note = 'FaceFXWrapper: supply a version compatible with the selected game. Verify results in game.'
+            if sys.platform.startswith('linux'):
+                note += ' Linux support is runtime-dependent; follow BETHESDA_LINUX.md for Wine/Proton dependencies. In-game validation is required.'
+        self.compatibility.setText(note)
+
+    def _diagnose(self):
+        self._save_tools()
+        try:
+            messages = diagnose_tools(self._config())
+        except (BethesdaExportError, OSError, ValueError) as exc:
+            messages = [str(exc)]
+        self.diagnostics.setPlainText('\n'.join(messages) or 'No configuration problems detected. Runtime and in-game testing are still required.')
+        self.host._log('Bethesda tool settings saved. ' + self.diagnostics.toPlainText())
+
+    def _cancel(self):
+        if self.thread is not None:
+            # A queued Qt slot cannot interrupt a worker blocked in a tool call.
+            self.cancel_event.set()
+            self.cancel_button.setEnabled(False)
+            self.status.setText('Cancelling export; waiting for the active tool to stop safely…')
 
     def _last_audio(self):
         path = getattr(self.host, 'last_output', '')
@@ -364,7 +504,10 @@ class BethesdaExportTab(QWidget):
             fonix_path=self.fonix.text().strip(), encoder_path=self.encoder.text().strip(),
             ffmpeg_path=self.ffmpeg.text().strip(), encoder_type=self.encoder_type.currentData(),
             bitrate_kbps=self.bitrate.currentData(), keep_intermediate=self.keep.isChecked(),
-            destination_mode=self.mode.currentData(), sidecar_root=str(sidecars))
+            destination_mode=self.mode.currentData(), sidecar_root=str(sidecars),
+            lip_backend=self.lip_backend.currentData(), tool_runner=self.tool_runner.currentData(),
+            wine_path=self.wine_path.text().strip(), wine_prefix=self.wine_prefix.text().strip(),
+            tool_timeout_seconds=self.timeout.value())
 
     def _update_preview(self):
         try:
@@ -377,8 +520,8 @@ class BethesdaExportTab(QWidget):
             self.preview.setText('Incomplete destination: ' + str(exc))
 
     def _start(self):
-        if self.thread is not None or self.host.thread is not None:
-            QMessageBox.information(self, 'Busy', 'Finish the active job first.')
+        if self.thread is not None:
+            QMessageBox.information(self, 'Busy', 'A Bethesda export is already running. Wait for it to finish or cancel it.')
             return
         try:
             # Previewing a target never creates project files. Only a real
@@ -402,8 +545,12 @@ class BethesdaExportTab(QWidget):
             config = replace(config, overwrite_existing=True)
         self._save_tools()
         self.run_button.setEnabled(False)
+        self.cancel_event.clear()
+        self.cancel_button.setEnabled(True)
+        self.diagnose_button.setEnabled(False)
+        self.status.setText("Starting Bethesda export…")
         self.thread = QThread(self)
-        self.worker = ExportTask(config)
+        self.worker = ExportTask(config, self.cancel_event)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.message.connect(self._progress)
@@ -415,11 +562,16 @@ class BethesdaExportTab(QWidget):
         self.thread.start()
 
     def _progress(self, text):
-        self.status.setText(text)
+        if not self.cancel_event.is_set():
+            self.status.setText(text)
         self.host._log(text)
 
     def _finished(self, path, error):
-        if error:
+        self.cancel_button.setEnabled(False)
+        if not path and not error:
+            self.status.setText('Export cancelled. Ready to try again when the worker stops.')
+            self.host._log('Bethesda export cancelled.')
+        elif error:
             self.status.setText('Export failed: ' + error)
             QMessageBox.warning(self, 'Bethesda export failed', error)
             self.host._log('Bethesda export failed: ' + error)
@@ -434,18 +586,32 @@ class BethesdaExportTab(QWidget):
         self.thread = None
         self.worker = None
         self.run_button.setEnabled(True)
+        self.cancel_button.setEnabled(False)
+        self.diagnose_button.setEnabled(True)
 
     def _save_tools(self):
-        for name in ('facefx', 'fonix', 'encoder', 'ffmpeg'):
+        for name in ('facefx', 'fonix', 'encoder', 'ffmpeg', 'wine_path', 'wine_prefix'):
             self.settings.setValue('bethesda/tools/' + name, getattr(self, name).text())
+        for name in ('lip_backend', 'tool_runner'):
+            self.settings.setValue('bethesda/tools/' + name, getattr(self, name).currentData())
+        self.settings.setValue('bethesda/tools/tool_timeout_seconds', self.timeout.value())
         self.settings.setValue('bethesda/tools/encoder_type', self.encoder_type.currentData())
         self.settings.setValue('bethesda/tools/bitrate', self.bitrate.currentData())
 
     def _load(self):
-        for name in ('facefx', 'fonix', 'encoder', 'ffmpeg'):
+        for name in ('facefx', 'fonix', 'encoder', 'ffmpeg', 'wine_path', 'wine_prefix'):
             getattr(self, name).setText(str(self.settings.value('bethesda/tools/' + name, '')))
-        self._select_combo(self.encoder_type, self.settings.value('bethesda/tools/encoder_type', 'wmaencoders'))
+        # An old saved FaceFX path must never silently become a LipGenerator path.
+        fresh_linux = sys.platform.startswith('linux') and not self.facefx.text().strip()
+        self._select_combo(self.encoder_type, self.settings.value('bethesda/tools/encoder_type', 'xwmaencode' if fresh_linux else 'wmaencoders'))
         self._select_combo(self.bitrate, int(self.settings.value('bethesda/tools/bitrate', 48)))
+        self._select_combo(self.lip_backend, self.settings.value('bethesda/tools/lip_backend', 'lipgenerator' if fresh_linux else 'facefxwrapper'))
+        self._select_combo(self.tool_runner, self.settings.value('bethesda/tools/tool_runner', 'wine' if sys.platform.startswith('linux') else 'native'))
+        try:
+            self.timeout.setValue(int(self.settings.value('bethesda/tools/tool_timeout_seconds', 240)))
+        except (TypeError, ValueError):
+            self.timeout.setValue(240)
+        self._tool_options_changed()
         try:
             self.projects = self.store.load()
         except ProfileError as exc:

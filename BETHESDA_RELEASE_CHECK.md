@@ -3,6 +3,35 @@
 This check covers the desktop application's existing WAV → LIP + XWM → FUZ
 workflow. The application does not create or edit plugin dialogue records.
 
+## Linux integration, November 8, 2026
+
+Linux supports an explicitly selected Wine executable and initialized dedicated
+prefix; native Windows execution remains available. The official CK LipGenerator
+backend is limited to Fallout 4. FaceFXWrapper retains game-specific profiles
+but is experimental/runtime-dependent on Linux. Fresh Linux settings choose
+LipGenerator + CK xwmaencode; legacy saved FaceFX paths and explicit choices are
+preserved. Setup checks are read-only configuration checks, not tool execution.
+The Linux tab includes a bundled read-only dependency guide with user-clicked
+HTTPS source links, plus cancellation and per-tool timeouts.
+
+**Real-tool API result:** `export_dialogue` passed on Debian 13 using GE-Proton11-11
+Wine, a fresh disposable prefix and official Fallout 4 tools. Fresh output,
+FUZ round trip, xWMA decoding and paths with spaces were checked. See
+[BETHESDA_LINUX_VALIDATION.md](BETHESDA_LINUX_VALIDATION.md) for exact evidence,
+FaceFXWrapper results, failure controls and the opt-in repeat script.
+[Setup instructions](BETHESDA_LINUX.md) cover Debian dependencies and acquisition.
+
+FaceFXWrapper 0.41 also passed actual API exports for Fallout 4, Skyrim and
+Skyrim SE after six matching VKD3D DLLs from the installed GE build's default
+prefix were copied into the disposable test prefix. No extra environment
+overrides were needed. Studio does not install/copy that optional runtime setup.
+
+**Final aggregate regression:** Python 3.12.14, **335 passed, 1 skipped** in 16.12 s.
+The real-tool report identifies the tested backend hash; regressions and actual
+conversion are separate checks. No native Windows runtime or in-game acceptance
+is claimed by these Linux tests. The historical October results below remain
+dated evidence, not the current suite total.
+
 ## Code review fixes, October 17, 2026
 
 - Reject incomplete RIFF/xWMA files, missing audio/seek chunks, PCM disguised as

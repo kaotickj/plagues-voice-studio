@@ -58,8 +58,22 @@ does not establish them. Kokoro offers CPU on Linux; DirectML is Windows-only.
 Writer's verified downloader currently supplies a Linux CPU llama.cpp runtime;
 automatic Linux writer Vulkan setup is not included.
 
-Bethesda's Windows FaceFX/xWMA tools are not included or validated through Wine.
-Use WAV export while native/Wine conversion acceptance remains outstanding.
+## Bethesda LIP / XWM / FUZ export
+
+Linux can run separately installed Windows conversion tools through an explicitly
+selected Wine executable and initialized dedicated prefix. Follow
+[BETHESDA_LINUX.md](BETHESDA_LINUX.md) for Debian packages, prefix setup, official
+Fallout 4 LipGenerator, optional FaceFXWrapper acquisition, encoder dependencies,
+GUI settings and troubleshooting. No automatic proprietary-tool installation is
+performed. FFmpeg stays native and this conversion does not require a GPU.
+
+The actual export API passed a real-tool Fallout 4 LIP/xWMA/FUZ export on Debian
+with a fresh GE-Proton Wine prefix and locally installed official CK tools.
+See [BETHESDA_LINUX_VALIDATION.md](BETHESDA_LINUX_VALIDATION.md) for measured
+results and runtime limits. FaceFXWrapper exports also passed for Fallout 4,
+Skyrim and Skyrim SE after the documented optional GE vendor-runtime setup.
+This does not establish universal Wine compatibility, native Windows execution
+or in-game lip sync.
 
 ## Build from source
 

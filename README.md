@@ -159,6 +159,8 @@ CPU PyTorch and model-on-demand setup. Download the tarball/checksums from the
 [Linux build workflow](https://github.com/kaotickj/plagues-voice-studio/actions/workflows/linux-build.yml).
 See [LINUX.md](LINUX.md) for system packages, extraction, launch and acceptance
 limits. Linux engine inference is being validated separately from Windows.
+For Bethesda tool acquisition, Debian Wine dependencies and per-game export setup,
+see [BETHESDA_LINUX.md](BETHESDA_LINUX.md).
 
 ## Building on Windows
 

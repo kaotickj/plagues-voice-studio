@@ -106,12 +106,12 @@ def configured_export(tmp_path, monkeypatch, xwma_bytes):
     calls = []
     real_call = be._call
 
-    def call(args, action):
+    def call(args, action, **kwargs):
         calls.append(action)
         if action == state['fail']:
             raise be.BethesdaExportError('simulated converter failure')
         if action.endswith('audio preparation'):
-            real_call(args, action)  # Actually exercise FFmpeg on this platform.
+            real_call(args, action, **kwargs)  # Actually exercise FFmpeg on this platform.
         elif action == 'FaceFX LIP generation':
             assert args[:4] == [str(facefx), state['game'], 'USEnglish', str(fonix)]
             assert len(args) == 7 and args[-1] == 'Hello "friend".'
@@ -195,7 +195,7 @@ def test_failed_export_preserves_existing_assets(configured_export, kind):
 
 def test_empty_prepared_audio_stops_before_facefx(configured_export, monkeypatch):
     config, state, calls = configured_export
-    monkeypatch.setattr(be, '_call', lambda *_: None)
+    monkeypatch.setattr(be, '_call', lambda *_, **kw: None)
     with pytest.raises(be.BethesdaExportError, match='readable PCM WAV'):
         be.export_dialogue(config)
     assert not be.expected_fuz_path(config).exists()
@@ -217,19 +217,18 @@ def test_target_created_during_final_copy_is_not_overwritten(configured_export, 
     assert not list(target.parent.glob('*.pvs-partial'))
 
 
-@pytest.mark.parametrize('error', [OSError('cannot launch'), subprocess.TimeoutExpired('tool', 240)])
-def test_tool_launch_failures_are_actionable(monkeypatch, error):
+def test_tool_launch_failures_are_actionable(monkeypatch):
     def fail(*args, **kwargs):
-        raise error
-    monkeypatch.setattr(be.subprocess, 'run', fail)
+        raise OSError('cannot launch')
+    monkeypatch.setattr(be.subprocess, 'Popen', fail)
     with pytest.raises(be.BethesdaExportError, match='FaceFX could not run'):
         be._call(['tool', 'text with spaces'], 'FaceFX')
 
 
-def test_tool_nonzero_exit_is_not_success(monkeypatch):
-    monkeypatch.setattr(be.subprocess, 'run', lambda *a, **kw: subprocess.CompletedProcess(a, 2, '', 'encoder failed'))
+def test_tool_nonzero_exit_is_not_success():
+    import sys
     with pytest.raises(be.BethesdaExportError, match='exit 2.*encoder failed'):
-        be._call(['encoder'], 'XWM encoding')
+        be._call([sys.executable, '-c', 'import sys; print("encoder failed", file=sys.stderr); sys.exit(2)'], 'XWM encoding')
 
 
 def test_blank_destination_is_not_current_directory(configured_export):

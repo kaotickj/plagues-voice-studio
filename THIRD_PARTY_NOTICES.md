@@ -30,9 +30,19 @@ The example installer copies this notice; it is not a complete legal compliance 
 
 - WMAEncodeRS: MIT license, https://github.com/MSIVST/WMAEncodeRS . NOT BUNDLED. Uses Windows Media runtime.
 - Nukem9 FaceFXWrapper: https://github.com/Nukem9/FaceFXWrapper . NOT BUNDLED. Its license expressly acknowledges use of Bethesda Creation Kit code and subject matter; do not presume the entire compiled tool is freely redistributable.
-- Bethesda `FonixData.cdf`, Creation Kit and `xwmaencode.exe`: Bethesda-controlled assets and tools; NOT BUNDLED. Installed locally by the end user.
+- Bethesda `FonixData.cdf`, Creation Kit, `LipGenerator.exe` and `xwmaencode.exe`: Bethesda-controlled assets and tools; NOT BUNDLED. Installed locally by the end user. The official LipGenerator backend is limited to Fallout 4.
 - Optional clean-room OpenFaceFX: https://github.com/OpenFaceFX/OpenFaceFX (MIT); its Bethesda LIP writer remains experimental, no in-game verification and no Fallout 4 support as of this review. Not used or bundled.
 - `.fuz` packing implementation and test code are original Python source distributed with this project.
+- Linux runs these separately installed Windows tools using the user's selected
+  Wine executable and dedicated prefix. Wine/Proton and proprietary codec DLLs
+  are not added to the application bundle. See [BETHESDA_LINUX.md](BETHESDA_LINUX.md)
+  for setup, official acquisition links and compatibility limits.
+- This list describes the standard package configuration, not every historical
+  or customized portable bundle. The Windows host does include the previously
+  documented imageio FFmpeg executable under its applicable GPL terms; Linux
+  deliberately uses system FFmpeg. See `BINARY_LICENSE.md` and the November 2026
+  bundle-evidence review in `BETHESDA_VOICE_EXPORT_RESEARCH.md`.
+
 
 ### Optional speech engines in experimental 0.3.0-alpha1
 

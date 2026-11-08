@@ -20,6 +20,7 @@ datas = [
 ]
 if sys.platform == 'linux':
     datas.append((str(project / 'LINUX.md'), '.'))
+    datas.append((str(project / 'BETHESDA_LINUX.md'), '.'))
 # Ship generic plugins, never the branded DJ standalone or its builds.
 for folder in ('promotional-writer', 'script-prep'):
     for path in (project / 'plugins' / folder).rglob('*'):
