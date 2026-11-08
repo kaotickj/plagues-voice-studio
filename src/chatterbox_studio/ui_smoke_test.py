@@ -157,9 +157,9 @@ def run(report_path: Path | None = None, *, no_audio: bool = False) -> int:
                 if window.windowIcon().isNull():
                     raise RuntimeError('Application icon was not packaged.')
                 window.show()
-                bethesda_available = sys.platform == 'win32'
+                bethesda_available = sys.platform == 'win32' or sys.platform.startswith('linux')
                 if (window.bethesda_tab is not None) != bethesda_available:
-                    raise RuntimeError('Bethesda production export must be available only on Windows.')
+                    raise RuntimeError('Bethesda production export must match Windows/Linux platform support.')
                 for panel in (window.export_browser, window.engine_lab):
                     handoff = panel.findChild(QPushButton, 'bethesda_export_handoff')
                     if (handoff is not None) != bethesda_available:

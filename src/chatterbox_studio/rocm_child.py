@@ -13,13 +13,9 @@ from types import ModuleType
 
 
 def vram_budget(free, total):
-    headroom = 2 * 1024**3
-    if free <= headroom:
-        raise RuntimeError('At most 2 GiB GPU headroom is available; existing work was not interrupted')
-    budget = min(12 * 1024**3, total - headroom, free - headroom)
-    if budget < 1024**3:
-        raise RuntimeError('Less than 1 GiB remains in the guarded GPU allocator budget; retry when other GPU work is idle')
-    return budget
+    """Report physical capacity without reserving an artificial budget."""
+    return total
+
 
 
 def gpu_activity(sysfs=Path('/sys/class/drm')):
@@ -39,8 +35,6 @@ def gpu_activity(sysfs=Path('/sys/class/drm')):
     if len(cards) != 1:
         raise RuntimeError('Cannot identify one AMD GPU with readable activity counters; no external render started')
     card = cards[0]
-    if not 0 <= card['busy_percent'] <= 20:
-        raise RuntimeError(f'AMD GPU is busy ({card["busy_percent"]}%); retry after other GPU work is idle')
     return card
 
 
@@ -102,7 +96,6 @@ def run(request, response):
         if not any(v in name.lower() for v in ('amd', 'radeon', 'instinct')):
             raise RuntimeError('ROCm did not report an AMD GPU')
         print(f'Chatterbox external AMD GPU: {name}; Torch {torch.__version__}; HIP {torch.version.hip}; cuda:0 is the ROCm API device.', flush=True)
-        torch.set_num_threads(6); torch.set_num_interop_threads(6)
         torch.manual_seed(731); torch.cuda.manual_seed_all(731)
         properties = torch.cuda.get_device_properties(0)
         evidence.update(phase='HIP device available; synthesis not yet proved', hip_version=str(torch.version.hip),
@@ -112,7 +105,6 @@ def run(request, response):
         checkpoint()
         free, total = torch.cuda.mem_get_info(0)
         budget = vram_budget(free, total)
-        torch.cuda.set_per_process_memory_fraction(budget / total, 0)
         ffmpeg = Path(request['ffmpeg'])
         if not ffmpeg.is_file() or shutil.which(str(ffmpeg)) is None:
             raise RuntimeError('Existing system FFmpeg is required for unchanged core audio export/effects')
@@ -142,8 +134,6 @@ def run(request, response):
                         'evidence': 'CUDA output tensor from parameterized module forward', 'dtype': str(seen[0].dtype)}
                     evidence.update(phase='GPU forward observed; audio acceptance pending', forward_evidence=forwards)
                     checkpoint()
-                if torch.cuda.memory_reserved(0) > budget:
-                    raise RuntimeError('ROCm exceeded its GPU allocator budget')
             return hook
         def loader(model_id, device):
             nonlocal budget, reference_fft
@@ -151,7 +141,6 @@ def run(request, response):
             current_free, current_total = torch.cuda.mem_get_info(0)
             current_budget = vram_budget(current_free, current_total)
             budget = min(budget, current_budget)
-            torch.cuda.set_per_process_memory_fraction(budget / current_total, 0)
             evidence.update(engine_source_sha256=hashlib.sha256(Path(__file__).with_name('engine.py').read_bytes()).hexdigest(),
                 gpu_allocator_budget_bytes=budget, model_construct_free_gpu_bytes=current_free)
             checkpoint()
@@ -202,9 +191,9 @@ def run(request, response):
             gcn_arch=str(getattr(torch.cuda.get_device_properties(0), 'gcnArchName', 'unavailable')),
             module_parameters=parameters, forward_evidence=forwards, cpu_fallback=False,
             peak_gpu_allocated_bytes=torch.cuda.max_memory_allocated(0), gpu_allocator_budget_bytes=budget,
-            initial_free_gpu_bytes=free, gpu_headroom_bytes=2 * 1024**3,
-            hardware=hardware, initial_gpu_busy_limit_percent=20,
-            seed=731, cpu_threads=6, model_dir=request['model_dir'],
+            initial_free_gpu_bytes=free, gpu_headroom_bytes=0,
+            hardware=hardware, initial_gpu_busy_limit_percent=None,
+            seed=731, cpu_threads=torch.get_num_threads(), model_dir=request['model_dir'],
             chatterbox_source=str(chatterbox.__file__), overlay=str(overlay),
             engine_source=str(Path(__file__).with_name('engine.py')))
         runtime['engine_source_sha256'] = hashlib.sha256(Path(__file__).with_name('engine.py').read_bytes()).hexdigest()

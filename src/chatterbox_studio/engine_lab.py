@@ -144,7 +144,7 @@ class EngineLab(QWidget):
             ('qwen_06_model_dir', 'Native Qwen Base 0.6B folder', True),
             ('qwen_17_model_dir', 'Native Qwen Base 1.7B folder', True),
             ('index_model_dir', 'Native IndexTTS 2.5 folder', True),
-            ('native_gpu_lock', 'Existing shared GPU lock', False),
+            ('native_gpu_lock', 'Legacy GPU lock (ignored)', False),
         ):
             field = QLineEdit(native.get(key, ''))
             field.setObjectName(key)
@@ -656,9 +656,9 @@ class EngineLab(QWidget):
             return
         if getattr(self.host, 'thread', None) is not None or any(
                 getattr(getattr(self.host, name, None), 'is_busy', False)
-                for name in ('model_manager', 'bethesda_tab')):
+                for name in ('model_manager',)):
             QMessageBox.information(self, 'Operation running',
-                'Finish or cancel the active narration, model, or export operation before starting a voice-engine operation.')
+                'Finish or cancel the active narration or model operation before starting a voice-engine operation.')
             return
         self.thread = QThread(self)
         self.worker = OptionalEngineWorker(jobs=jobs, probe=probe,

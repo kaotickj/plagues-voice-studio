@@ -39,5 +39,5 @@ jobs:
         run: >-
           python -m pytest -q
           tests/test_bethesda_export.py tests/test_bethesda_validation.py
-          tests/test_bethesda_widget.py tests/test_v020_features.py
+          tests/test_bethesda_widget.py tests/test_bethesda_linux.py tests/test_v020_features.py
           tests/test_optional_engines.py

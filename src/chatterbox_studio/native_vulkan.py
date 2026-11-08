@@ -80,7 +80,7 @@ def validate_native_configuration(engine: str, model: str, settings: dict) -> di
     if not os.access(binary, os.X_OK) or digest(binary) != expected:
         raise NativeVulkanError('Native executable is not executable or its SHA256 changed. Review the runtime before using it.')
     folder = _existing(settings.get('native_model_dir'), 'model folder', directory=True)
-    lock = _existing(settings.get('native_gpu_lock'), 'shared GPU lock')
+    lock = ''  # Saved legacy lock paths are ignored.
     if engine == 'qwen3':
         if model not in QWEN_MODELS:
             raise NativeVulkanError('Select a supported Qwen Base model, not CustomVoice or VoiceDesign.')
@@ -136,7 +136,7 @@ def build_native_command(request: dict, config: dict, reference: Path, output: P
     validate_native_controls(request)
     command = [config['executable'], '--task', 'tts', '--family', config['family'],
                '--model', config['model_dir'], '--backend', 'vulkan', '--device', '0',
-               '--threads', '4', '--log', '--metrics', '--text', request['text'],
+               '--threads', str(os.cpu_count() or 1), '--log', '--metrics', '--text', request['text'],
                '--voice-ref', str(reference), '--language', LANGUAGES[request['language']],
                '--seed', '731', '--max-tokens', '1200', '--out', str(output)]
     if request['engine'] == 'qwen3':
@@ -154,28 +154,10 @@ def _cancelled(cancelled):
 
 
 @contextmanager
-def gpu_reservation(path: Path, cancelled=None, log=None, timeout=300):
-    import fcntl
-    # Open only an existing lock. Never create a competing lock or bypass it.
-    with Path(path).open('r') as lock:
-        start = time.monotonic()
-        notified = False
-        while True:
-            _cancelled(cancelled)
-            try:
-                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                break
-            except BlockingIOError:
-                if not notified and log:
-                    log('Waiting for the shared GPU; other work stays running. Cancel is available.')
-                notified = True
-                if time.monotonic() - start >= timeout:
-                    raise NativeVulkanError('Shared GPU stayed busy. Try again after the active job finishes.')
-                time.sleep(.1)
-        try:
-            yield
-        finally:
-            fcntl.flock(lock, fcntl.LOCK_UN)
+def gpu_reservation(path=None, cancelled=None, log=None, timeout=300):
+    _cancelled(cancelled)
+    yield
+
 
 
 def _stop_owned(proc):
@@ -205,7 +187,7 @@ def _environment():
     for key in tuple(env):
         if key.startswith('_PYI_'):
             env.pop(key, None)
-    env.update(HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1', OMP_NUM_THREADS='4',
+    env.update(HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1',
                TOKENIZERS_PARALLELISM='false')
     return env
 

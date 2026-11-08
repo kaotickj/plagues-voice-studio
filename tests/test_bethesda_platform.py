@@ -24,7 +24,7 @@ def qt_app():
 
 
 @pytest.mark.parametrize('platform', ['win32', 'linux', 'darwin'])
-def test_full_production_tab_is_created_only_on_windows(monkeypatch, platform):
+def test_full_production_tab_is_created_on_windows_and_linux(monkeypatch, platform):
     factory = Mock(return_value=object())
     module = ModuleType('chatterbox_studio.bethesda_widget')
     module.BethesdaExportTab = factory
@@ -32,9 +32,9 @@ def test_full_production_tab_is_created_only_on_windows(monkeypatch, platform):
     # Avoid imposing a fake OS on unrelated pytest/Qt lifecycle code.
     with monkeypatch.context() as context:
         context.setattr(app.sys, 'platform', platform)
-        context.setitem(sys.modules, module.__name__, module if platform == 'win32' else None)
+        context.setitem(sys.modules, module.__name__, module if platform in ('win32', 'linux') else None)
         app.MainWindow._build_bethesda_tab(host)
-    if platform == 'win32':
+    if platform in ('win32', 'linux'):
         factory.assert_called_once_with(host)
         host.tabs.addTab.assert_called_once_with(factory.return_value, 'Bethesda Voice Export')
     else:
@@ -100,6 +100,7 @@ def test_close_without_production_tab_preserves_saved_tool_settings(
     window.plugins = SimpleNamespace(is_busy=False, close_all=Mock())
     window._update_dialog = None
     window.thread = None
+    window._processor_settings_ready = False
     window.bethesda_tab = None
     window.engine_lab = SimpleNamespace(is_busy=False)
     window.model_manager = SimpleNamespace(is_busy=model_busy)
@@ -136,8 +137,8 @@ def test_close_without_production_tab_preserves_saved_tool_settings(
     qt_app.processEvents()
 
 
-@pytest.mark.parametrize('platform', ['linux', 'win32'])
-def test_package_excludes_only_windows_ui_and_keeps_portable_helpers(monkeypatch, platform):
+@pytest.mark.parametrize('platform', ['linux', 'win32', 'darwin'])
+def test_package_includes_supported_ui_and_keeps_portable_helpers(monkeypatch, platform):
     root = Path(__file__).resolve().parents[1]
     captured = {}
     hooks = SimpleNamespace(collect_all=lambda *_args, **_kwargs: ([], [], []),
@@ -161,7 +162,33 @@ def test_package_excludes_only_windows_ui_and_keeps_portable_helpers(monkeypatch
             'EXE': lambda *_args, **_kwargs: None,
             'COLLECT': lambda *_args, **_kwargs: None,
         })
-    assert ('chatterbox_studio.bethesda_widget' in captured['excludes']) == (platform != 'win32')
+    assert ('chatterbox_studio.bethesda_widget' in captured['excludes']) == (platform not in ('win32', 'linux'))
+    if platform in ('win32', 'linux'):
+        assert 'chatterbox_studio.bethesda_widget' in captured['hiddenimports']
+    if platform == 'linux':
+        assert (str(root / 'BETHESDA_LINUX.md'), '.') in captured['datas']
     for module in ('chatterbox_studio.bethesda_export', 'chatterbox_studio.mod_profiles'):
         assert module in captured['hiddenimports']
         assert module not in captured['excludes']
+
+
+def test_plugin_generation_remains_available_during_bethesda_export():
+    host = SimpleNamespace(thread=None, bethesda_tab=SimpleNamespace(is_busy=True),
+                           engine_lab=SimpleNamespace(is_busy=False),
+                           model_manager=SimpleNamespace(is_busy=False))
+    manager = SimpleNamespace(host=host, is_busy=False)
+    assert plugin_manager.PluginManager.can_generate(manager) == ''
+
+
+def test_close_is_blocked_until_bethesda_export_finishes(monkeypatch):
+    window = SimpleNamespace(plugins=SimpleNamespace(is_busy=False),
+                             _update_dialog=None, thread=None,
+                             bethesda_tab=SimpleNamespace(is_busy=True),
+                             engine_lab=SimpleNamespace(is_busy=False),
+                             model_manager=SimpleNamespace(is_busy=False))
+    notice = Mock()
+    monkeypatch.setattr(app.QMessageBox, 'information', notice)
+    event = QCloseEvent()
+    app.MainWindow.closeEvent(window, event)
+    assert not event.isAccepted()
+    notice.assert_called_once()

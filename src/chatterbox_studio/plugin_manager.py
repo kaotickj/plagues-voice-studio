@@ -159,7 +159,7 @@ class PluginManager:
     def can_generate(self):
         if self.host.thread is not None or any(
                 getattr(getattr(self.host, name, None), 'is_busy', False)
-                for name in ('engine_lab', 'model_manager', 'bethesda_tab')):
+                for name in ('engine_lab', 'model_manager')):
             return 'Finish Voice Studio generation or model operations before starting the writer.'
         if self.is_busy:
             return 'Another plugin operation is still running.'

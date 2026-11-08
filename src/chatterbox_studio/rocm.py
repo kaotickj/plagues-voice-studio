@@ -16,7 +16,7 @@ import time
 import wave
 from uuid import uuid4
 
-RAM_LIMIT = 12 * 1024**3
+RAM_LIMIT = None  # No artificial process-group RAM quota.
 TIME_LIMIT = 300
 
 
@@ -42,9 +42,6 @@ def runtime_paths(job):
     source = base / 'rocm_source' if getattr(sys, 'frozen', False) else base / 'src'
     if not runner.is_file() or not (source / 'chatterbox_studio' / 'engine.py').is_file():
         raise RuntimeError('External Chatterbox runner/plain Python sources are missing from this build')
-    lock = Path(job.rocm_gpu_lock)
-    if not lock.is_file() or lock.resolve() != Path('/run/lock/gnb-ai-gpu.lock').resolve():
-        raise RuntimeError('The existing shared GPU lock is required; no competing lock is created')
     return python, overlay, runner, source
 
 
@@ -102,25 +99,11 @@ def stop_group(proc):
 
 @contextmanager
 def gpu_lock(path, cancelled, report, deadline):
-    import fcntl
-    # The child inherits this same open-file description. Closing the parent's
-    # descriptor never unlocks a still-running child after uncertain cleanup.
-    with Path(path).open('r') as lock:
-        notified = False
-        while True:
-            if cancelled():
-                from .engine import GenerationCancelled
-                raise GenerationCancelled()
-            try:
-                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                break
-            except BlockingIOError:
-                if not notified: report('Waiting for the shared GPU lock; existing jobs remain running.')
-                notified = True
-                if time.monotonic() >= deadline - 5:
-                    raise RuntimeError('Shared GPU remained busy; no external render started')
-                time.sleep(.1)
-        yield lock
+    if cancelled():
+        from .engine import GenerationCancelled
+        raise GenerationCancelled()
+    yield None
+
 
 
 def validate_proof(runtime):
@@ -199,12 +182,11 @@ def render_external(job, report, progress, cancelled):
                 env.pop(key, None)
         env.update(HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1', HF_HUB_DISABLE_TELEMETRY='1',
             HF_HOME=str(work / 'hf'), XDG_CACHE_HOME=str(work / 'cache'),
-            NUMBA_CACHE_DIR=str(work / 'numba'), OMP_NUM_THREADS='6', MKL_NUM_THREADS='6',
-            OPENBLAS_NUM_THREADS='6', TOKENIZERS_PARALLELISM='false',
+            NUMBA_CACHE_DIR=str(work / 'numba'),
             MIOPEN_USER_DB_PATH=str(work / 'miopen-db'), MIOPEN_CUSTOM_CACHE_DIR=str(work / 'miopen-cache'),
             PYTORCH_KERNEL_CACHE_PATH=str(work / 'kernels'), TRITON_CACHE_DIR=str(work / 'triton'),
             TORCHINDUCTOR_CACHE_DIR=str(work / 'inductor'), TORCH_HOME=str(work / 'torch'))
-        report('External Chatterbox ROCm: existing local weights; no silent CPU fallback. Waiting for shared GPU if busy.')
+        report('External Chatterbox ROCm: existing local weights; no silent CPU fallback. GPU scheduling is manual.')
         peak = 0
         with gpu_lock(job.rocm_gpu_lock, cancelled, report, deadline) as lock:
                 if cancelled():
@@ -212,7 +194,7 @@ def render_external(job, report, progress, cancelled):
                 with log.open('wb') as sink:
                     proc = subprocess.Popen([str(python), '-I', '-B', '-u', '-X', 'faulthandler', str(runner), str(request), str(response)],
                         stdin=subprocess.DEVNULL, stdout=sink, stderr=subprocess.STDOUT,
-                        env=env, start_new_session=True, pass_fds=(lock.fileno(),))
+                        env=env, start_new_session=True)
                     try:
                         (diagnostics / 'process.json').write_text(json.dumps(dict(pid=proc.pid, process_group=proc.pid,
                             requested_backend='rocm', timeout_seconds=TIME_LIMIT, ram_budget_bytes=RAM_LIMIT)), encoding='utf-8')
@@ -223,8 +205,6 @@ def render_external(job, report, progress, cancelled):
                             if time.monotonic() >= deadline - 5:
                                 raise RuntimeError('External ROCm reached the 300-second bound; no output was accepted')
                             peak = max(peak, group_rss(proc.pid))
-                            if peak > RAM_LIMIT:
-                                raise RuntimeError('External ROCm exceeded the 12 GiB sampled process-group RAM budget')
                             if log.stat().st_size > 8 * 1024**2:
                                 raise RuntimeError('External ROCm diagnostics exceeded the bounded log size')
                             with log.open(encoding='utf-8', errors='replace') as stream:

@@ -142,10 +142,10 @@ separately. <a href="https://github.com/thewh1teagle/kokoro-onnx">Visit kokoro-o
 <a href="https://huggingface.co/hexgrad/Kokoro-82M">Kokoro model card</a>.</p>
 <p><b>Qt/PyQt6:</b> Desktop user interface. PyQt6 has separate
 GPL/commercial licensing requirements.</p>
-<p><b>Bethesda export (Windows only):</b> Game-specific conversion utilities and
+<p><b>Bethesda export (Windows / Linux Wine):</b> Game-specific conversion utilities and
 Creation Kit resources are supplied by the user, never redistributed here.
-The supported XWM encoders require Windows. Wine is not an integrated or tested
-conversion route.</p>
+The supported XWM encoders are Windows programs; on Linux they run through
+a separately configured Wine/Proton environment. See the Linux dependency guide.</p>
 <p>This independent application is not affiliated with or endorsed by Resemble AI,
 Bethesda Game Studios, or their respective publishers.</p>
 <p><b>Voice permissions:</b> Only clone voices with permission. Upstream

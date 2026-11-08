@@ -26,6 +26,7 @@ for package in ('chatterbox_studio', 'plagued_ai'):
         datas.append((str(source), str(Path('rocm_source') / source.relative_to(project / 'src').parent)))
 if sys.platform == 'linux':
     datas.append((str(project / 'LINUX.md'), '.'))
+    datas.append((str(project / 'BETHESDA_LINUX.md'), '.'))
 # Ship generic plugins, never the branded DJ standalone or its builds.
 for folder in ('promotional-writer', 'script-prep'):
     for path in (project / 'plugins' / folder).rglob('*'):
@@ -80,13 +81,15 @@ hidden += ['writer_core', 'writer_core.downloads', 'writer_core.runtime',
            'writer_core.settings', 'writer_core.setup_dialog', 'PyQt6.QtSvg']
 hidden += ['plagued_ai']
 # Keep portable FUZ/container and project helpers on every platform. Only the
-# complete Windows-tool-dependent production UI is excluded from Linux builds.
+# production UI is excluded only on unsupported platforms.
 hidden += ['chatterbox_studio.bethesda_export', 'chatterbox_studio.mod_profiles']
 hidden += ['PyQt6.QtMultimedia', 'PyQt6.QtMultimediaWidgets', 'soundfile', 'imageio_ffmpeg',
            'librosa', 'transformers', 'diffusers', 'torch', 'torchaudio', 'safetensors']
 
 excluded = ['gradio', 'gradio_client', 'streamlit', 'tensorflow', 'tensorboard']
-if sys.platform != 'win32':
+if sys.platform == 'win32' or sys.platform.startswith('linux'):
+    hidden.append('chatterbox_studio.bethesda_widget')
+else:
     excluded.append('chatterbox_studio.bethesda_widget')
 
 analysis = Analysis(

@@ -66,7 +66,7 @@ def protocol(tmp_path, monkeypatch):
     from chatterbox_studio import engine
     runner = tmp_path / 'stdlib_runner.py'
     source = Path(__file__).resolve().parents[1] / 'src'
-    lock = tmp_path / 'gpu.lock'; lock.touch()
+    lock = tmp_path / 'absent-legacy-gpu.lock'
     def configure(mode='success'):
         runner.write_text(textwrap.dedent(f'''\
             import hashlib, json, os, resource, sys, time, wave
@@ -144,7 +144,7 @@ def test_cancel_never_starts_external_process(tmp_path, monkeypatch):
         Engine().render(job(tmp_path), lambda _: None, lambda *_: None, lambda: True)
 
 
-def test_deadline_stops_child_and_releases_owned_gpu_lock(tmp_path, protocol, monkeypatch):
+def test_deadline_stops_child_without_external_gpu_lock(tmp_path, protocol, monkeypatch):
     import fcntl
     import os
     configure, lock = protocol; configure('hang')
@@ -153,7 +153,7 @@ def test_deadline_stops_child_and_releases_owned_gpu_lock(tmp_path, protocol, mo
         Engine().render(job(tmp_path, rocm_gpu_lock=str(lock)), lambda _: None, lambda *_: None, lambda: False)
     receipt = json.loads(next((tmp_path / '.pvs-rocm-diagnostics').glob('*/process.json')).read_text())
     with pytest.raises(ProcessLookupError): os.kill(receipt['pid'], 0)
-    with lock.open('r') as stream: fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    assert not lock.exists()
     assert not (tmp_path / 'output.wav').exists()
 
 
@@ -175,7 +175,7 @@ def test_bootstrap_disables_core_dumps_before_plain_source_child_import(tmp_path
     assert saved['parent_death_signal'] == signal.SIGTERM
 
 
-def test_postspawn_diagnostic_failure_still_stops_child_and_releases_lock(tmp_path, protocol, monkeypatch):
+def test_postspawn_diagnostic_failure_still_stops_child_without_lock(tmp_path, protocol, monkeypatch):
     import fcntl
     configure, lock = protocol; configure('hang')
     spawned = []
@@ -191,28 +191,65 @@ def test_postspawn_diagnostic_failure_still_stops_child_and_releases_lock(tmp_pa
     with pytest.raises(OSError, match='diagnostic disk failure'):
         Engine().render(job(tmp_path, rocm_gpu_lock=str(lock)), lambda _: None, lambda *_: None, lambda: False)
     assert len(spawned) == 1 and spawned[0].poll() is not None
-    with lock.open('r') as stream: fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    assert not lock.exists()
     assert not (tmp_path / 'output.wav').exists()
 
 
-def test_vram_budget_accounts_for_existing_gpu_allocations():
+@pytest.mark.parametrize('free_gib', [0, 1, 2, 6, 16])
+def test_vram_capacity_is_reported_without_artificial_budget(free_gib):
     from chatterbox_studio.rocm_child import vram_budget
     gib = 1024**3
-    assert vram_budget(6 * gib, 16 * gib) == 4 * gib
-    assert vram_budget(16 * gib, 16 * gib) == 12 * gib
-    with pytest.raises(RuntimeError, match='headroom'):
-        vram_budget(2 * gib, 16 * gib)
+    assert vram_budget(free_gib * gib, 16 * gib) == 16 * gib
 
 
-def test_gpu_busy_guard_uses_only_targeted_sysfs_metadata(tmp_path):
+def test_gpu_activity_attests_hardware_without_busy_threshold(tmp_path):
     from chatterbox_studio.rocm_child import gpu_activity
     root = tmp_path / 'drm'; card = root / 'card1' / 'device'; card.mkdir(parents=True)
     for name, value in {'vendor': '0x1002', 'device': '0x7480', 'gpu_busy_percent': '17'}.items():
         (card / name).write_text(value)
     assert gpu_activity(root)['busy_percent'] == 17
-    (card / 'gpu_busy_percent').write_text('21')
-    with pytest.raises(RuntimeError, match='busy'):
+    (card / 'gpu_busy_percent').write_text('100')
+    assert gpu_activity(root)['busy_percent'] == 100
+    (card / 'vendor').write_text('0x8086')
+    with pytest.raises(RuntimeError, match='AMD GPU'):
         gpu_activity(root)
+
+
+def test_rocm_runtime_paths_accept_absent_legacy_lock(tmp_path):
+    overlay = tmp_path / 'overlay' / 'chatterbox'; overlay.mkdir(parents=True)
+    (overlay / '__init__.py').touch()
+    candidate = job(tmp_path, rocm_gpu_lock=str(tmp_path / 'absent.lock'))
+    assert rocm.runtime_paths(candidate)[0] == Path(sys.executable).absolute()
+    assert not Path(candidate.rocm_gpu_lock).exists()
+
+
+def test_rocm_supervisor_has_no_ram_or_thread_quota(tmp_path, protocol, monkeypatch):
+    _, lock = protocol
+    captured = []
+    original = subprocess.Popen
+    def spawn(*args, **kwargs):
+        captured.append(kwargs)
+        return original(*args, **kwargs)
+    monkeypatch.setattr(rocm.subprocess, 'Popen', spawn)
+    monkeypatch.setattr(rocm, 'group_rss', lambda _: 64 * 1024**3)
+    for key in ('OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'OPENBLAS_NUM_THREADS'):
+        monkeypatch.setenv(key, '23')
+    output = Engine().render(job(tmp_path, rocm_gpu_lock=str(lock)), lambda _: None, lambda *_: None, lambda: False)
+    assert output.is_file() and rocm.RAM_LIMIT is None
+    assert 'pass_fds' not in captured[0]
+    for key in ('OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'OPENBLAS_NUM_THREADS'):
+        assert captured[0]['env'][key] == '23'
+    assert not lock.exists()
+
+
+def test_restored_sources_do_not_impose_torch_thread_or_allocator_caps():
+    import ast
+    from chatterbox_studio import rocm_child, speech_check
+    for module in (rocm_child, speech_check):
+        tree = ast.parse(Path(module.__file__).read_text())
+        calls = [node.func.attr for node in ast.walk(tree)
+                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)]
+        assert not {'set_num_threads', 'set_num_interop_threads', 'set_per_process_memory_fraction'} & set(calls)
 
 
 @pytest.mark.parametrize('fail', [False, True])

@@ -177,9 +177,9 @@ class ModelManager(QWidget):
             return
         if getattr(self.host, 'thread', None) is not None or any(
                 getattr(getattr(self.host, name, None), 'is_busy', False)
-                for name in ('engine_lab', 'bethesda_tab')):
+                for name in ('engine_lab',)):
             QMessageBox.information(self, 'Operation running',
-                'Finish or cancel the active narration, voice-engine, or export operation before starting model operations.')
+                'Finish or cancel the active narration or voice-engine operation before starting model operations.')
             return
         key = self.model.currentData()
         entry = MODELS[key]

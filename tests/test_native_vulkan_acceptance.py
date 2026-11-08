@@ -166,18 +166,35 @@ def test_selected_model_size_cannot_be_silently_substituted(native_case):
     assert not capture.exists()
 
 
-def test_native_gpu_lock_is_exclusive_without_replacing_existing_file(native_case):
+def test_native_legacy_gpu_lock_is_ignored_without_replacing_file(native_case):
     import fcntl
     nv, request, capture, _ = native_case
     lock = Path(request['native_gpu_lock'])
     before = lock.stat().st_ino
     with lock.open('r') as held:
         fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        with pytest.raises(nv.NativeVulkanError, match='(?i)busy'):
-            with nv.gpu_reservation(lock, timeout=0.01):
-                pytest.fail('A second owner acquired an already held GPU lock')
+        with nv.gpu_reservation(lock, timeout=0.01):
+            pass
     assert lock.stat().st_ino == before
     assert not capture.exists()
+
+
+def test_native_generation_needs_no_external_lock(native_case):
+    nv, request, capture, _ = native_case
+    request['native_gpu_lock'] = str(capture.parent / 'absent.lock')
+    output = nv.execute_native_generation(request, timeout_seconds=3)
+    assert Path(request["output_path"]).is_file() and capture.exists()
+    assert not Path(request['native_gpu_lock']).exists()
+
+
+def test_native_threads_follow_cpu_capacity_without_forced_env_cap(native_case, monkeypatch):
+    nv, request, _, _ = native_case
+    monkeypatch.setattr(nv.os, 'cpu_count', lambda: 24)
+    monkeypatch.setenv('OMP_NUM_THREADS', '19')
+    config = nv.validate_native_configuration(request['engine'], request['model'], request)
+    command = nv.build_native_command(request, config, Path(request['voice_path']), Path(request['output_path']))
+    assert command[command.index('--threads') + 1] == '24'
+    assert nv._environment()['OMP_NUM_THREADS'] == '19'
 
 
 def running(pid):
@@ -283,7 +300,7 @@ def test_native_route_preserves_original_reference_and_literal_arguments(native_
 
 @pytest.mark.parametrize('field,value', [
     ('native_sha256', '0' * 64), ('native_executable', '/not/present/native'),
-    ('native_model_dir', '/not/present/model'), ('native_gpu_lock', '/not/present/lock'),
+    ('native_model_dir', '/not/present/model'),
 ])
 def test_native_configuration_failure_never_spawns(native_case, field, value):
     nv, request, capture, _ = native_case

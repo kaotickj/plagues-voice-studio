@@ -122,13 +122,23 @@ different from the CPU-only bundled Torch, even though both may show CUDA-named
 controls. This candidate has no qualified Chatterbox ROCm environment; selecting
 a GPU label alone does not establish accelerated execution.
 
-Full Bethesda LIP/XWM/FUZ production is supported on Windows only. Linux builds
-exclude its tab, production UI module and handoff actions; ordinary WAV/MP3
-exports remain available. The supported XWM encoders depend on Windows, and
-Voice Studio has no integrated or tested Wine conversion route. Saved Bethesda
-project data is preserved. Portable format/project helpers remain in the source
-for validation and compatibility; passing their Linux tests does not establish
-a working Linux XWM encoder.
+
+## Bethesda LIP / XWM / FUZ export
+
+Linux can run separately installed Windows conversion tools through an explicitly
+selected Wine executable and initialized dedicated prefix. Follow
+[BETHESDA_LINUX.md](BETHESDA_LINUX.md) for Debian packages, prefix setup, official
+Fallout 4 LipGenerator, optional FaceFXWrapper acquisition, encoder dependencies,
+GUI settings and troubleshooting. No automatic proprietary-tool installation is
+performed. FFmpeg stays native and this conversion does not require a GPU.
+
+The actual export API passed a real-tool Fallout 4 LIP/xWMA/FUZ export on Debian
+with a fresh GE-Proton Wine prefix and locally installed official CK tools.
+See [BETHESDA_LINUX_VALIDATION.md](BETHESDA_LINUX_VALIDATION.md) for measured
+results and runtime limits. FaceFXWrapper exports also passed for Fallout 4,
+Skyrim and Skyrim SE after the documented optional GE vendor-runtime setup.
+This does not establish universal Wine compatibility, native Windows execution
+or in-game lip sync.
 
 ## Build from source
 

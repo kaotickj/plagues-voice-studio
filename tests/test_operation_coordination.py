@@ -1,5 +1,6 @@
 """Exercise real operation entry points without starting threads or AI work."""
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
@@ -29,7 +30,8 @@ def operation(starter, tmp_path):
             host=host, thread=None, is_busy=False,
             model=SimpleNamespace(currentData=lambda: 'qwen-0.6b'),
             _config=lambda: SimpleNamespace(validate=lambda: None),
-            _save_tools=lambda: None,
+            _save_tools=lambda: None, cancel_event=Mock(),
+            cancel_button=Mock(), diagnose_button=Mock(), status=Mock(),
             run_button=SimpleNamespace(setEnabled=lambda _: None))
         args = ('check',) if starter == 'model' else ()
         field = {'engine': 'engine_lab', 'model': 'model_manager',
@@ -38,9 +40,12 @@ def operation(starter, tmp_path):
     return host, caller, args
 
 
-@pytest.mark.parametrize('starter', STARTERS)
-@pytest.mark.parametrize('active', ['narration', 'engine', 'model', 'export', 'plugin'])
-def test_operation_waits_for_every_other_operation_before_starting_worker(
+@pytest.mark.parametrize(('starter', 'active'), [
+    (starter, active) for starter in STARTERS
+    for active in ['narration', 'engine', 'model', 'export', 'plugin']
+    if (starter == 'export') == (active == 'export')
+])
+def test_gpu_operations_coordinate_and_export_blocks_only_itself(
         tmp_path, monkeypatch, starter, active):
     module, start = STARTERS[starter]
     host, caller, args = operation(starter, tmp_path)
@@ -78,6 +83,38 @@ def test_idle_host_can_reach_worker_creation(tmp_path, monkeypatch, starter):
 
     monkeypatch.setattr(module, 'QThread', stop_before_thread)
     monkeypatch.setattr(module.QMessageBox, 'information', lambda *args: pytest.fail('Idle operation was blocked'))
+    monkeypatch.setattr(model_manager, 'qwen_python', lambda _: '/usr/bin/python3')
+    monkeypatch.setattr(bethesda_widget, 'expected_fuz_path', lambda _: tmp_path / 'new.fuz')
+    with pytest.raises(ReachedWorkerCreation):
+        start(caller, *args)
+
+
+@pytest.mark.parametrize(('starter', 'active'), [
+    ('export', 'narration'), ('export', 'engine'), ('export', 'model'),
+    ('export', 'plugin'), ('narration', 'export'), ('engine', 'export'),
+    ('model', 'export'),
+])
+def test_existing_audio_export_is_independent_of_gpu_operations(
+        tmp_path, monkeypatch, starter, active):
+    module, start = STARTERS[starter]
+    host, caller, args = operation(starter, tmp_path)
+    if active == 'narration':
+        host.thread = object()
+    else:
+        field = {'engine': 'engine_lab', 'model': 'model_manager',
+                 'export': 'bethesda_tab', 'plugin': 'plugins'}[active]
+        getattr(host, field).is_busy = True
+        getattr(host, field).thread = object()
+
+    class ReachedWorkerCreation(Exception):
+        pass
+
+    def stop_before_thread(*args):
+        raise ReachedWorkerCreation
+
+    monkeypatch.setattr(module, 'QThread', stop_before_thread)
+    monkeypatch.setattr(module.QMessageBox, 'information',
+                        lambda *args: pytest.fail('Independent operation was blocked'))
     monkeypatch.setattr(model_manager, 'qwen_python', lambda _: '/usr/bin/python3')
     monkeypatch.setattr(bethesda_widget, 'expected_fuz_path', lambda _: tmp_path / 'new.fuz')
     with pytest.raises(ReachedWorkerCreation):

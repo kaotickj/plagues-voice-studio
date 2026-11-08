@@ -173,7 +173,7 @@ and do not qualify the Linux source candidate below.
 
 This uninstalled source candidate adds an explicit **Native Vulkan** choice for
 Qwen Base 0.6B/1.7B. It uses an independently supplied audio.cpp executable,
-reviewed executable hash, compatible model folder and existing coordination lock.
+reviewed executable hash and compatible model folder. Legacy lock paths are ignored; GPU scheduling is manual.
 It does not install or redistribute that runtime, download weights, select this
 backend automatically, or fall back to Python/CPU after a Vulkan failure.
 

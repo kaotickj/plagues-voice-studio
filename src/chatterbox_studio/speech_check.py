@@ -34,7 +34,7 @@ def run(request_path: Path, report_path: Path) -> int:
                     import torch
                     from .engine import Engine
                     from .jobs import NarrationJob
-                    torch.set_num_threads(6);torch.manual_seed(731)
+                    torch.manual_seed(731)
                     allowed=('text','model','device','language','voice_path','output_path',
                              'pause_ms','max_chars','exaggeration','cfg_weight','temperature',
                              'profile','voice_id','prepared_text','render_scope')

@@ -189,6 +189,8 @@ installing. Neither format bundles model weights or optional engine runtimes;
 install/reinstall/removal preserves per-user models, voices and settings.
 See [LINUX.md](LINUX.md) for system packages, extraction, launch and acceptance
 limits. Linux engine inference is being validated separately from Windows.
+For Bethesda tool acquisition, Debian Wine dependencies and per-game export setup,
+see [BETHESDA_LINUX.md](BETHESDA_LINUX.md).
 
 ## Building on Windows
 

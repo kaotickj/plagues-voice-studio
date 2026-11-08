@@ -58,3 +58,15 @@ audio, and retain a known installer for rollback before changing versions.
 Final Windows installer checks, Linux package checks, asset names/digests and
 upload state must be verified before this release is made public. At preparation
 time, no RC4 public release or successful final CI run is claimed.
+
+## Preserved installed Linux runtime behavior
+
+This integration restores four existing local patches from the installed Linux
+runtime, rather than introducing a new scheduling policy. Frozen speech-check,
+ROCm supervisor and native Vulkan modules were verified against the installed
+plain sources; the ROCm child is loaded from those external plain sources.
+External GPU lock files are not required or acquired. GPU scheduling remains
+manual, without the former fixed CPU-thread, 12 GiB RAM/VRAM, reserved-headroom
+or GPU-busy thresholds. Runtime thread preferences are retained. Cancellation,
+timeouts, owned-child cleanup, codec/output validation, hardware attestation and
+the prohibition on silent CPU fallback remain in place.

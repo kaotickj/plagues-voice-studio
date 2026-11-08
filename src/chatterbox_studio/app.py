@@ -897,9 +897,9 @@ class MainWindow(QMainWindow):
         if self.thread is not None:
             return
         if any(getattr(getattr(self, name, None), 'is_busy', False)
-               for name in ('engine_lab', 'model_manager', 'bethesda_tab')):
+               for name in ('engine_lab', 'model_manager')):
             QMessageBox.information(self, 'Operation running',
-                'Finish or cancel the active voice, model, or export operation before starting narration.')
+                'Finish or cancel the active voice or model operation before starting narration.')
             return
         self.current_jobs = jobs[:]
         self.thread = QThread(self)
@@ -1089,10 +1089,9 @@ class MainWindow(QMainWindow):
         self.settings.sync()
 
     def _build_bethesda_tab(self):
-        # The production converter depends on Windows FaceFX/xWMA tooling.
-        # Portable container/project helpers remain usable independently.
+        # Native Windows tools and Linux Wine/Proton support production export.
         self.bethesda_tab = None
-        if sys.platform == 'win32':
+        if sys.platform == 'win32' or sys.platform.startswith('linux'):
             from .bethesda_widget import BethesdaExportTab
             self.bethesda_tab = BethesdaExportTab(self)
             self.tabs.addTab(self.bethesda_tab, "Bethesda Voice Export")
