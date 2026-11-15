@@ -1,6 +1,44 @@
 # Plague's Voice Studio release readiness
 
-## Current local RC4 checkpoint — October 26, 2026
+## Current development assessment — November 15, 2026
+
+**Not yet qualified for a stable release.** Current feature source is
+`e799e068841358f05a7b2f986b0f12b4be7d84c2` on
+`feature/linux-bethesda-export`; its version remains `1.0.0rc4`.
+The exact curated source passed **905 tests, 17 subtests, with 3 skips** in
+isolated Python 3.12/offscreen testing. Those tests are not a final installer or
+real-microphone acceptance result.
+
+Evidence already present includes Debian RC4 real Chatterbox/IndexTTS GPU
+speech, Linux Bethesda real-tool API exports, and bounded Seed-VC trials,
+including one natural recording. See [SPEAK_AS.md](SPEAK_AS.md),
+[SEED_VC.md](SEED_VC.md), and [BETHESDA_RELEASE_CHECK.md](BETHESDA_RELEASE_CHECK.md).
+Those reports state their source/platform limits. The Seed trial did not test a
+new live microphone session; Windows/frozen GPU lifecycle remains unqualified.
+Linux export API success is not native Windows or in-game acceptance.
+
+Remaining release gates:
+
+- Reconcile the separate RC4 launcher/checkpoint/GPU-lock and diagnostic API
+  variants documented in [the sync validation](docs/SYNC_VALIDATION_20261115.md).
+- Build and qualify final Windows and Linux artifacts from one selected release
+  revision, with matching embedded source, installer upgrade/reinstall/removal,
+  data preservation, desktop audio and supported runtime lifecycle checks.
+- Complete actual microphone and listening acceptance for the supported Speak As
+  scope; retain experimental engine/platform limits explicitly.
+- Verify remaining supported Bethesda in-game and fresh optional-runtime setup
+  acceptance, or narrow the release's advertised support accordingly.
+- Prepare matching checksums/provenance and verify uploaded assets before any
+  publication. Model/runtime redistribution remains separately scoped.
+
+GitHub was checked on November 15: `v1.0.0rc1` remains a published prerelease;
+`v1.0.0rc2` remains a draft with older Windows assets. There is no published RC4
+or stable release, and those older assets do not qualify this feature revision.
+No release was created, main merged, model job launched or paid workflow started
+for this assessment. Historical approval/build instructions below are records,
+not authorization to rerun workflows during this source sync.
+
+## Historical local RC4 checkpoint — October 26, 2026
 
 Application revision: `2746de5dd41a87bd0eec6f596f95b7cde3399973`.
 RC4 is locally installed; publication remains held. The RC2 evidence retained
