@@ -1,16 +1,43 @@
-# Plague's Voice Studio v1.0.0rc4 — local candidate
+# Plague's Voice Studio — RC4 development
 
-**Current local candidate:** RC4 at `2746de5dd41a87bd0eec6f596f95b7cde3399973` is installed on the creator's Debian machine. Original English Chatterbox has completed AMD ROCm GPU speech, including reference conditioning and the vocoder. The creator accepted the Plague audition and verified settings persistence; current manual acceptance remains conditional on IndexTTS installation. Other Chatterbox variants and optional-engine GPU synthesis are not thereby qualified. See [release evidence and limits](RELEASE_READINESS.md), [detailed Windows/Linux IndexTTS setup](INDEXTTS_INSTALLATION.md), and the [wiki](https://github.com/kaotickj/plagues-voice-studio/wiki).
+**Current source:** `feature/linux-bethesda-export` includes RC4 narration,
+Linux Bethesda export, and the newer **Speak As** workflow with optional
+Seed-VC/direct conversion. The application version remains `1.0.0rc4`.
+The curated application source at `e799e06` passed **905 tests and 17 subtests,
+with three skips**, in isolated Python 3.12 testing. Later changes update
+documentation only. This is development-source qualification, not a stable
+release or proof of a matching Windows/Linux installer.
 
-**Publication is held.** Matching Windows and Linux installers, checksums and release jobs for RC4 are not yet complete. Use the [official Releases page](https://github.com/kaotickj/plagues-voice-studio/releases) to inspect actual published assets; this local candidate is not a claim of a public RC4 release. The package table below describes intended RC4 outputs, not completed uploads. Historical [RC2](RELEASE_NOTES_1.0.0rc2.md) and [RC1 notes](RELEASE_NOTES_1.0.0rc1.md) retain their earlier evidence.
+**Downloads checked November 15, 2026:** the newest published Voice Studio
+release is still **v1.0.0rc1**, marked prerelease. RC2 has an older Windows
+installer in an unpublished draft. **No installer was built for the latest
+feature push, and no RC4 or stable release is published.**
 
-| Platform | Installer | First launch |
-| --- | --- | --- |
-| Windows x64 | `PlaguesVoiceStudio-Setup-1.0.0rc4.exe` | Run the installer, then launch Plague's Voice Studio. Existing application identity and data paths are retained. |
-| Debian 13 amd64 | `plagues-voice-studio_1.0.0~rc4-1_amd64.deb` | Check the checksum, then use `sudo apt install ./plagues-voice-studio_*_amd64.deb` and launch `plagues-voice-studio`. GitHub may replace the filename's tilde with a dot; the internal version remains `1.0.0~rc4-1`. |
+| Available public package | Status and source boundary |
+| --- | --- |
+| [Windows RC1 setup EXE](https://github.com/kaotickj/plagues-voice-studio/releases/download/v1.0.0rc1/PlaguesVoiceStudio-Setup-1.0.0rc1.exe) | Existing Windows installer from the RC1 source; does not contain the newer RC4/Speak As work. |
+| Windows slim portable ZIP | Available on the [RC1 release page](https://github.com/kaotickj/plagues-voice-studio/releases/tag/v1.0.0rc1); keep its full extracted directory intact. |
+| Linux RC1 portable and Debian amd64 package | Listed on that release page with their own Linux checksums/build information; added after the original Windows tag and qualified separately. |
+| Current RC4 development installers | Matching final Windows/Linux build and acceptance are still pending; source publication does not create installer assets. |
 
-Windows ZIP and Linux `.tar.gz` portable editions are also provided. Keep each extracted directory intact. Check the Linux package's `BUILD-INFO.json` and [Linux guide](LINUX.md) for its glibc baseline and system dependencies. Model weights and optional Qwen/Index/Kokoro runtimes are configured separately; the installers do not include them.
-The [separate DJ Writer 0.9.3 Vulkan update](https://github.com/kaotickj/plagues-voice-studio/releases/tag/dj-writer-v0.9.3) also provides installer and portable packages.
+Verify each download against its release's checksum manifest. Installers omit
+model weights and optional engine runtimes. Use [Linux instructions](LINUX.md),
+[detailed IndexTTS setup](INDEXTTS_INSTALLATION.md), and the
+[wiki capability matrix](https://github.com/kaotickj/plagues-voice-studio/wiki/Supported-Versions)
+for platform-specific requirements. The
+[separate DJ Writer Windows release](https://github.com/kaotickj/plagues-voice-studio/releases/tag/dj-writer-v0.9.3)
+is a companion application, not a Voice Studio installer.
+
+**Release readiness:** Debian evidence includes real Original English
+Chatterbox/IndexTTS GPU speech, Linux Bethesda real-tool exports, and bounded
+Seed-VC trials. Those results do not establish all engines, hardware, native
+Windows/in-game acceptance, or live-microphone quality. The separate RC4
+variants, final platform packages and supported runtime/microphone checks still
+need reconciliation and qualification. See [current release gates](RELEASE_READINESS.md),
+[Speak As](SPEAK_AS.md), [Seed-VC evidence](SEED_VC.md), and
+[Bethesda qualification](BETHESDA_RELEASE_CHECK.md). Historical
+[RC2](RELEASE_NOTES_1.0.0rc2.md) and [RC1 notes](RELEASE_NOTES_1.0.0rc1.md)
+retain their version-specific evidence.
 
 **Writer plugin:** source builds now include **Plugins → Promotional Writer** for
 generic ad copy, promotions, announcements and custom writing. It uses a separate
