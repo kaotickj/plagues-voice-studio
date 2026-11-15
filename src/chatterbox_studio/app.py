@@ -320,6 +320,10 @@ class MainWindow(QMainWindow):
         self.voice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.voice.setMinimumContentsLength(12)
         voice_layout.addWidget(self.voice)
+        speak_as = QPushButton("Speak as…")
+        speak_as.setObjectName('speak_as_button')
+        speak_as.clicked.connect(self._speak_as)
+        voice_layout.addWidget(speak_as)
         self.voice.currentIndexChanged.connect(self._voice_changed)
         add_voice = QPushButton("Import reference...")
         add_voice.clicked.connect(self._add_voice)
@@ -695,6 +699,17 @@ class MainWindow(QMainWindow):
         has_voice = bool(selected and self.voices.resolve(selected))
         self.remove_voice.setEnabled(has_voice and not str(selected).startswith(('legacy:', 'stable:')))
         self.preview_voice.setEnabled(has_voice)
+
+    def _speak_as(self):
+        if (self.thread is not None or self.plugins.is_busy or any(
+                getattr(getattr(self, name, None), 'is_busy', False)
+                for name in ('bethesda_tab', 'engine_lab', 'model_manager'))):
+            QMessageBox.information(self, 'Studio busy', 'Finish current work before recording or converting.')
+            return
+        from .speak_as import SpeakAsDialog
+        self.player.stop()
+        dialog = SpeakAsDialog(self)
+        dialog.exec()
 
     def _preview_voice(self):
         path = self.voices.resolve(self.voice.currentData() or "")

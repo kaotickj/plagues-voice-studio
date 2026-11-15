@@ -52,12 +52,16 @@ def verify(exe: Path):
               'chatterbox_studio.optional_engines','chatterbox_studio.native_vulkan',
               'chatterbox_studio.text_preparation','chatterbox_studio.engine_lab',
               'chatterbox_studio.rocm',
-              'writer_core.runtime','plagued_ai'}
+              'writer_core.runtime','plagued_ai','chatterbox_studio.speak_as','chatterbox_studio.warm_client','chatterbox_studio.speak_as_export'}
     if not required.issubset(compared):raise RuntimeError('Missing owned modules: '+str(required-set(compared)))
     required_plain={'rocm_source/chatterbox_studio/'+name+'.py' for name in
                     ('engine','jobs','rocm','rocm_child','rocm_fft','rocm_reference_fft')}
     if not required_plain.issubset(compared):
         raise RuntimeError('Missing required external ROCm sources: '+str(required_plain-set(compared)))
+    for name in ('warm_worker', 'voice_conversion', 'seed_conversion', 'index_emotion', 'fast_asr'):
+        owned = ROOT/'src/chatterbox_studio'/(name+'.py')
+        bundled = internal/'chatterbox_studio'/(name+'.py')
+        compared['speak_as_worker/'+name] = bundled.is_file() and bundled.read_bytes() == owned.read_bytes()
     return dict(status='passed' if all(compared.values()) else 'failed',checks=compared)
 
 

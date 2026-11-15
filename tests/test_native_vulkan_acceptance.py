@@ -200,7 +200,8 @@ def test_native_threads_follow_cpu_capacity_without_forced_env_cap(native_case, 
 def running(pid):
     try:
         return Path(f'/proc/{pid}/stat').read_text().split(') ', 1)[1][0] != 'Z'
-    except FileNotFoundError:
+    except (FileNotFoundError, ProcessLookupError):
+        # Linux may remove the task after /proc/stat opens but before read().
         return False
 
 
@@ -210,7 +211,10 @@ def stop_stub_descendant(capture):
         for key in ('child', 'pid'):
             pid = json.loads(capture.read_text()).get(key)
             if pid and running(pid):
-                os.kill(pid, signal.SIGKILL)
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass  # The owned fixture exited between the check and kill.
 
 
 def test_native_cancellation_stops_owned_descendants_and_releases_lock(native_case):
@@ -745,3 +749,11 @@ def test_sidecar_publication_race_preserves_other_metadata_and_removes_only_own_
         oe.execute_generation(request, '/not/a/python', timeout_seconds=3)
     assert metadata.read_bytes() == other_owner
     assert not output.exists()
+
+
+@pytest.mark.parametrize('error', [FileNotFoundError, ProcessLookupError])
+def test_process_probe_treats_disappearing_fixture_as_exited(monkeypatch, error):
+    def exited(*args, **kwargs):
+        raise error('synthetic process exited during /proc read')
+    monkeypatch.setattr(Path, 'read_text', exited)
+    assert not running(123456)

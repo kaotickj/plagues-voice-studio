@@ -86,3 +86,25 @@ Creative Commons Attribution-ShareAlike 4.0). Review the linked source/history
 and license when reusing reference prose. Original curated notes in the writer
 are concise factual summaries with source links. Generated drafts are never
 silently promoted to wiki facts or saved reference entries.
+
+### Optional Seed-VC Speak As conversion
+
+- **Seed-VC** by Plachta and contributors: the reviewed upstream source at
+  `51383efd921027683c89e5348211d93ff12ac2a8` carries GNU GPL version 3,
+  https://github.com/Plachtaa/seed-vc . The pinned **Plachta/Seed-VC** model card
+  declares GPL-3.0. Runtime source, environments and weights are installed
+  separately and are **not bundled** with Voice Studio.
+- The selected **V1 F0-auto** profile also uses **openai/whisper-small** and
+  **funasr/campplus** (pinned model cards declare Apache-2.0),
+  **nvidia/bigvgan_v2_44khz_128band_512x** (MIT, full NVIDIA license supplied), and
+  **rmvpe.pt** from **lj1995/VoiceConversionWebUI** (pinned card declares MIT).
+  See [SEED_VC.md](SEED_VC.md) for exact revisions, source links, hashes and the
+  limits of this metadata-based model-license review.
+- The original subprocess adapter invokes the separately installed upstream
+  inference API; no upstream inference implementation or model weights are
+  copied into the application package. The original integration source remains
+  MIT; the GUI binary's GPLv3 distribution terms in `BINARY_LICENSE.md` remain
+  applicable. Neither license grants rights to the upstream models or recordings.
+- This architecture and notice are not a full legal compliance audit or clearance
+  to redistribute a combined runtime/model bundle. Review the exact dependencies,
+  modifications, notices and corresponding-source obligations before doing so.

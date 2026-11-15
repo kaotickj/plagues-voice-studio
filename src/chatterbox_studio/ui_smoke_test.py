@@ -114,6 +114,97 @@ def _check_export_script_preview(browser, sample_dir: Path) -> None:
         raise RuntimeError('Legacy recording reused a different audio file script.')
 
 
+def _check_speak_as(window):
+    """Open/close the actual dialog twice, forbidding all capture and playback."""
+    from types import SimpleNamespace
+    from PyQt6.QtCore import QTimer, QProcess
+    from PyQt6.QtWidgets import QPushButton, QApplication
+    from . import speak_as
+    button = window.findChild(QPushButton, 'speak_as_button')
+    if button is None:
+        raise RuntimeError('Speak As button missing from main window.')
+    original = speak_as.QMediaPlayer, speak_as.QAudioOutput, speak_as.QAudioSource, speak_as.QFileDialog
+    signal = SimpleNamespace(connect=lambda callback: None)
+    def no_source(url):
+        if not url.isEmpty():
+            raise RuntimeError('Speak As UI test attempted audio playback.')
+    def forbidden(*args):
+        raise RuntimeError('Speak As UI test attempted microphone or playback.')
+    speak_as.QMediaPlayer = lambda *args: SimpleNamespace(setAudioOutput=lambda value: None,
+        errorOccurred=signal, stop=lambda: None, setSource=no_source, play=forbidden)
+    speak_as.QAudioOutput = lambda *args: object()
+    speak_as.QAudioSource = forbidden
+    dialogs = []
+    errors = []
+    saved = []
+    def inspect_and_close():
+        dialog = QApplication.activeModalWidget()
+        try:
+            if not isinstance(dialog, speak_as.SpeakAsDialog):
+                raise RuntimeError('Main button did not open Speak As.')
+            dialogs.append(dialog)
+            if dialog.source or dialog.warm.busy or dialog.process.state() != QProcess.ProcessState.NotRunning:
+                raise RuntimeError('Opening Speak As started microphone or inference.')
+            seed_index = dialog.mode.findData('seed_v1')
+            if seed_index < 0:
+                raise RuntimeError('Seed-VC V1 option is missing from Speak As.')
+            dialog.mode.setCurrentIndex(seed_index)
+            if (dialog.runtime_label.text() != 'Seed-VC V1 runtime'
+                    or not dialog.runtime_path.isReadOnly()
+                    or not dialog.transcript.isHidden() or not dialog.reference_mode.isHidden()):
+                raise RuntimeError('Seed-VC V1 runtime or direct-conversion controls are incorrect.')
+            if not dialog._seed_configured() and (dialog.record.isEnabled()
+                    or 'Seed-VC V1 unavailable' not in dialog.runtime_note.text()):
+                raise RuntimeError('Missing Seed-VC V1 configuration was not shown before capture.')
+            dialog.mode.setCurrentIndex(dialog.mode.findData('index25'))
+            if dialog.reference_mode.currentData() != 5:
+                raise RuntimeError('Fast reference is not the initial selection.')
+            dialog.reference_mode.setCurrentIndex(dialog.reference_mode.findData(0))
+            if dialog.reference_mode.currentData() != 0:
+                raise RuntimeError('Full reference is not selectable.')
+            dialog.cancel.click()
+            # Exercise permanent save from the real button with fixture bytes,
+            # never microphone capture, model inference or media playback.
+            import wave
+            source = Path(dialog.temp.name) / 'converted-fixture.wav'
+            with wave.open(str(source), 'wb') as audio:
+                audio.setnchannels(1); audio.setsampwidth(2); audio.setframerate(16000)
+                audio.writeframes(b'\x01\x00' * 4000)
+            destination = window.storage / f'speak-as-saved-{len(dialogs)}.wav'
+            expected = source.read_bytes()
+            dialog.last_result = {'path': source, 'saved': False, 'metadata': {
+                'engine': 'chatterbox', 'workflow': 'speak_as', 'conversion': 'direct_audio',
+                'voice': 'UI fixture', 'text': '', 'transcription': None}}
+            speak_as.QFileDialog = SimpleNamespace(Option=original[3].Option,
+                getSaveFileName=lambda *args, **kwargs: (str(destination), 'WAV (*.wav)'))
+            dialog.save.setEnabled(True)
+            dialog.save.click()
+            if not dialog.last_result['saved'] or destination.read_bytes() != expected:
+                raise RuntimeError('Speak As permanent save failed.')
+            saved.append((destination, expected))
+        except Exception as exc:
+            errors.append(str(exc))
+        finally:
+            if dialog is not None:
+                dialog.reject()
+    try:
+        for _ in range(2):
+            QTimer.singleShot(0, inspect_and_close)
+            button.click()
+        if errors or len(dialogs) != 2 or dialogs[0] is dialogs[1]:
+            raise RuntimeError('Speak As lifecycle check failed: ' + '; '.join(errors))
+        if any(Path(dialog.temp.name).exists() for dialog in dialogs):
+            raise RuntimeError('Speak As temporary files remain after close.')
+        if any(path.read_bytes() != expected for path, expected in saved):
+            raise RuntimeError('Saved Speak As recording did not survive dialog close.')
+        return {'opened_twice': True, 'fast_full_controls': True, 'temporary_cleanup': True,
+                'seed_v1_controls': True,
+                'permanent_save_survives_close': len(saved) == 2,
+                'microphone_opened': False, 'model_started': False}
+    finally:
+        speak_as.QMediaPlayer, speak_as.QAudioOutput, speak_as.QAudioSource, speak_as.QFileDialog = original
+
+
 def run(report_path: Path | None = None, *, no_audio: bool = False) -> int:
     report = {"version": __version__,
               "test": "Qt main-window and About dialog lifecycle" + (" (NO AUDIO)" if no_audio else ""),
@@ -157,6 +248,7 @@ def run(report_path: Path | None = None, *, no_audio: bool = False) -> int:
                 if window.windowIcon().isNull():
                     raise RuntimeError('Application icon was not packaged.')
                 window.show()
+                report['speak_as'] = _check_speak_as(window)
                 bethesda_available = sys.platform == 'win32' or sys.platform.startswith('linux')
                 if (window.bethesda_tab is not None) != bethesda_available:
                     raise RuntimeError('Bethesda production export must match Windows/Linux platform support.')

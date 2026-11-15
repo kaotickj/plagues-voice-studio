@@ -262,3 +262,7 @@ The links are also available under **Help → Support Project Development** in t
 ## Licensing
 
 MIT applies to original project code subject to the included `LICENSE`. Windows GUI binaries include GPL PyQt6 and are distributed under GPL v3; see [BINARY_LICENSE.md](BINARY_LICENSE.md) for the full-license location and corresponding source directions. Chatterbox is by Resemble AI. Optional engines have their own terms; IndexTTS 2.5 uses a **Bilibili Model Use License Agreement**. Optional speech/writing engine weights and runtimes are not bundled in the standard slim package. See `THIRD_PARTY_NOTICES.md` and upstream model cards before redistributing model bundles.
+
+## Speak As
+
+The main app now includes **Speak as…** beside the reference-voice selector, with Seed-VC V1 F0-auto or Chatterbox direct audio conversion, permanent Save WAV, playback and warm-model reuse. Seed uses an explicitly configured external runtime and models; see [Seed setup and licensing](SEED_VC.md). IndexTTS transcription/re-synthesis remains an alternate; conversion may change performance details. See [Speak As setup, controls and verification scope](SPEAK_AS.md).

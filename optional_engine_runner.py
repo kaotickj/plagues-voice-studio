@@ -11,6 +11,7 @@ import shutil
 from pathlib import Path
 import sys
 import traceback
+from contextlib import contextmanager, nullcontext
 from uuid import uuid4
 
 
@@ -229,7 +230,126 @@ def qwen_run(req: dict) -> None:
     stage('WAV saved successfully')
 
 
-def index_run(req: dict) -> None:
+@contextmanager
+def materialized_index_semantic_model(upstream, torch):
+    """Worker-local mitigation for a mapped-storage ROCm transfer stall.
+
+    Copy the semantic model's CPU tensors before upstream moves them to GPU.
+    Never rewrite checkpoints or installed packages. Restore the upstream alias
+    even if model loading fails; preserve weights, dtype and shape.
+    """
+    original = upstream.Wav2Vec2BertModel
+
+    class MaterializedSemanticModel:
+        @staticmethod
+        def from_pretrained(*args, **kwargs):
+            model = original.from_pretrained(*args, **kwargs)
+            stage('Materializing Index semantic weights in CPU memory before GPU transfer')
+
+            def copy_cpu(tensor):
+                if tensor.device.type != 'cpu':
+                    raise RuntimeError('Semantic materialization expected CPU tensors.')
+                return tensor.clone()
+
+            with torch.no_grad():
+                model._apply(copy_cpu)
+            stage('Index semantic CPU materialization finished; transferring to GPU')
+            return model
+
+    upstream.Wav2Vec2BertModel = MaterializedSemanticModel
+    try:
+        yield
+    finally:
+        upstream.Wav2Vec2BertModel = original
+
+
+@contextmanager
+def index_reference_conditioning(synthesizer, seconds, torch):
+    """Shorten only the diffusion prompt, preserving speaker/style embeddings.
+
+    IndexTTS 2.5 builds its speaker and style embeddings from the original
+    reference, then concatenates the diffusion prompt with the generated speech.
+    Its caller later removes the *original* prompt length from the result. Pad
+    the omitted prefix back onto the result so that removal remains correct.
+    The padding is discarded before vocoding, never heard or saved. Keeping this
+    adaptation at the diffusion boundary avoids editing upstream packages or
+    mutating cached reference tensors; cold runs, new voices, and Fast/Full
+    changes all follow exactly the same path.
+    """
+    synthesizer._pvs_reference_seconds = 0
+    synthesizer._pvs_reference_note = ''
+    if seconds == 0:
+        yield
+        return
+    try:
+        import inspect
+        cfm = synthesizer.s2mel.models['cfm']
+        original = cfm.inference
+        params = tuple(inspect.signature(original).parameters)
+        preprocess = synthesizer.cfg.s2mel['preprocess_params']
+        sr = int(preprocess['sr'])
+        hop = int(preprocess['spect_params']['hop_length'])
+        if (params[:6] != ('mu', 'x_lens', 'prompt', 'style', 'f0', 'n_timesteps')
+                or (sr, hop) != (22050, 256)):
+            raise ValueError('unrecognized diffusion interface')
+    except (AttributeError, KeyError, TypeError, ValueError):
+        synthesizer._pvs_reference_note = 'Fast reference unavailable with this Index runtime; using full reference.'
+        stage(synthesizer._pvs_reference_note)
+        yield
+        return
+    max_frames = max(1, int(seconds * sr / hop))
+
+    def inference(mu, x_lens, prompt, style, f0, n_timesteps, **kwargs):
+        full_frames = prompt.shape[-1]
+        # Fail back to upstream unchanged for layouts this adapter has not
+        # qualified. This never changes device, precision or diffusion steps.
+        if (mu.ndim != 3 or prompt.ndim != 3 or mu.shape[0] != 1
+                or prompt.shape[0] != 1 or x_lens.numel() != 1
+                or mu.shape[1] <= full_frames or f0 is not None):
+            synthesizer._pvs_reference_seconds = 0
+            synthesizer._pvs_reference_note = 'Fast reference unavailable for this input layout; using full reference.'
+            stage(synthesizer._pvs_reference_note)
+            return original(mu, x_lens, prompt, style, f0, n_timesteps, **kwargs)
+        frames = min(full_frames, max_frames)
+        synthesizer._pvs_reference_seconds = seconds
+        if frames == full_frames:
+            return original(mu, x_lens, prompt, style, f0, n_timesteps, **kwargs)
+        shortened = torch.cat((mu[:, :frames, :], mu[:, full_frames:, :]), dim=1)
+        result = original(shortened, x_lens - (full_frames - frames),
+                          prompt[:, :, :frames], style, f0, n_timesteps, **kwargs)
+        if result.ndim != 3 or result.shape[-1] != shortened.shape[1]:
+            raise RuntimeError('IndexTTS returned an unsupported diffusion output shape. Choose Full reference.')
+        prefix = result.new_zeros((*result.shape[:-1], full_frames - frames))
+        return torch.cat((prefix, result), dim=-1)
+
+    cfm.inference = inference
+    try:
+        stage(f'Using up to {seconds:g}s diffusion reference; original speaker identity preserved')
+        yield
+    finally:
+        cfm.inference = original
+
+
+def refresh_index_reference(synthesizer, path):
+    """Invalidate filename-based upstream caches when a reference is replaced."""
+    reference = Path(path).resolve()
+    try:
+        stat = reference.stat()
+        identity = (str(reference), stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+    except OSError:
+        identity = (str(reference), None)
+    previous = getattr(synthesizer, '_pvs_reference_identity', None)
+    if previous is not None and previous != identity:
+        for name in ('cache_spk_cond', 'cache_s2mel_style', 'cache_s2mel_prompt',
+                     'cache_spk_audio_prompt', 'cache_mel'):
+            setattr(synthesizer, name, None)
+    synthesizer._pvs_reference_identity = identity
+
+
+def index_run(req: dict, synthesizer=None):
+    reference_seconds = req.get('reference_seconds', 0)
+    if type(reference_seconds) not in (int, float) or reference_seconds not in (0, 5):
+        raise ValueError('Choose a 5-second fast reference or the full original reference.')
     stage('Importing IndexTTS and PyTorch')
     import torch
     device = _device(req.get('device', 'cpu'), torch)
@@ -245,19 +365,25 @@ def index_run(req: dict) -> None:
     stage(f'IndexTTS runtime: Python {sys.version.split()[0]}, '
           f'PyTorch {torch.__version__}, device {device}, '
           f'CPU inference threads {torch.get_num_threads()}')
-    stage('Loading IndexTTS model and checkpoints (conservative backend)')
-    synthesizer = IndexTTS2(
-        cfg_path=str(checkpoints / 'config.yaml'),
-        model_dir=str(checkpoints),
-        device=device,
-        use_bf16=device.startswith('cuda'),
-        use_cuda_kernel=False,
-        use_deepspeed=False,
-        use_accel=False,
-        use_torch_compile=False,
-        use_qwen_emo=False,
-    )
-    stage('IndexTTS model initialization finished')
+    if synthesizer is None:
+        stage('Loading IndexTTS model and checkpoints (conservative backend)')
+        mitigation = nullcontext()
+        if (device.startswith('cuda')
+                and getattr(getattr(torch, 'version', None), 'hip', None)):
+            mitigation = materialized_index_semantic_model(sys.modules['indextts.infer_v2_5'], torch)
+        with mitigation:
+            synthesizer = IndexTTS2(
+                cfg_path=str(checkpoints / 'config.yaml'),
+                model_dir=str(checkpoints),
+                device=device,
+                use_bf16=device.startswith('cuda'),
+                use_cuda_kernel=False,
+                use_deepspeed=False,
+                use_accel=False,
+                use_torch_compile=False,
+                use_qwen_emo=False,
+            )
+        stage('IndexTTS model initialization finished')
     options = {
         'spk_audio_prompt': req['voice_path'], 'text': req['text'],
         'lang': req['language'], 'output_path': req['output_path'],
@@ -265,11 +391,24 @@ def index_run(req: dict) -> None:
     }
     emotion = req.get('emotion', 'neutral')
     emotions = ['happy', 'angry', 'sad', 'afraid', 'disgusted', 'melancholic', 'surprised', 'calm']
-    if emotion in emotions:
+    emotion_audio = req.get('emotion_audio_path')
+    if emotion_audio:
+        if not Path(emotion_audio).is_file():
+            raise ValueError('Emotion-reference recording is missing.')
+        # The UI may overwrite the same recording path between requests.
+        # Index caches by filename, so force fresh emotion conditioning.
+        synthesizer.cache_emo_cond = None
+        synthesizer.cache_emo_audio_prompt = None
+        options['emo_audio_prompt'] = str(emotion_audio)
+        options['emo_alpha'] = 1.0
+    elif emotion in emotions:
         options['emo_vector'] = [0.8 if item == emotion else 0.0 for item in emotions]
+    refresh_index_reference(synthesizer, req['voice_path'])
     stage('Generating IndexTTS speech')
-    synthesizer.infer(**options)
+    with index_reference_conditioning(synthesizer, reference_seconds, torch):
+        synthesizer.infer(**options)
     stage('IndexTTS WAV saved successfully')
+    return synthesizer
 
 
 def kokoro_run(req: dict) -> dict:
