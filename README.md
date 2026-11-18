@@ -293,3 +293,7 @@ MIT applies to original project code subject to the included `LICENSE`. Windows 
 ## Speak As
 
 The main app now includes **Speak as…** beside the reference-voice selector, with Seed-VC V1 F0-auto or Chatterbox direct audio conversion, permanent Save WAV, playback and warm-model reuse. Seed uses an explicitly configured external runtime and models; see [Seed setup and licensing](SEED_VC.md). IndexTTS transcription/re-synthesis remains an alternate; conversion may change performance details. See [Speak As setup, controls and verification scope](SPEAK_AS.md).
+
+### Assistive speech companion (Linux development)
+
+The optional [assistive companion](ASSISTIVE_SPEECH.md) prepares typed or recorded phrases and sends them through a temporary selectable PipeWire microphone. It preserves the existing Studio workflow. Continuous real-time conversion is not implemented.

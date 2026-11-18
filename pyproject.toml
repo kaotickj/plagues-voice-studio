@@ -24,6 +24,7 @@ test = ["pytest>=8,<10"]
 
 [project.scripts]
 plagues-voice-studio = "chatterbox_studio.app:run"
+plagues-assistive-voice = "chatterbox_studio.assistive:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
